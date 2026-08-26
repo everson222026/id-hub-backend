@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ID HUB | Perfil Docente Interativo</title>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+  
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <style>
+    :root {
+      --bg-gradient: linear-gradient(135deg, #0d2b24 0%, #164e41 50%, #2d6a4f 100%);
+      --card-bg: rgba(255, 255, 255, 0.08);
+      --card-border: rgba(255, 255, 255, 0.15);
+      --input-bg: rgba(255, 255, 255, 0.12);
+      --input-focus: rgba(255, 255, 255, 0.2);
+      --text-primary: #ffffff;
+      --text-secondary: #d8f3dc;
+      --accent-color: #52b788;
+      --btn-purple: #5e548e;
+      --btn-purple-hover: #4a407e;
+      --shadow-lg: 0 20px 40px rgba(0, 0, 0, 0.35);
+      --font-main: 'Inter', sans-serif;
+      --font-title: 'Poppins', sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-main);
+      background: var(--bg-gradient);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 20px;
+    }
+
+    .app-container {
+      width: 100%;
+      max-width: 520px;
+      background: var(--card-bg);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--card-border);
+      border-radius: 28px;
+      padding: 32px;
+      box-shadow: var(--shadow-lg);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Botão Voltar */
+    .btn-back {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid var(--card-border);
+      color: var(--text-primary);
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      margin-bottom: 20px;
+      transition: background 0.3s, transform 0.2s;
+    }
+
+    .btn-back:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .btn-back:active {
+      transform: scale(0.95);
+    }
+
+    /* Navegação por Abas */
+    .nav-tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 25px;
+      background: rgba(0, 0, 0, 0.15);
+      padding: 6px;
+      border-radius: 16px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      font-family: var(--font-main);
+      font-weight: 600;
+      font-size: 0.85rem;
+      padding: 10px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .tab-btn.active {
+      background: var(--card-bg);
+      color: var(--text-primary);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+      animation: fadeIn 0.4s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Perfil Header */
+    .avatar-large {
+      width: 100px;
+      height: 100px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 3px solid var(--accent-color);
+      border-radius: 50%;
+      margin: 0 auto 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.5rem;
+      color: var(--accent-color);
+    }
+
+    .profile-info h1 {
+      font-family: var(--font-title);
+      font-size: 1.4rem;
+      margin-bottom: 4px;
+    }
+
+    .profile-info p {
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+      margin-bottom: 20px;
+    }
+
+    /* Grid de Informações */
+    .info-grid {
+      display: grid;
+      gap: 12px;
+      text-align: left;
+      margin-bottom: 20px;
+    }
+
+    .info-item {
+      background: var(--input-bg);
+      padding: 10px 16px;
+      border-radius: 12px;
+      border: 1px solid var(--card-border);
+      transition: border-color 0.3s;
+    }
+
+    .info-label {
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .info-value {
+      font-size: 0.95rem;
+      margin-top: 2px;
+      width: 100%;
+      background: transparent;
+      border: none;
+      color: var(--text-primary);
+      font-family: var(--font-main);
+      outline: none;
+    }
+
+    .info-value:disabled {
+      color: var(--text-primary);
+      cursor: default;
+    }
+
+    /* Modo de Edição Ativo */
+    .editing .info-item {
+      background: var(--input-focus);
+      border-color: var(--accent-color);
+    }
+
+    .editing .info-value {
+      border-bottom: 1px dashed var(--accent-color);
+      padding-bottom: 2px;
+    }
+
+    /* Lista de Turmas */
+    .class-card {
+      background: var(--input-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 14px;
+      margin-bottom: 12px;
+      text-align: left;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .class-info h3 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+
+    .class-info span {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+    }
+
+    .class-badge {
+      background: rgba(82, 183, 136, 0.2);
+      color: var(--accent-color);
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 20px;
+    }
+
+    /* Botão de Ação */
+    .btn-action {
+      width: 100%;
+      padding: 12px;
+      border-radius: 50px;
+      border: none;
+      background: var(--btn-purple);
+      color: white;
+      font-weight: 700;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: background 0.3s, transform 0.2s;
+    }
+
+    .btn-action:hover {
+      background: var(--btn-purple-hover);
+    }
+
+    .btn-action:active {
+      transform: scale(0.98);
+    }
+
+    /* Notificação Toast */
+    .toast {
+      position: absolute;
+      bottom: -50px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--accent-color);
+      color: #0d2b24;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      transition: bottom 0.4s ease;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+
+    .toast.show {
+      bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <main class="app-container" id="appContainer">
+    <!-- Botão Voltar -->
+    <button class="btn-back" onclick="goBack()" title="Voltar">
+      <i class="fa-solid fa-arrow-left"></i>
+    </button>
+
+    <!-- Navegação de Abas -->
+    <div class="nav-tabs">
+      <button class="tab-btn active" onclick="switchTab('profile')">Meu Perfil</button>
+      <button class="tab-btn" onclick="switchTab('classes')">Turmas</button>
+    </div>
+
+    <!-- Aba de Perfil -->
+    <div id="profileTab" class="tab-content active">
+      <div class="avatar-large">
+        <i class="fa-solid fa-chalkboard-user"></i>
+      </div>
+      
+      <div class="profile-info">
+        <h1 id="displayName">Prof. Carlos Silva</h1>
+        <p>Docente de Informática</p>
+      </div>
+
+      <div class="info-grid" id="infoGrid">
+        <div class="info-item">
+          <div class="info-label">E-mail Institucional</div>
+          <input type="email" class="info-value" id="inputEmail" value="carlos.silva@escola.com" disabled>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Telefone / WhatsApp</div>
+          <input type="text" class="info-value" id="inputPhone" value="(82) 99999-8888" disabled>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Especialidade</div>
+          <input type="text" class="info-value" id="inputSpec" value="Desenvolvimento de Sistemas" disabled>
+        </div>
+      </div>
+
+      <button class="btn-action" id="editBtn" onclick="toggleEditMode()">EDITAR PERFIL</button>
+    </div>
+
+    <!-- Aba de Turmas -->
+    <div id="classesTab" class="tab-content">
+      <div class="profile-info" style="margin-bottom: 20px;">
+        <h1>Minhas Turmas</h1>
+        <p>Acompanhamento de disciplinas ativas</p>
+      </div>
+
+      <div class="class-card">
+        <div class="class-info">
+          <h3>Desenvolvimento Web I</h3>
+          <span>3º Ano • Informática</span>
+        </div>
+        <div class="class-badge">40 Alunos</div>
+      </div>
+
+      <div class="class-card">
+        <div class="class-info">
+          <h3>Banco de Dados Avançado</h3>
+          <span>2º Ano • Informática</span>
+        </div>
+        <div class="class-badge">35 Alunos</div>
+      </div>
+
+      <div class="class-card">
+        <div class="class-info">
+          <h3>Lógica de Programação</h3>
+          <span>1º Ano • Informática</span>
+        </div>
+        <div class="class-badge">42 Alunos</div>
+      </div>
+    </div>
+
+    <!-- Mensagem de Sucesso (Toast) -->
+    <div class="toast" id="toastMsg">Alterações salvas com sucesso!</div>
+  </main>
+
+  <script>
+    let isEditing = false;
+
+    // Função do botão voltar
+    function goBack() {
+      // Se houver histórico anterior, retorna para a página anterior. Caso contrário, redireciona para um destino padrão.
+      if (document.referrer) {
+        window.history.back();
+      } else {
+        window.location.href = 'index.html'; // Altere para a página principal desejada se necessário
+      }
+    }
+
+    // Função para alternar entre as abas
+    function switchTab(tabName) {
+      const profileTab = document.getElementById('profileTab');
+      const classesTab = document.getElementById('classesTab');
+      const buttons = document.querySelectorAll('.tab-btn');
+
+      buttons.forEach(btn => btn.classList.remove('active'));
+
+      if (tabName === 'profile') {
+        profileTab.classList.add('active');
+        classesTab.classList.remove('active');
+        buttons[0].classList.add('active');
+      } else {
+        classesTab.classList.add('active');
+        profileTab.classList.remove('active');
+        buttons[1].classList.add('active');
+      }
+    }
+
+    // Função para alternar o modo de edição dos campos
+    function toggleEditMode() {
+      const container = document.getElementById('appContainer');
+      const editBtn = document.getElementById('editBtn');
+      const inputs = document.querySelectorAll('.info-value');
+      const displayName = document.getElementById('displayName');
+
+      isEditing = !isEditing;
+
+      if (isEditing) {
+        container.classList.add('editing');
+        editBtn.textContent = 'SALVAR ALTERAÇÕES';
+        inputs.forEach(input => input.removeAttribute('disabled'));
+        inputs[0].focus();
+      } else {
+        container.classList.remove('editing');
+        editBtn.textContent = 'EDITAR PERFIL';
+        inputs.forEach(input => input.setAttribute('disabled', 'true'));
+        
+        // Exibir notificação toast
+        showToast();
+      }
+    }
+
+    // Função para exibir o alerta flutuante
+    function showToast() {
+      const toast = document.getElementById('toastMsg');
+      toast.classList.add('show');
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 3000);
+    }
+  </script>
+
+</body>
+</html>

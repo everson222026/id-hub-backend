@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ID HUB | Login</title>
+  
+  <!-- Google Fonts: Inter & Poppins -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+  
+  <!-- Font Awesome para Ícones Profissionais -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <!-- =========================================
+       ESTILOS CSS INTEGRADOS
+  ========================================= -->
+  <style>
+    :root {
+      --bg-gradient: linear-gradient(135deg, #0d2b24 0%, #164e41 50%, #2d6a4f 100%);
+      --card-bg: rgba(255, 255, 255, 0.08);
+      --card-border: rgba(255, 255, 255, 0.15);
+      --input-bg: rgba(255, 255, 255, 0.12);
+      --text-primary: #ffffff;
+      --text-secondary: #d8f3dc;
+      --accent-color: #2ec4b6;
+      --accent-hover: #20a39e;
+      --btn-green: #20bf55;
+      --btn-green-hover: #1bb04d;
+      --error-color: #ff4d4d;
+      --shadow-lg: 0 20px 40px rgba(0, 0, 0, 0.35);
+      --font-main: 'Inter', sans-serif;
+      --font-title: 'Poppins', sans-serif;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--font-main);
+      background: var(--bg-gradient);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      overflow-x: hidden;
+    }
+
+    /* Container Principal Glassmorphism */
+    .app-container {
+      position: relative;
+      width: 100%;
+      max-width: 480px;
+      background: var(--card-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--card-border);
+      border-radius: 28px;
+      box-shadow: var(--shadow-lg);
+      padding: 40px 36px;
+      overflow: hidden;
+      animation: fadeIn 0.8s ease-out;
+    }
+
+    /* Ondas Decorativas de Fundo */
+    .wave-bg {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 180px;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .wave-bg svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Header superior da aplicação */
+    .app-header {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+
+    .back-link {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: color 0.3s ease;
+    }
+
+    .back-link:hover {
+      color: var(--text-primary);
+    }
+
+    .logo-text {
+      font-family: var(--font-title);
+      font-size: 1.2rem;
+      letter-spacing: 1px;
+    }
+
+    /* Bloco do Usuário (Avatar + Título) */
+    .user-welcome-header {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+
+    .avatar-circle {
+      width: 64px;
+      height: 64px;
+      background: rgba(255, 255, 255, 0.15);
+      border: 2px solid var(--card-border);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.8rem;
+      color: var(--text-secondary);
+      flex-shrink: 0;
+    }
+
+    .welcome-text h1 {
+      font-family: var(--font-title);
+      font-size: 1.8rem;
+      font-weight: 700;
+      line-height: 1.1;
+      margin-bottom: 4px;
+    }
+
+    .welcome-text p {
+      font-size: 0.95rem;
+      color: var(--text-secondary);
+      font-style: italic;
+    }
+
+    /* Formulário de Login */
+    .login-form {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .input-icon {
+      position: absolute;
+      left: 16px;
+      color: var(--text-secondary);
+      font-size: 1.1rem;
+      pointer-events: none;
+      transition: color 0.3s ease;
+    }
+
+    .custom-input {
+      width: 100%;
+      background: var(--input-bg);
+      border: 1px solid var(--card-border);
+      padding: 14px 16px 14px 48px;
+      border-radius: 50px;
+      color: var(--text-primary);
+      font-family: var(--font-main);
+      font-size: 0.95rem;
+      outline: none;
+      transition: all 0.3s ease;
+    }
+
+    .custom-input::placeholder {
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    .custom-input:focus {
+      border-color: var(--accent-color);
+      box-shadow: 0 0 12px rgba(46, 196, 182, 0.3);
+      background: rgba(255, 255, 255, 0.18);
+    }
+
+    /* Input Error State */
+    .input-group.error .custom-input {
+      border-color: var(--error-color);
+      box-shadow: 0 0 8px rgba(255, 77, 77, 0.3);
+    }
+
+    .error-message {
+      font-size: 0.75rem;
+      color: var(--error-color);
+      padding-left: 16px;
+      display: none;
+    }
+
+    .input-group.error .error-message {
+      display: block;
+    }
+
+    /* Botão de ocultar/mostrar senha */
+    .toggle-password {
+      position: absolute;
+      right: 16px;
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 1.1rem;
+      padding: 4px;
+      transition: color 0.3s ease;
+    }
+
+    .toggle-password:hover {
+      color: var(--text-primary);
+    }
+
+    /* Link "Criar conta" */
+    .signup-prompt {
+      text-align: center;
+      font-size: 0.9rem;
+      margin-top: 4px;
+      margin-bottom: 6px;
+      color: var(--text-primary);
+    }
+
+    .signup-prompt a {
+      color: #9d4edd;
+      text-decoration: underline;
+      font-weight: 600;
+      transition: color 0.3s ease;
+    }
+
+    .signup-prompt a:hover {
+      color: #c77dff;
+    }
+
+    /* Botões de Ação */
+    .btn-submit {
+      width: 100%;
+      background: var(--btn-green);
+      color: #ffffff;
+      border: none;
+      padding: 14px;
+      border-radius: 50px;
+      font-family: var(--font-title);
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      box-shadow: 0 6px 20px rgba(32, 191, 85, 0.35);
+      transition: all 0.3s ease;
+    }
+
+    .btn-submit:hover {
+      background: var(--btn-green-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(32, 191, 85, 0.45);
+    }
+
+    .btn-google {
+      width: 100%;
+      background: var(--input-bg);
+      border: 1px solid var(--card-border);
+      color: var(--text-primary);
+      padding: 12px;
+      border-radius: 50px;
+      font-family: var(--font-main);
+      font-size: 0.95rem;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: all 0.3s ease;
+    }
+
+    .btn-google:hover {
+      background: rgba(255, 255, 255, 0.2);
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+
+    .google-icon {
+      color: #ea4335; /* Cor do Google */
+    }
+
+    /* Alerta de Feedback */
+    .alert-box {
+      display: none;
+      padding: 12px 16px;
+      border-radius: 12px;
+      font-size: 0.85rem;
+      text-align: center;
+      margin-top: 10px;
+    }
+
+    .alert-box.success {
+      display: block;
+      background: rgba(32, 191, 85, 0.2);
+      border: 1px solid var(--btn-green);
+      color: #d8f3dc;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(15px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <main class="app-container">
+    <!-- Fundo decorativo com ondas -->
+    <div class="wave-bg">
+      <svg viewBox="0 0 1440 320" preserveAspectRatio="none">
+        <path fill="rgba(255, 255, 255, 0.05)" d="M0,192L48,197.3C96,203,192,213,288,192C384,171,480,117,576,117.3C672,117,768,171,864,197.3C960,224,1056,224,1152,197.3C1248,171,1344,117,1392,90.7L1440,64L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path>
+        <path fill="rgba(15, 62, 51, 0.4)" d="M0,224L60,213.3C120,203,240,181,360,186.7C480,192,600,224,720,218.7C840,213,960,171,1080,165.3C1200,160,1320,192,1380,208L1440,224L1440,320L1380,320C1320,320,1200,320,1080,320C960,320,840,320,720,320C600,320,480,320,360,320C240,320,120,320,60,320L0,320Z"></path>
+      </svg>
+    </div>
+
+    <!-- Topo da Janela -->
+    <header class="app-header">
+      <a href="index.html" class="back-link">
+        <i class="fa-solid fa-arrow-left"></i> Voltar
+      </a>
+      <span class="logo-text">ID<strong>HUB</strong></span>
+    </header>
+
+    <!-- Bloco com Avatar e Boas-Vindas -->
+    <div class="user-welcome-header">
+      <div class="avatar-circle">
+        <i class="fa-solid fa-user"></i>
+      </div>
+      <div class="welcome-text">
+        <h1>Bem-vindo!</h1>
+        <p>Entre na sua conta</p>
+      </div>
+    </div>
+
+    <!-- Formulário de Autenticação -->
+    <form id="loginForm" class="login-form" novalidate>
+      
+      <!-- Campo E-mail -->
+      <div class="input-group" id="emailGroup">
+        <div class="input-wrapper">
+          <i class="fa-solid fa-envelope input-icon"></i>
+          <input 
+            type="email" 
+            id="emailInput" 
+            class="custom-input" 
+            placeholder="E-mail" 
+            autocomplete="email"
+            required
+          >
+        </div>
+        <span class="error-message" id="emailError">Por favor, insira um e-mail válido.</span>
+      </div>
+
+      <!-- Campo Senha -->
+      <div class="input-group" id="passwordGroup">
+        <div class="input-wrapper">
+          <i class="fa-solid fa-lock input-icon"></i>
+          <input 
+            type="password" 
+            id="passwordInput" 
+            class="custom-input" 
+            placeholder="Senha" 
+            autocomplete="current-password"
+            required
+          >
+          <button type="button" class="toggle-password" id="togglePassword" aria-label="Mostrar/Ocultar senha">
+            <i class="fa-solid fa-eye-slash" id="toggleIcon"></i>
+          </button>
+        </div>
+        <span class="error-message" id="passwordError">A senha deve ter pelo menos 6 caracteres.</span>
+      </div>
+
+      <!-- Link para criar conta -->
+      <p class="signup-prompt">
+        Não tem conta? <a href="cadastro.html">criar conta</a>
+      </p>
+
+      <!-- Botão Entrar -->
+      <button type="submit" class="btn-submit" id="btnSubmit">
+        <i class="fa-solid fa-right-to-bracket"></i>
+        <span>ENTRAR</span>
+      </button>
+
+      <!-- Botão Social Google -->
+      <button type="button" class="btn-google" id="btnGoogle">
+        <span>Continuar com o google</span>
+        <i class="fa-brands fa-google google-icon"></i>
+      </button>
+
+      <!-- Caixas de alerta para feedback -->
+      <div class="alert-box" id="alertBox"></div>
+
+    </form>
+  </main>
+
+  <!-- =========================================
+       JAVASCRIPT INTEGRADO (VERIFICAÇÕES + DB READY)
+  ========================================= -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const loginForm = document.getElementById('loginForm');
+      const emailInput = document.getElementById('emailInput');
+      const passwordInput = document.getElementById('passwordInput');
+      
+      const emailGroup = document.getElementById('emailGroup');
+      const passwordGroup = document.getElementById('passwordGroup');
+      
+      const togglePasswordBtn = document.getElementById('togglePassword');
+      const toggleIcon = document.getElementById('toggleIcon');
+      
+      const btnSubmit = document.getElementById('btnSubmit');
+      const alertBox = document.getElementById('alertBox');
+
+      // 1. Mostrar/Ocultar Senha (Toggle Password)
+      togglePasswordBtn.addEventListener('click', () => {
+        const isPassword = passwordInput.getAttribute('type') === 'password';
+        passwordInput.setAttribute('type', isPassword ? 'text' : 'password');
+        
+        // Altera ícone do olho
+        toggleIcon.classList.toggle('fa-eye-slash', !isPassword);
+        toggleIcon.classList.toggle('fa-eye', isPassword);
+      });
+
+      // 2. Limpar erro quando o usuário digita
+      emailInput.addEventListener('input', () => emailGroup.classList.remove('error'));
+      passwordInput.addEventListener('input', () => passwordGroup.classList.remove('error'));
+
+      // Validador Regex de E-mail
+      function isValidEmail(email) {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+      }
+
+      // 3. Processo de Login com Verificações
+      loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        let isValid = true;
+        const emailValue = emailInput.value.trim();
+        const passwordValue = passwordInput.value.trim();
+
+        // Validação do E-mail
+        if (!emailValue || !isValidEmail(emailValue)) {
+          emailGroup.classList.add('error');
+          isValid = false;
+        }
+
+        // Validação da Senha
+        if (!passwordValue || passwordValue.length < 6) {
+          passwordGroup.classList.add('error');
+          isValid = false;
+        }
+
+        if (!isValid) return;
+
+        // Animação no botão ao enviar (Loading State)
+        btnSubmit.disabled = true;
+        btnSubmit.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>ENTRANDO...</span>`;
+
+        try {
+          /* ==========================================================
+             CONFIGURAÇÃO FUTURA PARA BANCO DE DADOS (API / BACKEND)
+             ==========================================================
+             Quando você criar o backend (Node.js, PHP, Python, Supabase, Firebase, etc.), 
+             basta descomentar e ajustar o código de requisição abaixo:
+
+             const response = await fetch('https://sua-api.com/auth/login', {
+               method: 'POST',
+               headers: { 'Content-Type': 'application/json' },
+               body: JSON.stringify({ email: emailValue, password: passwordValue })
+             });
+
+             const data = await response.json();
+             if (!response.ok) throw new Error(data.message || 'Erro ao autenticar');
+          ========================================================== */
+
+          // Simulando atraso de resposta do servidor (1.5s)
+          await new Promise(resolve => setTimeout(resolve, 1500));
+
+          // Sucesso simulado
+          alertBox.className = "alert-box success";
+          alertBox.innerText = "Login efetuado com sucesso! Redirecionando...";
+          
+          setTimeout(() => {
+            // Direciona para o painel/dashboard principal futuramente
+            window.location.href = 'docente.html'; 
+          }, 1500);
+
+        } catch (error) {
+          alertBox.className = "alert-box error";
+          alertBox.style.display = "block";
+          alertBox.innerText = error.message || "Erro de conexão com o servidor.";
+        } finally {
+          btnSubmit.disabled = false;
+          btnSubmit.innerHTML = `<i class="fa-solid fa-right-to-bracket"></i> <span>ENTRAR</span>`;
+        }
+      });
+    });
+  </script>
+</body>
+</html>

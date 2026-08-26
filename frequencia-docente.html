@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ID HUB | Frequência Docente</title>
+  
+  <!-- Google Fonts: Inter & Poppins -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Font Awesome para Ícones -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <!-- =========================================
+       ESTILOS CSS INTEGRADOS (GLASSMORPHISM)
+  ========================================= -->
+  <style>
+    :root {
+      --bg-gradient: linear-gradient(135deg, #0d2b24 0%, #164e41 50%, #2d6a4f 100%);
+      --card-bg: rgba(255, 255, 255, 0.08);
+      --card-border: rgba(255, 255, 255, 0.15);
+      --input-bg: rgba(255, 255, 255, 0.12);
+      --text-primary: #ffffff;
+      --text-secondary: #d8f3dc;
+      --accent-color: #52b788;
+      --btn-green: #20bf55;
+      --btn-green-hover: #1bb04d;
+      --btn-dark-green: #115e4c;
+      --btn-dark-green-hover: #0e4e3f;
+      --btn-red: #e63946;
+      --btn-red-hover: #c92a37;
+      --shadow-lg: 0 20px 40px rgba(0, 0, 0, 0.35);
+      --font-main: 'Inter', sans-serif;
+      --font-title: 'Poppins', sans-serif;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--font-main);
+      background: var(--bg-gradient);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 20px;
+      overflow-x: hidden;
+    }
+
+    /* Container Principal Glassmorphism */
+    .app-container {
+      position: relative;
+      width: 100%;
+      max-width: 1000px;
+      background: var(--card-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--card-border);
+      border-radius: 28px;
+      box-shadow: var(--shadow-lg);
+      padding: 32px;
+      overflow: hidden;
+      animation: fadeIn 0.8s ease-out;
+    }
+
+    /* Ondas Decorativas de Fundo */
+    .wave-bg {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 180px;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .wave-bg svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Header Superior */
+    .app-header {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+
+    .header-center {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .logo-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid var(--card-border);
+      padding: 8px 18px;
+      border-radius: 50px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    .logo-badge i {
+      font-size: 1.4rem;
+      color: var(--accent-color);
+    }
+
+    .logo-text {
+      font-family: var(--font-title);
+      font-size: 1.1rem;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+    }
+
+    .back-btn {
+      color: var(--text-secondary);
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid var(--card-border);
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      font-size: 1.1rem;
+      transition: all 0.3s ease;
+    }
+
+    .back-btn:hover {
+      background: var(--accent-color);
+      color: #0d2b24;
+      transform: rotate(-15deg);
+    }
+
+    /* Layout Principal em 2 Colunas */
+    .frequency-grid {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: 1.3fr 1fr;
+      gap: 28px;
+    }
+
+    @media (max-width: 820px) {
+      .frequency-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* COLUNA ESQUERDA: LISTA DE ALUNOS */
+    .students-list-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-height: 520px;
+      overflow-y: auto;
+      padding-right: 6px;
+    }
+
+    /* Scrollbar Personalizada */
+    .students-list-panel::-webkit-scrollbar {
+      width: 6px;
+    }
+    .students-list-panel::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 10px;
+    }
+
+    .student-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(255, 255, 255, 0.95);
+      color: #1a1a1a;
+      padding: 10px 16px;
+      border-radius: 18px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .student-item:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+    }
+
+    .student-info {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .student-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid var(--btn-dark-green);
+    }
+
+    .student-name {
+      font-family: var(--font-title);
+      font-weight: 700;
+      font-size: 0.95rem;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      color: #0d2b24;
+    }
+
+    /* Checkbox Personalizado do Wireframe */
+    .presence-checkbox-wrapper {
+      position: relative;
+      cursor: pointer;
+    }
+
+    .presence-checkbox {
+      appearance: none;
+      width: 32px;
+      height: 32px;
+      border: 2px solid #ccc;
+      border-radius: 8px;
+      background: #ffffff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.25s ease;
+    }
+
+    .presence-checkbox:checked {
+      background: var(--btn-green);
+      border-color: var(--btn-green);
+    }
+
+    .presence-checkbox:checked::after {
+      content: '✓';
+      color: #ffffff;
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    /* COLUNA DIREITA: AÇÕES E CALENDÁRIO */
+    .actions-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      align-items: center;
+    }
+
+    .btn-action {
+      width: 100%;
+      padding: 14px 20px;
+      border-radius: 14px;
+      font-family: var(--font-title);
+      font-size: 0.95rem;
+      font-weight: 800;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: all 0.3s ease;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+      text-decoration: none;
+    }
+
+    .btn-launch {
+      background: var(--btn-green);
+      color: #ffffff;
+    }
+
+    .btn-launch:hover {
+      background: var(--btn-green-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 22px rgba(32, 191, 85, 0.4);
+    }
+
+    .btn-consult {
+      background: var(--btn-dark-green);
+      color: #ffffff;
+    }
+
+    .btn-consult:hover {
+      background: var(--btn-dark-green-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 22px rgba(17, 94, 76, 0.5);
+    }
+
+    .btn-absences {
+      background: var(--btn-red);
+      color: #ffffff;
+    }
+
+    .btn-absences:hover {
+      background: var(--btn-red-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 22px rgba(230, 57, 70, 0.4);
+    }
+
+    /* Campo Seletor de Data */
+    .date-display-box {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 12px;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: #0d2b24;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .date-display-box i {
+      font-size: 1.3rem;
+      color: #164e41;
+    }
+
+    .date-input {
+      border: none;
+      background: transparent;
+      outline: none;
+      font-family: var(--font-title);
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #0d2b24;
+      width: 100%;
+    }
+
+    /* Widget Calendário */
+    .calendar-card {
+      width: 100%;
+      background: #ffffff;
+      color: #1a1a1a;
+      border-radius: 18px;
+      padding: 16px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+    }
+
+    .calendar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      font-family: var(--font-title);
+      font-weight: 700;
+      font-size: 0.9rem;
+    }
+
+    .calendar-nav-btn {
+      background: none;
+      border: none;
+      font-size: 0.9rem;
+      cursor: pointer;
+      color: #555;
+      padding: 4px 8px;
+    }
+
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+      text-align: center;
+    }
+
+    .calendar-day-head {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: #888;
+      padding-bottom: 6px;
+    }
+
+    .calendar-day {
+      font-size: 0.8rem;
+      padding: 6px 0;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .calendar-day:hover:not(.empty) {
+      background: #e0f2fe;
+    }
+
+    .calendar-day.selected {
+      background: #115e4c;
+      color: #ffffff;
+      font-weight: bold;
+    }
+
+    .calendar-day.empty {
+      cursor: default;
+    }
+
+    /* Toast / Alerta */
+    .toast-msg {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: rgba(32, 191, 85, 0.95);
+      color: #ffffff;
+      padding: 12px 24px;
+      border-radius: 12px;
+      font-family: var(--font-title);
+      font-size: 0.88rem;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+      display: none;
+      z-index: 99;
+      animation: slideUp 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(15px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+
+  <main class="app-container">
+    
+    <!-- Fundo de Ondas Decorativo -->
+    <div class="wave-bg">
+      <svg viewBox="0 0 1440 320" preserveAspectRatio="none">
+        <path fill="rgba(255, 255, 255, 0.05)" d="M0,192L48,197.3C96,203,192,213,288,192C384,171,480,117,576,117.3C672,117,768,171,864,197.3C960,224,1056,224,1152,197.3C1248,171,1344,117,1392,90.7L1440,64L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path>
+        <path fill="rgba(15, 62, 51, 0.4)" d="M0,224L60,213.3C120,203,240,181,360,186.7C480,192,600,224,720,218.7C840,213,960,171,1080,165.3C1200,160,1320,192,1380,208L1440,224L1440,320L1380,320C1320,320,1200,320,1080,320C960,320,840,320,720,320C240,320,120,320,60,320L0,320Z"></path>
+      </svg>
+    </div>
+
+    <!-- Header Superior com Logo Central -->
+    <header class="app-header">
+      <div></div>
+      <div class="header-center">
+        <div class="logo-badge">
+          <i class="fa-solid fa-user-check"></i>
+          <span class="logo-text">IDHUB</span>
+        </div>
+      </div>
+      <a href="docente.html" class="back-btn" title="Voltar para a Home Docente">
+        <i class="fa-solid fa-arrow-left"></i>
+      </a>
+    </header>
+
+    <!-- Grid Principal de Frequência -->
+    <div class="frequency-grid">
+
+      <!-- COLUNA 1: Lista de Alunos com Fotos -->
+      <section class="students-list-panel" id="studentsList">
+
+        <div class="student-item">
+          <div class="student-info">
+            <img src="https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&q=80&w=150" alt="Ailton Bezerra" class="student-avatar">
+            <span class="student-name">Ailton Bezerra</span>
+          </div>
+          <input type="checkbox" class="presence-checkbox" checked>
+        </div>
+
+        <div class="student-item">
+          <div class="student-info">
+            <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=150" alt="Bruno Santos" class="student-avatar">
+            <span class="student-name">Bruno Santos</span>
+          </div>
+          <input type="checkbox" class="presence-checkbox">
+        </div>
+
+        <div class="student-item">
+          <div class="student-info">
+            <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=150" alt="Cedrico Miguel" class="student-avatar">
+            <span class="student-name">Cedrico Miguel</span>
+          </div>
+          <input type="checkbox" class="presence-checkbox">
+        </div>
+
+        <div class="student-item">
+          <div class="student-info">
+            <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=150" alt="Clodovil H." class="student-avatar">
+            <span class="student-name">Clodovil H.</span>
+          </div>
+          <input type="checkbox" class="presence-checkbox">
+        </div>
+
+        <div class="student-item">
+          <div class="student-info">
+            <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=150" alt="Larissa Mendes" class="student-avatar">
+            <span class="student-name">Larissa Mendes</span>
+          </div>
+          <input type="checkbox" class="presence-checkbox" checked>
+        </div>
+
+        <div class="student-item">
+          <div class="student-info">
+            <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=150" alt="Maria Jose" class="student-avatar">
+            <span class="student-name">Maria Jose</span>
+          </div>
+          <input type="checkbox" class="presence-checkbox">
+        </div>
+
+        <div class="student-item">
+          <div class="student-info">
+            <img src="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&q=80&w=150" alt="Teofilus C." class="student-avatar">
+            <span class="student-name">Teofilus C.</span>
+          </div>
+          <input type="checkbox" class="presence-checkbox" checked>
+        </div>
+
+      </section>
+
+      <!-- COLUNA 2: Controles e Calendário -->
+      <section class="actions-panel">
+
+        <!-- Botão Lançar Frequência -->
+        <button class="btn-action btn-launch" id="btnLaunch">
+          <i class="fa-solid fa-list-check"></i>
+          <span>LANÇAR FREQUÊNCIA</span>
+        </button>
+
+        <!-- Campo de Data -->
+        <div class="date-display-box">
+          <i class="fa-regular fa-calendar-days"></i>
+          <input type="date" id="attendanceDate" class="date-input" value="2025-09-13">
+        </div>
+
+        <!-- Botão Consultar Frequências -->
+        <button class="btn-action btn-consult" id="btnConsult">
+          <i class="fa-solid fa-square-poll-vertical"></i>
+          <span>CONSULTAR FREQUÊNCIAS</span>
+        </button>
+
+        <!-- Novo Botão Controle de Faltas (Vermelho) -->
+        <a href="controle-faltas-docente.html" class="btn-action btn-absences" id="btnAbsences">
+          <i class="fa-solid fa-user-xmark"></i>
+          <span>CONTROLE DE FALTAS</span>
+        </a>
+
+        <!-- Calendário Interativo -->
+        <div class="calendar-card">
+          <div class="calendar-header">
+            <button class="calendar-nav-btn"><i class="fa-solid fa-chevron-left"></i></button>
+            <span>Setembro 2025</span>
+            <button class="calendar-nav-btn"><i class="fa-solid fa-chevron-right"></i></button>
+          </div>
+          
+          <div class="calendar-grid">
+            <div class="calendar-day-head">Su</div>
+            <div class="calendar-day-head">Mo</div>
+            <div class="calendar-day-head">Tu</div>
+            <div class="calendar-day-head">We</div>
+            <div class="calendar-day-head">Th</div>
+            <div class="calendar-day-head">Fr</div>
+            <div class="calendar-day-head">Sa</div>
+
+            <!-- Dias do mês -->
+            <div class="calendar-day empty"></div>
+            <div class="calendar-day">1</div>
+            <div class="calendar-day">2</div>
+            <div class="calendar-day">3</div>
+            <div class="calendar-day">4</div>
+            <div class="calendar-day">5</div>
+            <div class="calendar-day">6</div>
+
+            <div class="calendar-day">7</div>
+            <div class="calendar-day">8</div>
+            <div class="calendar-day">9</div>
+            <div class="calendar-day">10</div>
+            <div class="calendar-day">11</div>
+            <div class="calendar-day">12</div>
+            <div class="calendar-day selected">13</div>
+
+            <div class="calendar-day">14</div>
+            <div class="calendar-day">15</div>
+            <div class="calendar-day">16</div>
+            <div class="calendar-day">17</div>
+            <div class="calendar-day">18</div>
+            <div class="calendar-day">19</div>
+            <div class="calendar-day">20</div>
+
+            <div class="calendar-day">21</div>
+            <div class="calendar-day">22</div>
+            <div class="calendar-day">23</div>
+            <div class="calendar-day">24</div>
+            <div class="calendar-day">25</div>
+            <div class="calendar-day">26</div>
+            <div class="calendar-day">27</div>
+
+            <div class="calendar-day">28</div>
+            <div class="calendar-day">29</div>
+            <div class="calendar-day">30</div>
+            <div class="calendar-day empty"></div>
+            <div class="calendar-day empty"></div>
+            <div class="calendar-day empty"></div>
+            <div class="calendar-day empty"></div>
+          </div>
+        </div>
+
+      </section>
+
+    </div>
+  </main>
+
+  <!-- Mensagem Toast -->
+  <div class="toast-msg" id="toastMsg">Frequência lançada com sucesso!</div>
+
+  <!-- =========================================
+       JAVASCRIPT INTEGRADO (INTERATIVIDADE + API READY)
+  ========================================= -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const btnLaunch = document.getElementById('btnLaunch');
+      const btnConsult = document.getElementById('btnConsult');
+      const toastMsg = document.getElementById('toastMsg');
+      const attendanceDate = document.getElementById('attendanceDate');
+
+      function showToast(text) {
+        toastMsg.innerText = text;
+        toastMsg.style.display = 'block';
+        setTimeout(() => {
+          toastMsg.style.display = 'none';
+        }, 2500);
+      }
+
+      // Ação do Botão Lançar Frequência
+      btnLaunch.addEventListener('click', () => {
+        const checkedCount = document.querySelectorAll('.presence-checkbox:checked').length;
+        btnLaunch.disabled = true;
+        btnLaunch.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>LANÇANDO...</span>`;
+
+        setTimeout(() => {
+          btnLaunch.disabled = false;
+          btnLaunch.innerHTML = `<i class="fa-solid fa-list-check"></i> <span>LANÇAR FREQUÊNCIA</span>`;
+          showToast(`Frequência registrada: ${checkedCount} aluno(s) presente(s)!`);
+        }, 800);
+      });
+
+      // Ação do Botão Consultar Frequências
+      btnConsult.addEventListener('click', () => {
+        showToast(`Consultando frequências da data ${attendanceDate.value}...`);
+      });
+
+      // Sincronizar Calendário Interativo
+      const calendarDays = document.querySelectorAll('.calendar-day:not(.empty)');
+      calendarDays.forEach(day => {
+        day.addEventListener('click', () => {
+          calendarDays.forEach(d => d.classList.remove('selected'));
+          day.classList.add('selected');
+          
+          const dayNum = day.innerText.padStart(2, '0');
+          attendanceDate.value = `2025-09-${dayNum}`;
+          showToast(`Data selecionada: ${dayNum}/09/2025`);
+        });
+      });
+    });
+  </script>
+</body>
+</html>
