@@ -1,0 +1,34 @@
+{
+  "name": "id-hub",
+  "version": "1.0.0",
+  "description": "",
+  "main": "api.js",
+  "scripts": {
+    "db:push": "node push.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/everson222026/id-hub.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/everson222026/id-hub/issues"
+  },
+  "homepage": "https://github.com/everson222026/id-hub#readme",
+  "devDependencies": {
+    "@prisma/client": "^7.10.0",
+    "prisma": "^8.0.0-rc.12"
+  },
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "nodemailer": "^10.0.0",
+    "pg": "^8.23.0"
+  }
+}

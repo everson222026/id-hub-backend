@@ -5,15 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ID HUB | Painel Unificado do Docente</title>
   
-  <!-- Google Fonts: Inter & Poppins -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
-  
-  <!-- Font Awesome para Ícones -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  
-  <!-- Flatpickr (Biblioteca para Data de Nascimento) -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <link rel="stylesheet" type="text/css" href="https://npmcdn.com/flatpickr/dist/themes/dark.css">
 
@@ -23,19 +18,25 @@
       --card-bg: rgba(255, 255, 255, 0.08);
       --card-border: rgba(255, 255, 255, 0.15);
       --input-bg: rgba(255, 255, 255, 0.12);
+      --input-focus: rgba(255, 255, 255, 0.2);
       --text-primary: #ffffff;
       --text-secondary: #d8f3dc;
       --accent-color: #52b788;
       --accent-hover: #74c69d;
       --btn-green: #20bf55;
       --btn-green-hover: #1bb04d;
+      --btn-dark-green: #115e4c;
+      --btn-dark-green-hover: #0e4e3f;
+      --btn-red: #e63946;
+      --btn-red-hover: #c92a37;
       --btn-edit: #f4a261;
       --btn-edit-hover: #e76f51;
       --error-color: #ff4d4d;
-      --error-hover: #ff3333;
       --badge-matutino: #ffd166;
       --badge-vespertino: #f77f00;
       --badge-noturno: #a29bfe;
+      --badge-bg: #a39393;
+      --badge-border: #8b7979;
       --shadow-lg: 0 20px 40px rgba(0, 0, 0, 0.35);
       --font-main: 'Inter', sans-serif;
       --font-title: 'Poppins', sans-serif;
@@ -43,75 +44,62 @@
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
-    body {
-      font-family: var(--font-main);
-      background: var(--bg-gradient);
-      color: var(--text-primary);
-      min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 20px;
-      overflow-x: hidden;
-    }
+    body { font-family: var(--font-main); background: var(--bg-gradient); color: var(--text-primary); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; overflow-x: hidden; }
 
-    .wave-bg {
-      position: fixed;
-      bottom: 0; left: 0;
-      width: 100%; height: 200px;
-      z-index: 0; pointer-events: none;
-    }
+    .wave-bg { position: fixed; bottom: 0; left: 0; width: 100%; height: 200px; z-index: 0; pointer-events: none; }
     .wave-bg svg { width: 100%; height: 100%; }
-
     .d-none { display: none !important; }
 
-    /* Container Dashboard */
-    .dashboard-container {
-      position: relative; z-index: 2;
-      width: 100%; max-width: 1200px; min-height: 700px;
-      background: var(--card-bg);
-      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-      border: 1px solid var(--card-border);
-      border-radius: 28px; box-shadow: var(--shadow-lg);
-      padding: 30px; display: flex; flex-direction: column; gap: 24px;
-      animation: fadeIn 0.8s ease-out;
-    }
-
-    .dashboard-header {
-      display: flex; justify-content: space-between; align-items: center;
-      padding-bottom: 15px; border-bottom: 1px solid var(--card-border);
-      flex-wrap: wrap; gap: 15px;
-    }
+    /* DASHBOARD CONTAINER */
+    .dashboard-container { position: relative; z-index: 2; width: 100%; max-width: 1200px; min-height: 700px; background: var(--card-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid var(--card-border); border-radius: 28px; box-shadow: var(--shadow-lg); padding: 30px; display: flex; flex-direction: column; gap: 24px; animation: fadeIn 0.8s ease-out; }
+    .dashboard-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 15px; border-bottom: 1px solid var(--card-border); flex-wrap: wrap; gap: 15px; }
     .brand-logo { display: flex; align-items: center; gap: 12px; }
     .brand-icon { width: 42px; height: 42px; background: var(--accent-color); color: #0d2b24; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; }
     .brand-text { font-family: var(--font-title); font-size: 1.5rem; }
     .header-title { font-family: var(--font-title); font-size: 1.8rem; font-weight: 700; background: linear-gradient(to right, #ffffff, #b7e4c7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
     
-    /* Botão de Perfil Atualizado para Link */
+    .user-profile-container { position: relative; display: inline-block; }
     .user-profile { display: flex; align-items: center; gap: 12px; cursor: pointer; text-decoration: none; }
-    .profile-avatar { width: 45px; height: 45px; border-radius: 50%; background: rgba(255, 255, 255, 0.15); border: 2px solid var(--accent-color); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; color: var(--text-primary); transition: all 0.3s ease; }
+    .profile-avatar { width: 45px; height: 45px; border-radius: 50%; background: rgba(255, 255, 255, 0.15); border: 2px solid var(--accent-color); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; color: var(--text-primary); transition: all 0.3s ease; overflow: hidden; }
+    .profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
     .user-profile:hover .profile-avatar { transform: scale(1.05); background: var(--accent-color); color: #0d2b24; }
+
+    .profile-dropdown { position: absolute; right: 0; top: 55px; background: #11382f; border: 1px solid var(--card-border); border-radius: 14px; box-shadow: var(--shadow-lg); overflow: hidden; z-index: 100; min-width: 170px; display: flex; flex-direction: column; animation: fadeIn 0.2s ease; }
+    .dropdown-item { padding: 12px 16px; color: var(--text-primary); text-decoration: none; font-size: 0.85rem; font-weight: 500; display: flex; align-items: center; gap: 10px; background: transparent; border: none; width: 100%; text-align: left; cursor: pointer; transition: background 0.2s; }
+    .dropdown-item:hover { background: rgba(255, 255, 255, 0.1); color: var(--accent-color); }
+    .dropdown-item.logout { color: var(--error-color); border-top: 1px solid rgba(255, 255, 255, 0.08); }
+    .dropdown-item.logout:hover { background: rgba(255, 77, 77, 0.15); color: var(--error-color); }
 
     .dashboard-grid { display: grid; grid-template-columns: 320px 300px 1fr; gap: 20px; flex: 1; }
     .panel-card { background: rgba(0, 0, 0, 0.18); border: 1px solid var(--card-border); border-radius: 20px; padding: 18px; display: flex; flex-direction: column; gap: 14px; }
     .panel-title { font-family: var(--font-title); font-size: 1.1rem; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
 
     .class-desc-display { font-size: 0.8rem; color: var(--text-secondary); margin-top: -8px; margin-bottom: 10px; font-style: italic; background: rgba(255,255,255,0.05); padding: 8px; border-radius: 8px; border-left: 3px solid var(--accent-color); }
+    
+    .teacher-badge-info { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; padding: 8px 10px; background: rgba(0,0,0,0.25); border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); }
+    .teacher-badge-avatar { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; border: 1px solid var(--accent-color); background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 0.9rem; }
+    .teacher-badge-details { display: flex; flex-direction: column; }
+    .teacher-badge-label { font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; }
+    .teacher-badge-name { font-size: 0.85rem; font-weight: 600; color: #fff; }
 
     .classes-list, .students-list { display: flex; flex-direction: column; gap: 12px; overflow-y: auto; max-height: 420px; padding-right: 4px; }
     .students-list { gap: 8px; max-height: 350px; }
     
-    .class-item, .student-item { background: var(--input-bg); border: 1px solid var(--card-border); border-radius: 14px; padding: 14px; cursor: pointer; transition: all 0.3s ease; position: relative; overflow: hidden; }
-    .student-item { padding: 10px 12px; border-radius: 12px; display: flex; align-items: center; gap: 12px; background: rgba(255, 255, 255, 0.08); border-color: transparent; }
+    .class-item, .student-item-dash { background: var(--input-bg); border: 1px solid var(--card-border); border-radius: 14px; padding: 14px; cursor: pointer; transition: all 0.3s ease; position: relative; overflow: hidden; }
+    .student-item-dash { padding: 10px 12px; border-radius: 12px; display: flex; align-items: center; gap: 12px; background: rgba(255, 255, 255, 0.08); border-color: transparent; }
     .class-item::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: transparent; transition: background 0.3s ease; }
-    .class-item.active, .class-item:hover, .student-item:hover, .student-item.active { background: rgba(255, 255, 255, 0.2); border-color: var(--accent-color); }
+    .class-item.active, .class-item:hover, .student-item-dash:hover, .student-item-dash.active { background: rgba(255, 255, 255, 0.2); border-color: var(--accent-color); }
     .class-item.active, .class-item:hover { transform: translateX(4px); }
     .class-item.active::before { background: var(--accent-color); }
 
-    .class-header { display: flex; justify-content: space-between; margin-bottom: 6px; }
+    .class-header { display: flex; justify-content: space-between; margin-bottom: 4px; }
     .class-name { font-family: var(--font-title); font-weight: 700; font-size: 1.05rem; }
     .class-info { display: flex; justify-content: space-between; font-size: 0.82rem; color: var(--text-secondary); }
     
+    .class-item-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; padding-top: 6px; border-top: 1px solid rgba(255, 255, 255, 0.08); }
+    .btn-class-freq { background: rgba(247, 127, 0, 0.2); border: 1px solid #f77f00; color: #ffd166; font-size: 0.7rem; font-weight: 600; padding: 3px 8px; border-radius: 12px; cursor: pointer; display: flex; align-items: center; gap: 4px; text-decoration: none; transition: all 0.2s ease; }
+    .btn-class-freq:hover { background: #f77f00; color: #fff; }
+
     .shift-badge { font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 20px; text-transform: uppercase; }
     .shift-badge.matutino { background: rgba(255, 209, 102, 0.2); color: var(--badge-matutino); }
     .shift-badge.vespertino { background: rgba(247, 127, 0, 0.2); color: var(--badge-vespertino); }
@@ -121,7 +109,6 @@
     .student-name { font-size: 0.88rem; font-weight: 500; flex: 1; }
     .student-tag { font-size: 0.65rem; color: var(--accent-color); font-weight: 700; }
 
-    /* Detalhes do Aluno */
     .student-detail-header { display: flex; gap: 16px; align-items: center; padding-bottom: 12px; border-bottom: 1px solid var(--card-border); }
     .detail-photo-wrapper { width: 80px; height: 80px; border-radius: 16px; overflow: hidden; border: 2px solid var(--accent-color); flex-shrink: 0; background: rgba(0, 0, 0, 0.3); }
     .detail-photo { width: 100%; height: 100%; object-fit: cover; }
@@ -131,18 +118,15 @@
     .field-label { font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
     .field-value { font-size: 0.88rem; font-weight: 600; margin-top: 2px; word-break: break-all; }
 
-    /* Botões de Ação Específicos */
-    .btn-action { background: var(--btn-green); color: #ffffff; border: none; padding: 12px 18px; border-radius: 50px; font-family: var(--font-title); font-size: 0.9rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 15px rgba(32, 191, 85, 0.3); transition: all 0.3s ease; margin-top: auto; }
+    .btn-action { background: var(--btn-green); color: #ffffff; border: none; padding: 12px 18px; border-radius: 50px; font-family: var(--font-title); font-size: 0.9rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 15px rgba(32, 191, 85, 0.3); transition: all 0.3s ease; margin-top: auto; text-decoration: none; }
     .btn-action:hover { background: var(--btn-green-hover); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(32, 191, 85, 0.45); }
     
-    .btn-secondary-action { background: var(--input-bg); border: 1px solid var(--card-border); color: var(--text-primary); padding: 10px; border-radius: 50px; font-size: 0.85rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.3s ease; width: 100%; }
+    .btn-secondary-action { background: var(--input-bg); border: 1px solid var(--card-border); color: var(--text-primary); padding: 10px; border-radius: 50px; font-size: 0.85rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.3s ease; width: 100%; text-decoration: none; }
     .btn-secondary-action:hover { background: rgba(255, 255, 255, 0.2); border-color: var(--accent-color); }
     
-    /* Botão Notas (Azul/Índigo) */
     .btn-notes-action { background: #3a86ff; color: #fff; border: none; padding: 10px; border-radius: 50px; font-size: 0.85rem; font-weight: 600; text-decoration: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.3s ease; width: 100%; }
     .btn-notes-action:hover { background: #2667cc; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(58, 134, 255, 0.3); }
 
-    /* Botão Frequência (Laranja/Amber) */
     .btn-attendance-action { background: #f77f00; color: #fff; border: none; padding: 10px; border-radius: 50px; font-size: 0.85rem; font-weight: 600; text-decoration: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.3s ease; width: 100%; }
     .btn-attendance-action:hover { background: #d66f00; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(247, 127, 0, 0.3); }
 
@@ -155,41 +139,32 @@
     .btn-danger-outline { background: transparent; color: var(--error-color); border: 1px dashed rgba(255,77,77,0.4); padding: 8px; border-radius: 50px; font-size: 0.78rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; transition: all 0.3s; }
     .btn-danger-outline:hover { background: rgba(255,77,77,0.1); border-color: var(--error-color); }
 
-    /* Modal de Confirmação Customizado */
-    .modal-overlay {
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0, 0, 0, 0.65); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
-      z-index: 1000; display: flex; justify-content: center; align-items: center;
-      animation: fadeIn 0.3s ease;
-    }
-    .modal-card {
-      background: #11382f; border: 1px solid var(--card-border);
-      border-radius: 22px; padding: 28px; width: 90%; max-width: 400px;
-      text-align: center; display: flex; flex-direction: column; gap: 16px;
-      box-shadow: var(--shadow-lg); animation: scaleUp 0.3s ease;
-    }
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.65); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 1000; display: flex; justify-content: center; align-items: center; animation: fadeIn 0.3s ease; }
+    .modal-card { background: #11382f; border: 1px solid var(--card-border); border-radius: 22px; padding: 28px; width: 90%; max-width: 400px; text-align: center; display: flex; flex-direction: column; gap: 16px; box-shadow: var(--shadow-lg); animation: scaleUp 0.3s ease; }
     .modal-icon { font-size: 2.8rem; color: var(--error-color); margin-bottom: -4px; }
     .modal-card h3 { font-family: var(--font-title); font-size: 1.25rem; font-weight: 700; }
     .modal-card p { font-size: 0.88rem; color: var(--text-secondary); line-height: 1.4; }
     .modal-buttons { display: flex; gap: 12px; margin-top: 8px; }
     .modal-buttons button { flex: 1; margin-top: 0 !important; }
 
+    /* MODAL DE IMAGEM EXPANDIDA */
+    .image-modal-content { position: relative; max-width: 90%; max-height: 90vh; animation: scaleUp 0.3s ease; }
+    .image-modal-content img { width: 100%; height: 100%; max-height: 85vh; object-fit: contain; border-radius: 16px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+    .close-image-btn { position: absolute; top: -15px; right: -15px; background: var(--error-color); color: #fff; border: none; border-radius: 50%; width: 36px; height: 36px; font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.3); transition: all 0.2s ease; }
+    .close-image-btn:hover { background: #ff3333; transform: scale(1.1); }
+
     @keyframes scaleUp { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
-    /* Container Formulários */
-    .app-container {
-      position: relative; z-index: 2; width: 100%; max-width: 550px;
-      background: var(--card-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-      border: 1px solid var(--card-border); border-radius: 28px; box-shadow: var(--shadow-lg);
-      padding: 36px; animation: fadeIn 0.8s ease-out;
-      max-height: 90vh; overflow-y: auto;
-    }
+    .app-container { position: relative; z-index: 2; width: 100%; max-width: 550px; background: var(--card-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid var(--card-border); border-radius: 28px; box-shadow: var(--shadow-lg); padding: 36px; animation: fadeIn 0.8s ease-out; max-height: 90vh; overflow-y: auto; }
+    .app-container.freq-mode { max-width: 1000px; }
     .app-container::-webkit-scrollbar { width: 6px; }
     .app-container::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }
     
     .app-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
-    .logo-text { font-family: var(--font-title); font-size: 1.2rem; letter-spacing: 1px; }
-    .back-btn { color: var(--text-secondary); background: rgba(255, 255, 255, 0.1); border: 1px solid var(--card-border); width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1.1rem; transition: all 0.3s ease; }
+    .logo-badge { display: flex; align-items: center; gap: 8px; background: rgba(255, 255, 255, 0.12); border: 1px solid var(--card-border); padding: 8px 18px; border-radius: 50px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); }
+    .logo-badge i { font-size: 1.4rem; color: var(--accent-color); }
+    .logo-text { font-family: var(--font-title); font-size: 1.1rem; letter-spacing: 1.5px; text-transform: uppercase; }
+    .back-btn { color: var(--text-secondary); background: rgba(255, 255, 255, 0.1); border: 1px solid var(--card-border); width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1.1rem; transition: all 0.3s ease; text-decoration: none; }
     .back-btn:hover { background: var(--accent-color); color: #0d2b24; transform: rotate(-15deg); }
     
     .header-block { display: flex; flex-direction: column; align-items: center; text-align: center; margin-bottom: 28px; }
@@ -203,10 +178,11 @@
     .input-group { display: flex; flex-direction: column; gap: 6px; }
     .input-wrapper { position: relative; display: flex; align-items: center; }
     .input-icon { position: absolute; left: 16px; color: var(--text-secondary); font-size: 1rem; pointer-events: none; z-index: 10;}
-    .custom-input { width: 100%; background: var(--input-bg); border: 1px solid var(--card-border); padding: 13px 16px 13px 46px; border-radius: 15px; color: var(--text-primary); font-family: var(--font-main); font-size: 0.92rem; outline: none; transition: all 0.3s ease; }
-    .custom-input:focus, .custom-textarea:focus { border-color: var(--accent-color); box-shadow: 0 0 10px rgba(82, 183, 136, 0.3); background: rgba(255, 255, 255, 0.18); }
+    .custom-input, .custom-select { width: 100%; background: var(--input-bg); border: 1px solid var(--card-border); padding: 13px 16px 13px 46px; border-radius: 15px; color: var(--text-primary); font-family: var(--font-main); font-size: 0.92rem; outline: none; transition: all 0.3s ease; }
+    .custom-select { appearance: none; cursor: pointer; }
+    .custom-select option { background: #11382f; color: #fff; }
+    .custom-input:focus, .custom-select:focus, .custom-textarea:focus { border-color: var(--accent-color); box-shadow: 0 0 10px rgba(82, 183, 136, 0.3); background: rgba(255, 255, 255, 0.18); }
     .file-input { padding: 10px 16px 10px 46px; font-size: 0.8rem; cursor: pointer; }
-    
     .custom-textarea { width: 100%; background: var(--input-bg); border: 1px solid var(--card-border); padding: 14px 16px; border-radius: 15px; color: var(--text-primary); font-family: var(--font-main); font-size: 0.9rem; outline: none; resize: vertical; min-height: 90px; transition: all 0.3s ease; }
     
     .shift-selector { display: flex; flex-direction: column; gap: 8px; background: rgba(0, 0, 0, 0.15); border: 1px solid var(--card-border); padding: 12px 16px; border-radius: 15px; }
@@ -217,25 +193,90 @@
 
     .error-message { font-size: 0.72rem; color: var(--error-color); padding-left: 12px; display: none; }
     .input-group.error .error-message { display: block; }
-    .input-group.error .custom-input, .input-group.error .custom-textarea, .input-group.error .shift-selector { border-color: var(--error-color); }
+    .input-group.error .custom-input, .input-group.error .custom-select, .input-group.error .custom-textarea, .input-group.error .shift-selector { border-color: var(--error-color); }
     
     .alert-box { display: none; padding: 12px; border-radius: 12px; font-size: 0.82rem; text-align: center; margin-top: 8px; }
     .alert-box.success { display: block; background: rgba(32, 191, 85, 0.2); border: 1px solid #20bf55; color: #d8f3dc; }
     .alert-box.error { display: block; background: rgba(255, 77, 77, 0.2); border: 1px solid #ff4d4d; color: #ffe6e6; }
 
+    /* ESTILOS DA TELA DE PERFIL */
+    .avatar-large { width: 100px; height: 100px; background: rgba(255, 255, 255, 0.1); border: 3px solid var(--accent-color); border-radius: 50%; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; color: var(--accent-color); position: relative; overflow: hidden; cursor: pointer; }
+    .avatar-upload-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; font-size: 1.2rem; color: #fff; }
+    .editing .avatar-upload-overlay { display: flex; }
+    .profile-info-header h1 { font-family: var(--font-title); font-size: 1.4rem; margin-bottom: 4px; text-align: center; }
+    .profile-info-header p { color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 20px; text-align: center; }
+    
+    .info-grid { display: grid; gap: 12px; text-align: left; margin-bottom: 20px; }
+    .info-item { background: var(--input-bg); padding: 10px 16px; border-radius: 12px; border: 1px solid var(--card-border); transition: border-color 0.3s; }
+    .info-label { font-size: 0.65rem; text-transform: uppercase; color: var(--text-secondary); font-weight: 700; letter-spacing: 0.5px; }
+    .info-value { font-size: 0.95rem; margin-top: 2px; width: 100%; background: transparent; border: none; color: var(--text-primary); font-family: var(--font-main); outline: none; }
+    .info-value:disabled { color: var(--text-primary); cursor: default; }
+    .editing .info-item { background: var(--input-focus); border-color: var(--accent-color); }
+    .editing .info-value { border-bottom: 1px dashed var(--accent-color); padding-bottom: 2px; }
+
+    .toast { position: fixed; bottom: -50px; left: 50%; transform: translateX(-50%); background: var(--accent-color); color: #0d2b24; padding: 10px 20px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; transition: bottom 0.4s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 1000; }
+    .toast.show { bottom: 20px; }
+
+    /* ESTILOS ESPECÍFICOS DO DIÁRIO DE FREQUÊNCIA */
+    .main-grid { position: relative; z-index: 2; display: grid; grid-template-columns: 1.3fr 1fr; gap: 28px; }
+    .students-list-panel { display: flex; flex-direction: column; gap: 12px; max-height: 520px; overflow-y: auto; padding-right: 6px; }
+    .students-list-panel::-webkit-scrollbar { width: 6px; }
+    .students-list-panel::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 10px; }
+
+    .student-item-freq { display: flex; align-items: center; justify-content: space-between; background: rgba(255, 255, 255, 0.95); color: #1a1a1a; padding: 10px 16px; border-radius: 18px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); transition: transform 0.2s ease, box-shadow 0.2s ease; }
+    .student-item-freq:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2); }
+    .student-info-freq { display: flex; align-items: center; gap: 14px; }
+    .student-avatar-freq { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 2px solid var(--btn-dark-green); }
+    .student-name-freq { font-family: var(--font-title); font-weight: 700; font-size: 0.95rem; text-transform: uppercase; color: #0d2b24; }
+
+    .presence-checkbox { appearance: none; width: 32px; height: 32px; border: 2px solid #ccc; border-radius: 8px; background: #ffffff; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.25s ease; }
+    .presence-checkbox:checked { background: var(--btn-green); border-color: var(--btn-green); }
+    .presence-checkbox:checked::after { content: '✓'; color: #ffffff; font-size: 20px; font-weight: bold; }
+
+    .absence-badge { background: var(--badge-bg); border: 1px solid var(--badge-border); width: 64px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15); }
+    .absence-input { width: 100%; background: transparent; border: none; outline: none; text-align: center; font-family: var(--font-title); font-size: 1.15rem; font-weight: 700; color: #1a1a1a; }
+    .absence-input:disabled { color: #2b2b2b; cursor: default; }
+
+    .actions-panel { display: flex; flex-direction: column; gap: 16px; align-items: center; justify-content: center; }
+    .btn-action-freq { width: 100%; padding: 14px 20px; border-radius: 14px; font-family: var(--font-title); font-size: 0.95rem; font-weight: 800; text-transform: uppercase; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: all 0.3s ease; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25); color: #ffffff; text-decoration: none; }
+    .btn-launch { background: var(--btn-green); }
+    .btn-launch:hover { background: var(--btn-green-hover); transform: translateY(-2px); }
+    .btn-consult { background: var(--btn-dark-green); }
+    .btn-consult:hover { background: var(--btn-dark-green-hover); transform: translateY(-2px); }
+    .btn-absences { background: var(--btn-red); }
+    .btn-absences:hover { background: var(--btn-red-hover); transform: translateY(-2px); }
+    
+    .btn-edit-faltas { background: var(--btn-green); font-size: 1.1rem; padding: 16px 24px; max-width: 280px;}
+    .btn-edit-faltas:hover { background: var(--btn-green-hover); transform: translateY(-3px); }
+    .btn-edit-faltas.editing-mode { background: #e63946; }
+    .btn-edit-faltas.editing-mode:hover { background: #d62828; }
+
+    .date-display-box { width: 100%; background: rgba(255, 255, 255, 0.95); border-radius: 12px; padding: 10px 16px; display: flex; align-items: center; gap: 12px; color: #0d2b24; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); }
+    .date-display-box i { font-size: 1.3rem; color: #164e41; }
+    .date-input { border: none; background: transparent; outline: none; font-family: var(--font-title); font-size: 1.05rem; font-weight: 700; color: #0d2b24; width: 100%; }
+    
+    .calendar-card { width: 100%; background: #ffffff; color: #1a1a1a; border-radius: 18px; padding: 16px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25); }
+    .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-family: var(--font-title); font-weight: 700; font-size: 0.9rem; }
+    .calendar-nav-btn { background: none; border: none; cursor: pointer; font-size: 0.9rem; color: #115e4c; padding: 4px 8px; border-radius: 4px; transition: background 0.2s; }
+    .calendar-nav-btn:hover { background: #e0f2fe; }
+    .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; }
+    .calendar-day-head { font-size: 0.7rem; font-weight: 700; color: #888; padding-bottom: 6px; }
+    .calendar-day { font-size: 0.8rem; padding: 6px 0; border-radius: 8px; cursor: pointer; transition: all 0.2s ease; }
+    .calendar-day:hover:not(.empty) { background: #e0f2fe; }
+    .calendar-day.selected { background: #115e4c; color: #ffffff; font-weight: bold; }
+
     @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
 
-    /* Media Queries para Responsividade Avançada */
     @media (max-width: 1024px) {
       .dashboard-grid { grid-template-columns: 1fr; }
       .classes-list, .students-list { max-height: 250px; }
       body { padding: 10px; align-items: flex-start; }
       .dashboard-container { padding: 15px; margin-top: 10px; }
+      .main-grid { grid-template-columns: 1fr; }
     }
-
     @media (max-width: 600px) {
       .dashboard-header { flex-direction: column; align-items: flex-start; }
-      .user-profile { align-self: flex-end; margin-top: -45px; }
+      .user-profile-container { align-self: flex-end; margin-top: -45px; }
       .form-grid { grid-template-columns: 1fr; }
       .form-grid .full-width { grid-column: span 1; }
       .detail-fields-grid { grid-template-columns: 1fr; }
@@ -245,17 +286,13 @@
 </head>
 <body>
 
-  <!-- Fundo Decorativo -->
   <div class="wave-bg">
     <svg viewBox="0 0 1440 320" preserveAspectRatio="none">
       <path fill="rgba(255, 255, 255, 0.05)" d="M0,192L48,197.3C96,203,192,213,288,192C384,171,480,117,576,117.3C672,117,768,171,864,197.3C960,224,1056,224,1152,197.3C1248,171,1344,117,1392,90.7L1440,64L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path>
-      <path fill="rgba(15, 62, 51, 0.4)" d="M0,224L60,213.3C120,203,240,181,360,186.7C480,192,600,224,720,218.7C840,213,960,171,1080,165.3C1200,160,1320,192,1380,208L1440,224L1440,320L1380,320C1320,320,1200,320,1080,320C960,320,840,320,720,320C600,320,480,320,360,320C240,320,120,320,60,320L0,320Z"></path>
+      <path fill="rgba(15, 62, 51, 0.4)" d="M0,224L60,213.3C120,203,240,181,360,186.7C480,192,600,224,720,218.7C840,213,960,171,1080,165.3C1200,160,1320,192,1380,208L1440,224L1440,320L1380,320C1320,320,1200,320,1080,320C960,320,840,320,720,320C240,320,120,320,60,320L0,320Z"></path>
     </svg>
   </div>
 
-  <!-- =========================================
-       MODAL DE CONFIRMAÇÃO CUSTOMIZADO
-  ========================================= -->
   <div id="confirmModal" class="modal-overlay d-none">
     <div class="modal-card">
       <div class="modal-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
@@ -268,9 +305,15 @@
     </div>
   </div>
 
-  <!-- =========================================
-       VIEW 1: DASHBOARD PRINCIPAL
-  ========================================= -->
+  <!-- MODAL PARA EXPANDIR FOTO -->
+  <div id="imageModal" class="modal-overlay d-none" onclick="closeImageModal(event)">
+    <div class="image-modal-content" onclick="event.stopPropagation()">
+      <img id="expandedImage" src="" alt="Foto Expandida">
+      <button class="close-image-btn" onclick="closeImageModal(event)"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+  </div>
+
+  <!-- TELA PRINCIPAL (DASHBOARD) -->
   <main id="view-dashboard" class="dashboard-container">
     <header class="dashboard-header">
       <div class="brand-logo">
@@ -278,18 +321,22 @@
         <span class="brand-text">ID<strong>HUB</strong></span>
       </div>
       <h1 class="header-title">Suas Turmas</h1>
-      <!-- Botão de perfil atualizado para redirecionar para perfil-docente.html[cite: 1] -->
-      <a href="perfil-docente.html" class="user-profile" title="Meu Perfil">
-        <div class="profile-avatar"><i class="fa-solid fa-user-tie"></i></div>
-      </a>
+      
+      <!-- Bloco do Perfil com Menu Suspenso (Dropdown) -->
+      <div class="user-profile-container">
+        <div class="user-profile" id="userProfileToggle" title="Opções do Perfil" onclick="toggleProfileMenu(event)">
+          <div class="profile-avatar" id="headerProfileAvatar"><i class="fa-solid fa-user-tie"></i></div>
+        </div>
+        <div class="profile-dropdown d-none" id="profileDropdown">
+          <button onclick="openProfileView()" class="dropdown-item"><i class="fa-solid fa-user-pen"></i> Meu Perfil</button>
+          <button onclick="logoutDocente()" class="dropdown-item logout"><i class="fa-solid fa-right-from-bracket"></i> Sair</button>
+        </div>
+      </div>
     </header>
 
     <div class="dashboard-grid">
-      <!-- Coluna 1: Turmas -->
       <section class="panel-card">
-        <div class="panel-title">
-          <span><i class="fa-solid fa-users-rectangle"></i> Turmas</span>
-        </div>
+        <div class="panel-title"><span><i class="fa-solid fa-users-rectangle"></i> Turmas</span></div>
         <div class="classes-list" id="classesList"></div>
         <button class="btn-action" onclick="switchView('view-add-class')">
           <i class="fa-solid fa-plus-circle"></i> <span>ADICIONAR TURMA</span>
@@ -299,24 +346,30 @@
         </button>
       </section>
 
-      <!-- Coluna 2: Alunos -->
       <section class="panel-card">
-        <div class="panel-title">
-          <span id="selectedClassName"><i class="fa-solid fa-list-check"></i> TURMA</span>
-        </div>
+        <div class="panel-title"><span id="selectedClassName"><i class="fa-solid fa-list-check"></i> TURMA</span></div>
         <div id="selectedClassDesc" class="class-desc-display d-none"></div>
         
+        <div id="selectedClassTeacher" class="teacher-badge-info d-none">
+          <div class="teacher-badge-avatar" id="classTeacherAvatar">
+            <i class="fa-solid fa-user-tie"></i>
+          </div>
+          <div class="teacher-badge-details">
+            <span class="teacher-badge-label">Docente Responsável</span>
+            <span class="teacher-badge-name" id="classTeacherName">Não Definido</span>
+          </div>
+        </div>
+
         <div class="students-list" id="studentsList"></div>
         <button class="btn-secondary-action" onclick="switchView('view-add-student')" id="btnAdicionarAlunoLista">
           <span>Adicionar Aluno</span> <i class="fa-solid fa-user-plus"></i>
         </button>
       </section>
 
-      <!-- Coluna 3: Detalhes -->
       <section class="panel-card" style="position: relative;">
         <div class="student-detail-header">
           <div class="detail-photo-wrapper">
-            <img src="https://via.placeholder.com/150" alt="Foto do Aluno" class="detail-photo" id="studentPhoto">
+            <img src="https://via.placeholder.com/150" alt="Foto do Aluno" class="detail-photo" id="studentPhoto" onclick="expandImage(this.src)" style="cursor: pointer;" title="Clique para expandir">
           </div>
           <div>
             <div class="field-label">Aluno Selecionado</div>
@@ -352,14 +405,13 @@
         </div>
         
         <div style="margin-top: auto;">
-          <!-- Botões com cores customizadas direcionando para as páginas HTML criadas -->
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 6px;">
             <a href="notas-atividades-docente.html" class="btn-notes-action" id="btnOpenNotes">
               <i class="fa-solid fa-book-open"></i> Notas & Ativ.
             </a>
-            <a href="frequencia-docente.html" class="btn-attendance-action" id="btnOpenAttendance">
+            <button onclick="openDiarioFrequenciaView()" class="btn-attendance-action" id="btnOpenAttendance">
               <i class="fa-solid fa-calendar-check"></i> Frequência
-            </a>
+            </button>
           </div>
           
           <button class="btn-edit-action" id="btnOpenEdit" onclick="openEditStudent()">
@@ -373,9 +425,139 @@
     </div>
   </main>
 
-  <!-- =========================================
-       VIEW 2: ADICIONAR TURMA
-  ========================================= -->
+  <!-- TELA DE FREQUÊNCIA / DIÁRIO DE CLASSE (INTEGRADA) -->
+  <main id="view-diario-frequencia" class="app-container freq-mode d-none">
+    <header class="app-header">
+      <div onclick="switchView('view-dashboard')" id="btnBackToDocente" class="back-btn" title="Voltar ao Painel">
+        <i class="fa-solid fa-arrow-left"></i>
+      </div>
+      <button id="btnBackToFreq" class="back-btn d-none" title="Voltar" onclick="switchFreqSubView('frequencia')">
+        <i class="fa-solid fa-arrow-left"></i>
+      </button>
+
+      <div class="header-center">
+        <div class="logo-badge">
+          <i class="fa-solid fa-user-check"></i>
+          <span class="logo-text" id="headerTitle">Frequência</span>
+        </div>
+      </div>
+      <div style="width:40px;"></div> 
+    </header>
+
+    <!-- VIEW: FREQUÊNCIA (Principal) -->
+    <div id="subview-frequencia" class="main-grid">
+      <section class="students-list-panel" id="listFreqContainer"></section>
+
+      <section class="actions-panel">
+        <button class="btn-action-freq btn-launch" id="btnLaunch">
+          <i class="fa-solid fa-list-check"></i>
+          <span>LANÇAR FREQUÊNCIA</span>
+        </button>
+
+        <div class="date-display-box">
+          <i class="fa-regular fa-calendar-days"></i>
+          <input type="date" id="attendanceDate" class="date-input">
+        </div>
+
+        <button class="btn-action-freq btn-consult" id="btnConsult">
+          <i class="fa-solid fa-square-poll-vertical"></i>
+          <span>CONSULTAR</span>
+        </button>
+
+        <button class="btn-action-freq btn-absences" id="btnGoToFaltas">
+          <i class="fa-solid fa-user-xmark"></i>
+          <span>CONTROLE DE FALTAS</span>
+        </button>
+
+        <div class="calendar-card">
+          <div class="calendar-header">
+            <button id="calPrev" class="calendar-nav-btn"><i class="fa-solid fa-chevron-left"></i></button>
+            <span id="calMonthYear">Mês Ano</span>
+            <button id="calNext" class="calendar-nav-btn"><i class="fa-solid fa-chevron-right"></i></button>
+          </div>
+          <div class="calendar-grid" id="calendarGrid">
+            <div class="calendar-day-head">D</div><div class="calendar-day-head">S</div><div class="calendar-day-head">T</div>
+            <div class="calendar-day-head">Q</div><div class="calendar-day-head">Q</div><div class="calendar-day-head">S</div><div class="calendar-day-head">S</div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- VIEW: CONTROLE DE FALTAS -->
+    <div id="subview-faltas" class="main-grid d-none">
+      <section class="students-list-panel" id="listFaltasContainer"></section>
+
+      <section class="actions-panel" style="justify-content: center;">
+        <button class="btn-action-freq btn-edit-faltas" id="btnEditFaltas">
+          <i class="fa-solid fa-pen-to-square"></i>
+          <span>EDITAR MANUAMENTE</span>
+        </button>
+      </section>
+    </div>
+
+    <!-- VIEW: CONSULTAR FREQUÊNCIA DO DIA -->
+    <div id="subview-consulta" class="main-grid d-none">
+      <section class="students-list-panel" id="listConsultaContainer"></section>
+
+      <section class="actions-panel" style="justify-content: center; gap: 20px;">
+        <div class="date-display-box" style="pointer-events: none;">
+          <i class="fa-regular fa-calendar-days"></i>
+          <span id="consultDateLabel" style="font-family: var(--font-title); font-weight: 700; color: #0d2b24;">Data Selecionada</span>
+        </div>
+        <div style="background: rgba(255,255,255,0.1); padding: 16px; border-radius: 14px; width: 100%; border: 1px solid var(--card-border); text-align: center;">
+          <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 8px;"><i class="fa-solid fa-circle-info"></i> Legenda do Dia</p>
+          <div style="display: flex; justify-content: space-around; font-weight: 700; font-size: 0.85rem;">
+            <span style="color: #20bf55;"><i class="fa-solid fa-check"></i> Presente</span>
+            <span style="color: #e63946;"><i class="fa-solid fa-xmark"></i> Faltou</span>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- TELA DE PERFIL (INTEGRADA) -->
+  <main id="view-profile" class="app-container d-none" style="max-width: 520px; overflow: hidden;">
+    <header class="app-header">
+      <span class="logo-text">ID<strong>HUB</strong></span>
+      <div onclick="switchView('view-dashboard')" class="back-btn"><i class="fa-solid fa-arrow-left"></i></div>
+    </header>
+    
+    <div class="avatar-large" id="profileAvatarContainer" onclick="triggerProfilePhotoUpload()">
+      <div id="profileAvatarContent"><i class="fa-solid fa-chalkboard-user"></i></div>
+      <div class="avatar-upload-overlay"><i class="fa-solid fa-camera"></i></div>
+    </div>
+    <input type="file" id="profilePhotoInput" accept="image/*" style="display: none;">
+    
+    <div class="profile-info-header">
+      <h1 id="displayProfileName">Insira seu Nome</h1>
+      <p id="displayProfileSpec">Especialidade / Cargo</p>
+    </div>
+
+    <div class="info-grid" id="infoGrid">
+      <div class="info-item">
+        <div class="info-label">Nome Completo</div>
+        <input type="text" class="info-value profile-info-value" id="inputProfileName" placeholder="Seu Nome Completo" disabled>
+      </div>
+      <div class="info-item">
+        <div class="info-label">E-mail Institucional</div>
+        <input type="email" class="info-value profile-info-value" id="inputProfileEmail" placeholder="seu.email@escola.com" disabled>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Telefone / WhatsApp</div>
+        <input type="tel" class="info-value profile-info-value" id="inputProfilePhone" placeholder="(00) 00000-0000" oninput="handlePhoneMask(event)" maxlength="15" disabled>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Especialidade</div>
+        <input type="text" class="info-value profile-info-value" id="inputProfileSpec" placeholder="Sua Especialidade" disabled>
+      </div>
+    </div>
+
+    <button class="btn-action" id="btnEditProfile" onclick="toggleEditProfile()" style="width: 100%;">
+      <i class="fa-solid fa-pen-to-square"></i> EDITAR PERFIL
+    </button>
+  </main>
+
+  <!-- TELA: ADICIONAR TURMA -->
   <main id="view-add-class" class="app-container d-none">
     <header class="app-header">
       <span class="logo-text">ID<strong>HUB</strong></span>
@@ -394,6 +576,28 @@
         </div>
         <span class="error-message">Informe o nome da turma.</span>
       </div>
+
+      <div class="form-grid">
+        <div class="input-group">
+          <label class="field-label"><i class="fa-solid fa-layer-group"></i> Divisão</label>
+          <div class="input-wrapper">
+            <i class="fa-solid fa-list-ol input-icon"></i>
+            <select id="classPeriodTypeInput" class="custom-select">
+              <option value="4_bimestres">4 Bimestres</option>
+              <option value="2_semestres">2 Semestres</option>
+              <option value="3_trimestres">3 Trimestres</option>
+            </select>
+          </div>
+        </div>
+        <div class="input-group">
+          <label class="field-label"><i class="fa-solid fa-award"></i> Média para Aprovação</label>
+          <div class="input-wrapper">
+            <i class="fa-solid fa-star input-icon"></i>
+            <input type="number" id="classPassingGradeInput" class="custom-input" placeholder="Ex: 6.0" step="0.1" min="0" max="10" value="6.0" required>
+          </div>
+        </div>
+      </div>
+
       <div class="input-group" id="class-shiftGroup">
         <label class="field-label"><i class="fa-solid fa-clock"></i> Turno</label>
         <div class="shift-selector">
@@ -414,9 +618,7 @@
     </form>
   </main>
 
-  <!-- =========================================
-       VIEW 3: ADICIONAR ALUNO
-  ========================================= -->
+  <!-- TELA: ADICIONAR ALUNO -->
   <main id="view-add-student" class="app-container d-none">
     <header class="app-header">
       <span class="logo-text">ID<strong>HUB</strong></span>
@@ -435,7 +637,6 @@
           <input type="file" id="addPhotoInput" class="custom-input file-input" accept="image/*">
         </div>
       </div>
-
       <div class="form-grid">
         <div class="input-group full-width" id="student-nameGroup">
           <label class="field-label"><i class="fa-solid fa-user"></i> Nome do Aluno</label>
@@ -445,7 +646,6 @@
           </div>
           <span class="error-message">Informe o nome do aluno.</span>
         </div>
-
         <div class="input-group" id="student-matriculaGroup">
           <label class="field-label"><i class="fa-solid fa-hashtag"></i> Matrícula (Máx 10)</label>
           <div class="input-wrapper">
@@ -454,7 +654,6 @@
           </div>
           <span class="error-message">Informe a matrícula.</span>
         </div>
-
         <div class="input-group">
           <label class="field-label"><i class="fa-solid fa-calendar-day"></i> Nasc. / Idade</label>
           <div class="input-wrapper">
@@ -462,7 +661,6 @@
             <input type="text" id="addBirthDate" class="custom-input" placeholder="Selecione a data...">
           </div>
         </div>
-
         <div class="input-group">
           <label class="field-label"><i class="fa-solid fa-phone"></i> Telefone</label>
           <div class="input-wrapper">
@@ -470,7 +668,6 @@
             <input type="tel" id="studentPhoneInput" class="custom-input" placeholder="(00) 00000-0000" oninput="handlePhoneMask(event)" maxlength="15">
           </div>
         </div>
-
         <div class="input-group" id="student-emailGroup">
           <label class="field-label"><i class="fa-solid fa-envelope"></i> E-mail</label>
           <div class="input-wrapper">
@@ -480,7 +677,6 @@
           <span class="error-message">Insira um e-mail válido (ex: @gmail.com).</span>
         </div>
       </div>
-
       <button type="submit" class="btn-action" style="margin: 10px auto 0; width: 100%; max-width: 260px;">
         <i class="fa-solid fa-user-plus"></i> <span>ADICIONAR ALUNO</span>
       </button>
@@ -488,9 +684,7 @@
     </form>
   </main>
 
-  <!-- =========================================
-       VIEW 4: EDITAR ALUNO
-  ========================================= -->
+  <!-- TELA: EDITAR ALUNO -->
   <main id="view-edit-student" class="app-container d-none">
     <header class="app-header">
       <span class="logo-text">ID<strong>HUB</strong></span>
@@ -504,7 +698,6 @@
       <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 5px;">Editando dados de <strong id="lblEditStudentName"></strong></p>
     </div>
     <form id="formEditStudent" class="form-container" novalidate>
-      
       <div class="input-group full-width">
         <label class="field-label"><i class="fa-solid fa-camera"></i> Atualizar Foto (Opcional)</label>
         <div class="input-wrapper">
@@ -512,7 +705,6 @@
           <input type="file" id="editPhotoInput" class="custom-input file-input" accept="image/*">
         </div>
       </div>
-
       <div class="form-grid">
         <div class="input-group full-width">
           <label class="field-label">Nome Completo</label>
@@ -521,7 +713,6 @@
             <input type="text" id="editName" class="custom-input" required>
           </div>
         </div>
-
         <div class="input-group">
           <label class="field-label">Matrícula (Máx 10)</label>
           <div class="input-wrapper">
@@ -529,7 +720,6 @@
             <input type="text" id="editMatricula" class="custom-input" maxlength="10" oninput="this.value = this.value.replace(/[^0-9]/g, '');">
           </div>
         </div>
-
         <div class="input-group">
           <label class="field-label">Nasc. / Idade</label>
           <div class="input-wrapper">
@@ -537,7 +727,6 @@
             <input type="text" id="editBirthDate" class="custom-input" placeholder="Selecione a data...">
           </div>
         </div>
-
         <div class="input-group">
           <label class="field-label">Telefone</label>
           <div class="input-wrapper">
@@ -545,16 +734,14 @@
             <input type="tel" id="editPhone" class="custom-input" placeholder="(00) 00000-0000" oninput="handlePhoneMask(event)" maxlength="15">
           </div>
         </div>
-
         <div class="input-group" id="edit-emailGroup">
           <label class="field-label">E-mail</label>
           <div class="input-wrapper">
             <i class="fa-solid fa-envelope input-icon"></i>
             <input type="email" id="editEmail" class="custom-input" placeholder="aluno@exemplo.com">
           </div>
-          <span class="error-message">Insira um e-mail válido (ex: @gmail.com).</span>
+          <span class="error-message">Insira um e-mail válido.</span>
         </div>
-
         <div class="input-group full-width">
           <label class="field-label">Endereço</label>
           <div class="input-wrapper">
@@ -562,13 +749,11 @@
             <input type="text" id="editAddress" class="custom-input">
           </div>
         </div>
-
         <div class="input-group full-width">
           <label class="field-label">Observações sobre o Aluno</label>
           <textarea id="editObs" class="custom-textarea"></textarea>
         </div>
       </div>
-
       <button type="submit" class="btn-action" style="margin: 15px auto 0; width: 100%; background: var(--btn-edit);">
         <i class="fa-solid fa-floppy-disk"></i> <span>SALVAR ALTERAÇÕES</span>
       </button>
@@ -576,19 +761,40 @@
     </form>
   </main>
 
+  <div class="toast" id="toastMsgGeneral"></div>
+
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script src="https://npmcdn.com/flatpickr/dist/l10n/pt.js"></script>
-
   <script>
-    const database = [
-      {
-        id: "turma_a", nome: "TURMA A", turno: "Matutino", badgeClass: "matutino",
-        descricao: "Turma focada em introdução à programação web e algoritmos.",
-        alunos: [
-          { nome: "AILTON BEZERRA", nascimento: "10/04/2005 (21 anos)", telefone: "(82) 91997-2023", email: "Itachi@akatsuki.org", matricula: "202610042", endereco: "Rua 2, Cidade de Pallet", observacoes: "Dorme durante a explicação.", foto: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150" }
-        ]
+    // BASE DE DADOS GLOBAL
+    let database = JSON.parse(localStorage.getItem('idhub_database')) || [];
+
+    async function apiRequest(endpoint, method = 'GET', body = null) {
+      try {
+        const options = { method, headers: { 'Content-Type': 'application/json' } };
+        if (body) options.body = JSON.stringify(body);
+        const res = await fetch(endpoint, options);
+        if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
+        return await res.json();
+      } catch (e) {
+        console.warn("API Offline / Usando LocalStorage fallback", e);
+        return null;
       }
-    ];
+    }
+
+    async function loadTurmas() {
+      try {
+        const apiTurmas = await apiRequest('/turmas');
+        if (apiTurmas && Array.isArray(apiTurmas)) {
+          database = apiTurmas;
+          saveDatabase();
+        }
+      } catch (err) {
+        console.error("Erro ao carregar turmas", err);
+      }
+      renderTurmas();
+      renderAlunos();
+    }
 
     let activeTurmaIndex = 0;
     let activeAlunoIndex = 0;
@@ -599,177 +805,242 @@
     const studentsListContainer = document.getElementById('studentsList');
     const selectedClassName = document.getElementById('selectedClassName');
     const selectedClassDesc = document.getElementById('selectedClassDesc');
+    const selectedClassTeacher = document.getElementById('selectedClassTeacher');
+    const classTeacherName = document.getElementById('classTeacherName');
+    const classTeacherAvatar = document.getElementById('classTeacherAvatar');
+    const headerProfileAvatar = document.getElementById('headerProfileAvatar');
+
     const btnOpenEdit = document.getElementById('btnOpenEdit');
     const btnDeleteStudent = document.getElementById('btnDeleteStudent');
     const btnDeleteClass = document.getElementById('btnDeleteClass');
     const btnAdicionarAlunoLista = document.getElementById('btnAdicionarAlunoLista');
     const btnOpenNotes = document.getElementById('btnOpenNotes');
     const btnOpenAttendance = document.getElementById('btnOpenAttendance');
+
+    function showToast(message) {
+      const toast = document.getElementById('toastMsgGeneral');
+      toast.textContent = message;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    function expandImage(src) {
+      if (!src || src.includes('placeholder')) return;
+      document.getElementById('expandedImage').src = src;
+      document.getElementById('imageModal').classList.remove('d-none');
+    }
+
+    function closeImageModal(e) {
+      if(e) e.stopPropagation();
+      document.getElementById('imageModal').classList.add('d-none');
+    }
+
+    function loadDocenteHeader() {
+      const docente = JSON.parse(localStorage.getItem('idhub_docente')) || {};
+      if (docente.foto) {
+        headerProfileAvatar.innerHTML = `<img src="${docente.foto}" alt="Foto Docente">`;
+      } else {
+        headerProfileAvatar.innerHTML = `<i class="fa-solid fa-user-tie"></i>`;
+      }
+    }
+
+    function toggleProfileMenu(event) {
+      event.stopPropagation();
+      const dropdown = document.getElementById('profileDropdown');
+      dropdown.classList.toggle('d-none');
+    }
+
+    window.addEventListener('click', () => {
+      const dropdown = document.getElementById('profileDropdown');
+      if (dropdown && !dropdown.classList.contains('d-none')) {
+        dropdown.classList.add('d-none');
+      }
+    });
+
+    function logoutDocente() {
+      localStorage.removeItem('idhub_docente');
+      window.location.href = 'index.html';
+    }
+
+    let isEditingProfile = false;
+    let profilePhotoBase64 = null;
+
+    function openProfileView() {
+      const docente = JSON.parse(localStorage.getItem('idhub_docente')) || {};
+      
+      document.getElementById('inputProfileName').value = docente.nome || '';
+      document.getElementById('inputProfileEmail').value = docente.email || '';
+      document.getElementById('inputProfilePhone').value = docente.telefone || '';
+      document.getElementById('inputProfileSpec').value = docente.especialidade || '';
+
+      document.getElementById('displayProfileName').textContent = docente.nome || 'Nome do Docente';
+      document.getElementById('displayProfileSpec').textContent = docente.especialidade || 'Especialidade / Cargo';
+
+      if (docente.foto) {
+        profilePhotoBase64 = docente.foto;
+        document.getElementById('profileAvatarContent').innerHTML = `<img src="${docente.foto}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" alt="Foto Perfil">`;
+      } else {
+        document.getElementById('profileAvatarContent').innerHTML = `<i class="fa-solid fa-chalkboard-user"></i>`;
+      }
+
+      isEditingProfile = false;
+      updateProfileEditState();
+      switchView('view-profile');
+    }
+
+    function triggerProfilePhotoUpload() {
+      if (isEditingProfile) {
+        document.getElementById('profilePhotoInput').click();
+      } else {
+        const img = document.querySelector('#profileAvatarContent img');
+        if (img) expandImage(img.src);
+      }
+    }
+
+    document.getElementById('profilePhotoInput').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+          profilePhotoBase64 = evt.target.result;
+          document.getElementById('profileAvatarContent').innerHTML = `<img src="${profilePhotoBase64}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" alt="Foto Perfil">`;
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    function toggleEditProfile() {
+      if (isEditingProfile) {
+        saveDocenteProfile();
+      }
+      isEditingProfile = !isEditingProfile;
+      updateProfileEditState();
+    }
+
+    function updateProfileEditState() {
+      const container = document.getElementById('view-profile');
+      const editBtn = document.getElementById('btnEditProfile');
+      const inputs = document.querySelectorAll('.profile-info-value');
+
+      if (isEditingProfile) {
+        container.classList.add('editing');
+        editBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> SALVAR ALTERAÇÕES';
+        inputs.forEach(input => input.removeAttribute('disabled'));
+        inputs[0].focus();
+      } else {
+        container.classList.remove('editing');
+        editBtn.innerHTML = '<i class="fa-solid fa-pen-to-square"></i> EDITAR PERFIL';
+        inputs.forEach(input => input.setAttribute('disabled', 'true'));
+      }
+    }
+
+    async function saveDocenteProfile() {
+      const docente = {
+        nome: document.getElementById('inputProfileName').value.trim(),
+        email: document.getElementById('inputProfileEmail').value.trim(),
+        telefone: document.getElementById('inputProfilePhone').value.trim(),
+        especialidade: document.getElementById('inputProfileSpec').value.trim(),
+        foto: profilePhotoBase64
+      };
+
+      localStorage.setItem('idhub_docente', JSON.stringify(docente));
+
+      database.forEach(turma => {
+        turma.professorNome = docente.nome || "Professor não informado";
+        turma.professorFoto = docente.foto || null;
+      });
+      await saveDatabase();
+
+      document.getElementById('displayProfileName').textContent = docente.nome || 'Nome do Docente';
+      document.getElementById('displayProfileSpec').textContent = docente.especialidade || 'Especialidade / Cargo';
+      
+      loadDocenteHeader();
+      if(database.length > 0) renderAlunos();
+      showToast('Alterações do perfil salvas!');
+    }
+
+    async function saveDatabase() { 
+      localStorage.setItem('idhub_database', JSON.stringify(database)); 
+      await apiRequest('/turmas', 'POST', database);
+    }
     
-    // =====================================
-    // MÁSCARAS E VALIDAÇÕES
-    // =====================================
-    function handlePhoneMask(event) {
-      let input = event.target;
-      input.value = phoneMask(input.value);
-    }
+    function handlePhoneMask(event) { event.target.value = phoneMask(event.target.value); }
+    function phoneMask(value) { if (!value) return ""; value = value.replace(/\D/g, ''); if (value.length > 11) value = value.slice(0, 11); value = value.replace(/(\d{2})(\d)/, "($1) $2"); value = value.replace(/(\d)(\d{4})$/, "$1-$2"); return value; }
+    function isValidEmail(email) { if (!email) return true; return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email); }
 
-    function phoneMask(value) {
-      if (!value) return "";
-      value = value.replace(/\D/g, '');
-      if (value.length > 11) value = value.slice(0, 11);
-      value = value.replace(/(\d{2})(\d)/, "($1) $2");
-      value = value.replace(/(\d)(\d{4})$/, "$1-$2");
-      return value;
-    }
-
-    function isValidEmail(email) {
-      if (!email) return true;
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      return emailRegex.test(email);
-    }
-
-    // =====================================
-    // MODAL DE CONFIRMAÇÃO CUSTOMIZADO
-    // =====================================
     function showConfirmModal(title, description, onConfirm) {
       document.getElementById('modalTitle').innerText = title;
       document.getElementById('modalDesc').innerText = description;
       const confirmBtn = document.getElementById('modalBtnConfirm');
-      
       const newConfirmBtn = confirmBtn.cloneNode(true);
       confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
-
-      newConfirmBtn.onclick = () => {
-        onConfirm();
-        closeConfirmModal();
-      };
-
+      newConfirmBtn.onclick = () => { onConfirm(); closeConfirmModal(); };
       document.getElementById('confirmModal').classList.remove('d-none');
     }
+    function closeConfirmModal() { document.getElementById('confirmModal').classList.add('d-none'); }
 
-    function closeConfirmModal() {
-      document.getElementById('confirmModal').classList.add('d-none');
-    }
-
-    // =====================================
-    // FUNÇÕES DE EXCLUSÃO
-    // =====================================
     function confirmDeleteStudent() {
       const turma = database[activeTurmaIndex];
       if (!turma || turma.alunos.length === 0) return;
       const aluno = turma.alunos[activeAlunoIndex];
-
-      showConfirmModal(
-        "Excluir Aluno",
-        `Deseja realmente excluir o(a) aluno(a) "${aluno.nome}" da turma ${turma.nome}?`,
-        () => {
-          turma.alunos.splice(activeAlunoIndex, 1);
-          if (activeAlunoIndex >= turma.alunos.length) {
-            activeAlunoIndex = Math.max(0, turma.alunos.length - 1);
-          }
-          renderAlunos();
-          renderTurmas();
-        }
-      );
+      showConfirmModal("Excluir Aluno", `Deseja realmente excluir o(a) aluno(a) "${aluno.nome}"?`, async () => {
+        turma.alunos.splice(activeAlunoIndex, 1);
+        if (activeAlunoIndex >= turma.alunos.length) activeAlunoIndex = Math.max(0, turma.alunos.length - 1);
+        await saveDatabase(); renderAlunos(); renderTurmas();
+      });
     }
 
     function confirmDeleteClass() {
       const turma = database[activeTurmaIndex];
       if (!turma) return;
-
-      showConfirmModal(
-        "Excluir Turma",
-        `Deseja realmente excluir a turma "${turma.nome}"? Todos os alunos cadastrados nela também serão removidos.`,
-        () => {
-          database.splice(activeTurmaIndex, 1);
-          activeTurmaIndex = 0;
-          activeAlunoIndex = 0;
-          renderTurmas();
-          renderAlunos();
-        }
-      );
+      showConfirmModal("Excluir Turma", `Deseja realmente excluir a turma "${turma.nome}" e todos os alunos nela?`, async () => {
+        database.splice(activeTurmaIndex, 1); activeTurmaIndex = 0; activeAlunoIndex = 0;
+        await saveDatabase(); renderTurmas(); renderAlunos();
+      });
     }
 
-    // =====================================
-    // FLATPICKR E FOTOS
-    // =====================================
     function formatarIdade(dataSelecionada) {
-      const hoje = new Date();
-      const nascimento = new Date(dataSelecionada);
-      
+      const hoje = new Date(); const nascimento = new Date(dataSelecionada);
       let idade = hoje.getFullYear() - nascimento.getFullYear();
       const m = hoje.getMonth() - nascimento.getMonth();
-      if (m < 0 || (m === 0 && hoje.getDate() < nascimento.getDate())) {
-        idade--;
-      }
-      
+      if (m < 0 || (m === 0 && hoje.getDate() < nascimento.getDate())) idade--;
       const dia = String(nascimento.getDate()).padStart(2, '0');
       const mes = String(nascimento.getMonth() + 1).padStart(2, '0');
-      const ano = nascimento.getFullYear();
-      
-      return `${dia}/${mes}/${ano} (${idade} anos)`;
+      return `${dia}/${mes}/${nascimento.getFullYear()} (${idade} anos)`;
     }
 
-    const datePickerConfig = {
-      locale: "pt",
-      dateFormat: "d/m/Y",
-      maxDate: "today",
-      onChange: function(selectedDates, dateStr, instance) {
-        if(selectedDates.length > 0) {
-          instance.input.value = formatarIdade(selectedDates[0]);
-        }
-      }
-    };
-    flatpickr("#addBirthDate", datePickerConfig);
-    flatpickr("#editBirthDate", datePickerConfig);
+    const datePickerConfig = { locale: "pt", dateFormat: "d/m/Y", maxDate: "today", onChange: function(selectedDates, dateStr, instance) { if(selectedDates.length > 0) instance.input.value = formatarIdade(selectedDates[0]); } };
+    flatpickr("#addBirthDate", datePickerConfig); flatpickr("#editBirthDate", datePickerConfig);
 
     function handlePhotoUpload(inputElement, callback) {
       inputElement.addEventListener('change', function(e) {
         const file = e.target.files[0];
-        if (file) {
-          const reader = new FileReader();
-          reader.onload = function(event) {
-            callback(event.target.result);
-          };
-          reader.readAsDataURL(file);
-        }
+        if (file) { const reader = new FileReader(); reader.onload = function(event) { callback(event.target.result); }; reader.readAsDataURL(file); }
       });
     }
-
     handlePhotoUpload(document.getElementById('addPhotoInput'), (base64) => { currentAddPhotoBase64 = base64; });
     handlePhotoUpload(document.getElementById('editPhotoInput'), (base64) => { currentEditPhotoBase64 = base64; });
 
-    // =====================================
-    // NAVEGAÇÃO & RENDERIZAÇÃO
-    // =====================================
     function switchView(viewId) {
       document.querySelectorAll('main').forEach(el => el.classList.add('d-none'));
       document.getElementById(viewId).classList.remove('d-none');
-
-      if (viewId === 'view-add-student' && database.length > 0) {
-        document.getElementById('lblTurmaDestino').innerText = database[activeTurmaIndex].nome;
-      }
+      if (viewId === 'view-add-student' && database.length > 0) document.getElementById('lblTurmaDestino').innerText = database[activeTurmaIndex].nome;
     }
 
     function renderTurmas() {
       classesListContainer.innerHTML = '';
-      
-      if (database.length === 0) {
-        btnDeleteClass.style.display = 'none';
-        return;
-      }
+      if (database.length === 0) { btnDeleteClass.style.display = 'none'; return; }
       btnDeleteClass.style.display = 'flex';
-
       database.forEach((turma, index) => {
         const item = document.createElement('div');
         item.className = `class-item ${index === activeTurmaIndex ? 'active' : ''}`;
         item.onclick = () => { activeTurmaIndex = index; activeAlunoIndex = 0; renderTurmas(); renderAlunos(); };
         item.innerHTML = `
           <div class="class-header"><span class="class-name">${turma.nome}</span></div>
-          <div class="class-info">
-            <span><i class="fa-solid fa-user-group"></i> ${turma.alunos.length} Alunos</span>
-            <span class="shift-badge ${turma.badgeClass}">${turma.turno}</span>
+          <div class="class-info" style="margin-bottom: 6px;"><span><i class="fa-solid fa-user-group"></i> ${turma.alunos ? turma.alunos.length : 0} Alunos</span></div>
+          <div class="class-item-actions">
+            <button class="btn-class-freq" onclick="event.stopPropagation(); activeTurmaIndex = ${index}; openDiarioFrequenciaView();"><i class="fa-solid fa-chart-pie"></i> Frequência</button>
+            <span class="shift-badge ${turma.badgeClass || 'matutino'}">${turma.turno || 'Matutino'}</span>
           </div>`;
         classesListContainer.appendChild(item);
       });
@@ -778,60 +1049,54 @@
     function renderAlunos() {
       const currentTurma = database[activeTurmaIndex];
       studentsListContainer.innerHTML = '';
-
-      if (!currentTurma) {
-        selectedClassName.innerHTML = `<i class="fa-solid fa-list-check"></i> Sem Turma`;
-        selectedClassDesc.classList.add('d-none');
-        btnAdicionarAlunoLista.style.display = 'none';
-        clearStudentDetails();
-        return;
+      if (!currentTurma) { 
+        selectedClassName.innerHTML = `<i class="fa-solid fa-list-check"></i> Sem Turma`; 
+        selectedClassDesc.classList.add('d-none'); 
+        selectedClassTeacher.classList.add('d-none');
+        btnAdicionarAlunoLista.style.display = 'none'; 
+        clearStudentDetails(); 
+        return; 
       }
-
       btnAdicionarAlunoLista.style.display = 'flex';
       selectedClassName.innerHTML = `<i class="fa-solid fa-list-check"></i> ${currentTurma.nome}`;
       
-      if (currentTurma.descricao && currentTurma.descricao.trim() !== '') {
-        selectedClassDesc.innerHTML = `<i class="fa-solid fa-quote-left"></i> ${currentTurma.descricao}`;
-        selectedClassDesc.classList.remove('d-none');
+      if (currentTurma.descricao && currentTurma.descricao.trim() !== '') { 
+        selectedClassDesc.innerHTML = `<i class="fa-solid fa-quote-left"></i> ${currentTurma.descricao}`; 
+        selectedClassDesc.classList.remove('d-none'); 
+      } else { 
+        selectedClassDesc.classList.add('d-none'); 
+      }
+
+      selectedClassTeacher.classList.remove('d-none');
+      classTeacherName.innerText = currentTurma.professorNome || "Docente Não Informado";
+      if (currentTurma.professorFoto) {
+        classTeacherAvatar.innerHTML = `<img src="${currentTurma.professorFoto}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;cursor:pointer;" onclick="expandImage('${currentTurma.professorFoto}')" title="Clique para expandir">`;
       } else {
-        selectedClassDesc.classList.add('d-none');
+        classTeacherAvatar.innerHTML = `<i class="fa-solid fa-user-tie"></i>`;
       }
 
-      if (currentTurma.alunos.length === 0) {
-        studentsListContainer.innerHTML = `<p style="font-size:0.85rem; color: var(--text-secondary); text-align:center; padding: 20px 0;">Nenhum aluno nesta turma.</p>`;
-        clearStudentDetails();
-        return;
-      }
-
+      if (!currentTurma.alunos || currentTurma.alunos.length === 0) { studentsListContainer.innerHTML = `<p style="font-size:0.85rem; color: var(--text-secondary); text-align:center; padding: 20px 0;">Nenhum aluno nesta turma.</p>`; clearStudentDetails(); return; }
+      
       currentTurma.alunos.forEach((aluno, index) => {
         const item = document.createElement('div');
-        item.className = `student-item ${index === activeAlunoIndex ? 'active' : ''}`;
+        item.className = `student-item-dash ${index === activeAlunoIndex ? 'active' : ''}`;
         item.onclick = () => { activeAlunoIndex = index; renderAlunos(); };
-        
-        const fotoListIcon = aluno.foto.includes('placeholder') || aluno.foto === '' 
-                           ? `<div class="student-avatar-small" style="display:flex;align-items:center;justify-content:center"><i class="fa-solid fa-user"></i></div>` 
-                           : `<img src="${aluno.foto}" class="student-avatar-small" alt="Foto">`;
-
-        item.innerHTML = `
-          ${fotoListIcon}
-          <span class="student-name">${aluno.nome}</span>
-          <span class="student-tag">IDHUB</span>`;
+        const fotoListIcon = !aluno.foto || aluno.foto.includes('placeholder') ? `<div class="student-avatar-small" style="display:flex;align-items:center;justify-content:center"><i class="fa-solid fa-user"></i></div>` : `<img src="${aluno.foto}" class="student-avatar-small" alt="Foto">`;
+        item.innerHTML = `${fotoListIcon} <span class="student-name">${aluno.nome}</span> <span class="student-tag">IDHUB</span>`;
         studentsListContainer.appendChild(item);
       });
-
       renderStudentDetails();
     }
 
     function renderStudentDetails() {
       const turma = database[activeTurmaIndex];
-      const aluno = turma ? turma.alunos[activeAlunoIndex] : null;
+      const aluno = (turma && turma.alunos) ? turma.alunos[activeAlunoIndex] : null;
       if (!aluno) return clearStudentDetails();
 
       document.getElementById('studentPhoto').src = aluno.foto || "https://via.placeholder.com/150";
       document.getElementById('studentNameDisplay').innerText = aluno.nome;
       document.getElementById('studentTurmaDisplay').innerText = turma.nome;
-      document.getElementById('studentTurmaDisplay').className = `shift-badge ${turma.badgeClass}`;
-      
+      document.getElementById('studentTurmaDisplay').className = `shift-badge ${turma.badgeClass || 'matutino'}`;
       document.getElementById('studentBirth').innerText = aluno.nascimento;
       document.getElementById('studentPhone').innerText = aluno.telefone;
       document.getElementById('studentEmail').innerText = aluno.email;
@@ -839,87 +1104,84 @@
       document.getElementById('studentAddress').innerText = aluno.endereco;
       document.getElementById('studentObs').innerText = aluno.observacoes;
       
-      btnOpenNotes.style.display = 'flex';
-      btnOpenAttendance.style.display = 'flex';
-      btnOpenEdit.style.display = 'flex';
-      btnDeleteStudent.style.display = 'flex';
+      btnOpenNotes.href = `notas-atividades-docente.html?turmaId=${turma.id}&alunoId=${aluno.id}`;
+
+      btnOpenNotes.style.display = 'flex'; btnOpenAttendance.style.display = 'flex'; btnOpenEdit.style.display = 'flex'; btnDeleteStudent.style.display = 'flex';
     }
 
     function clearStudentDetails() {
       document.getElementById('studentPhoto').src = "https://via.placeholder.com/150";
       document.getElementById('studentNameDisplay').innerText = "-";
       document.getElementById('studentTurmaDisplay').innerText = "-";
-      document.getElementById('studentBirth').innerText = "-";
-      document.getElementById('studentPhone').innerText = "-";
-      document.getElementById('studentEmail').innerText = "-";
-      document.getElementById('studentMatricula').innerText = "-";
-      document.getElementById('studentAddress').innerText = "-";
-      document.getElementById('studentObs').innerText = "-";
-      btnOpenNotes.style.display = 'none';
-      btnOpenAttendance.style.display = 'none';
-      btnOpenEdit.style.display = 'none';
-      btnDeleteStudent.style.display = 'none';
+      document.getElementById('studentBirth').innerText = "-"; document.getElementById('studentPhone').innerText = "-"; document.getElementById('studentEmail').innerText = "-";
+      document.getElementById('studentMatricula').innerText = "-"; document.getElementById('studentAddress').innerText = "-"; document.getElementById('studentObs').innerText = "-";
+      btnOpenNotes.style.display = 'none'; btnOpenAttendance.style.display = 'none'; btnOpenEdit.style.display = 'none'; btnDeleteStudent.style.display = 'none';
     }
 
-    // =====================================
-    // FORMULÁRIO: ADD TURMA
-    // =====================================
-    document.getElementById('formAddClass').addEventListener('submit', (e) => {
+    document.getElementById('formAddClass').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const nomeInput = document.getElementById('classNameInput');
+      const nomeInput = document.getElementById('classNameInput'); 
       const descInput = document.getElementById('classDescInput'); 
       const shiftOption = document.querySelector('input[name="classShift"]:checked');
+      const periodType = document.getElementById('classPeriodTypeInput').value;
+      const passingGrade = parseFloat(document.getElementById('classPassingGradeInput').value) || 6.0;
       const box = document.getElementById('alertClassBox');
-      
+
       let isValid = true;
-      if (!nomeInput.value.trim()) { document.getElementById('class-nameGroup').classList.add('error'); isValid = false; }
-      if (!shiftOption) { document.getElementById('class-shiftGroup').classList.add('error'); isValid = false; }
+      if (!nomeInput.value.trim()) { 
+        document.getElementById('class-nameGroup').classList.add('error'); 
+        isValid = false; 
+      }
+      if (!shiftOption) { 
+        document.getElementById('class-shiftGroup').classList.add('error'); 
+        isValid = false; 
+      }
       if (!isValid) return;
 
-      const novaTurma = {
-        id: 'turma_' + Date.now(),
-        nome: nomeInput.value.trim().toUpperCase(),
-        turno: shiftOption.value,
-        badgeClass: shiftOption.value.toLowerCase(),
-        descricao: descInput.value.trim(),
-        alunos: []
-      };
-      
-      database.push(novaTurma);
-      activeTurmaIndex = database.length - 1; 
+      const docenteInfo = JSON.parse(localStorage.getItem('idhub_docente')) || {};
 
-      box.className = "alert-box success"; box.innerText = "Turma criada com sucesso!";
+      database.unshift({ 
+        id: 'turma_' + Date.now(), 
+        nome: nomeInput.value.trim().toUpperCase(), 
+        turno: shiftOption.value, 
+        badgeClass: shiftOption.value.toLowerCase(), 
+        descricao: descInput.value.trim(),
+        tipoPeriodo: periodType,
+        mediaAprovacao: passingGrade,
+        professorNome: docenteInfo.nome || "Professor não informado",
+        professorFoto: docenteInfo.foto || null,
+        alunos: [] 
+      });
+
+      activeTurmaIndex = 0; 
+      activeAlunoIndex = 0; 
+      await saveDatabase();
+      
+      box.className = "alert-box success"; 
+      box.innerText = "Turma criada com sucesso!";
+      
       setTimeout(() => { 
-        document.getElementById('formAddClass').reset(); box.style.display = 'none';
-        renderTurmas(); renderAlunos(); switchView('view-dashboard');
+        document.getElementById('formAddClass').reset(); 
+        box.style.display = 'none'; 
+        renderTurmas(); 
+        renderAlunos(); 
+        switchView('view-dashboard'); 
       }, 1000);
     });
 
-    // =====================================
-    // FORMULÁRIO: ADD ALUNO
-    // =====================================
-    document.getElementById('formAddStudent').addEventListener('submit', (e) => {
+    document.getElementById('formAddStudent').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const nomeInput = document.getElementById('studentNameInput');
-      const matriculaInput = document.getElementById('studentMatriculaInput');
-      const birthInput = document.getElementById('addBirthDate');
-      const phoneInput = document.getElementById('studentPhoneInput');
-      const emailInput = document.getElementById('studentEmailInput');
-      const box = document.getElementById('alertStudentBox');
-      
+      const nomeInput = document.getElementById('studentNameInput'); const matriculaInput = document.getElementById('studentMatriculaInput'); const birthInput = document.getElementById('addBirthDate');
+      const phoneInput = document.getElementById('studentPhoneInput'); const emailInput = document.getElementById('studentEmailInput'); const box = document.getElementById('alertStudentBox');
       let isValid = true;
       if (!nomeInput.value.trim()) { document.getElementById('student-nameGroup').classList.add('error'); isValid = false; }
       if (!matriculaInput.value.trim()) { document.getElementById('student-matriculaGroup').classList.add('error'); isValid = false; }
-      
-      if (emailInput.value.trim() && !isValidEmail(emailInput.value.trim())) {
-        document.getElementById('student-emailGroup').classList.add('error');
-        isValid = false;
-      }
-
+      if (emailInput.value.trim() && !isValidEmail(emailInput.value.trim())) { document.getElementById('student-emailGroup').classList.add('error'); isValid = false; }
       if(database.length === 0) { box.className="alert-box error"; box.innerText = "Crie uma turma primeiro."; return; }
       if (!isValid) return;
 
       const novoAluno = {
+        id: 'aluno_' + Date.now(),
         nome: nomeInput.value.trim().toUpperCase(),
         matricula: matriculaInput.value.trim(),
         nascimento: birthInput.value.trim() || "Não informado", 
@@ -927,77 +1189,311 @@
         email: emailInput.value.trim() || "Não informado",
         endereco: "Não informado", 
         observacoes: "",
-        foto: currentAddPhotoBase64 || "https://via.placeholder.com/150"
+        foto: currentAddPhotoBase64 || "https://via.placeholder.com/150",
+        faltas: 0,
+        historicoFrequencia: {},
+        notas: {},
+        atividades: []
       };
 
-      database[activeTurmaIndex].alunos.push(novoAluno);
-      activeAlunoIndex = database[activeTurmaIndex].alunos.length - 1;
-
+      if (!database[activeTurmaIndex].alunos) database[activeTurmaIndex].alunos = [];
+      database[activeTurmaIndex].alunos.push(novoAluno); activeAlunoIndex = database[activeTurmaIndex].alunos.length - 1; 
+      await saveDatabase();
       box.className = "alert-box success"; box.innerText = "Aluno adicionado com sucesso!";
-      setTimeout(() => { 
-        document.getElementById('formAddStudent').reset(); 
-        currentAddPhotoBase64 = null; 
-        box.style.display = 'none';
-        renderAlunos(); renderTurmas(); switchView('view-dashboard');
-      }, 1000);
+      setTimeout(() => { document.getElementById('formAddStudent').reset(); currentAddPhotoBase64 = null; box.style.display = 'none'; renderAlunos(); renderTurmas(); switchView('view-dashboard'); }, 1000);
     });
 
-    // =====================================
-    // FORMULÁRIO: EDITAR ALUNO
-    // =====================================
     function openEditStudent() {
-      const aluno = database[activeTurmaIndex].alunos[activeAlunoIndex];
-      if(!aluno) return;
-
-      currentEditPhotoBase64 = null; 
-      document.getElementById('editPhotoInput').value = ""; 
-
-      document.getElementById('lblEditStudentName').innerText = aluno.nome;
-      document.getElementById('editName').value = aluno.nome;
+      const aluno = database[activeTurmaIndex].alunos[activeAlunoIndex]; if(!aluno) return;
+      currentEditPhotoBase64 = null; document.getElementById('editPhotoInput').value = ""; 
+      document.getElementById('lblEditStudentName').innerText = aluno.nome; document.getElementById('editName').value = aluno.nome;
       document.getElementById('editMatricula').value = aluno.matricula !== "Não informado" ? aluno.matricula : "";
       document.getElementById('editBirthDate').value = aluno.nascimento !== "Não informado" ? aluno.nascimento : "";
       document.getElementById('editPhone').value = aluno.telefone !== "Não informado" ? aluno.telefone : "";
       document.getElementById('editEmail').value = aluno.email !== "Não informado" ? aluno.email : "";
       document.getElementById('editAddress').value = aluno.endereco !== "Não informado" ? aluno.endereco : "";
       document.getElementById('editObs').value = aluno.observacoes !== "Não informado" ? aluno.observacoes : "";
-
       switchView('view-edit-student');
     }
 
-    document.getElementById('formEditStudent').addEventListener('submit', (e) => {
-      e.preventDefault();
-      const emailInput = document.getElementById('editEmail');
-      
-      if (emailInput.value.trim() && !isValidEmail(emailInput.value.trim())) {
-        document.getElementById('edit-emailGroup').classList.add('error');
+    document.getElementById('formEditStudent').addEventListener('submit', async (e) => {
+      e.preventDefault(); const emailInput = document.getElementById('editEmail');
+      if (emailInput.value.trim() && !isValidEmail(emailInput.value.trim())) { document.getElementById('edit-emailGroup').classList.add('error'); return; }
+      const aluno = database[activeTurmaIndex].alunos[activeAlunoIndex];
+      aluno.nome = document.getElementById('editName').value.trim().toUpperCase() || "SEM NOME"; aluno.matricula = document.getElementById('editMatricula').value.trim() || "Não informado";
+      aluno.nascimento = document.getElementById('editBirthDate').value.trim() || "Não informado"; aluno.telefone = document.getElementById('editPhone').value.trim() || "Não informado";
+      aluno.email = emailInput.value.trim() || "Não informado"; aluno.endereco = document.getElementById('editAddress').value.trim() || "Não informado"; aluno.observacoes = document.getElementById('editObs').value.trim() || "";
+      if (currentEditPhotoBase64) aluno.foto = currentEditPhotoBase64;
+      await saveDatabase(); const box = document.getElementById('alertEditBox'); box.innerText = "Informações atualizadas com sucesso!"; box.style.display = 'block';
+      setTimeout(() => { box.style.display = 'none'; renderAlunos(); renderTurmas(); switchView('view-dashboard'); }, 1000);
+    });
+
+    // ==========================================
+    // LÓGICA COMPLETA DO DIÁRIO DE FREQUÊNCIA
+    // ==========================================
+    let currentCalendarDate = new Date();
+    let isEditingFaltas = false;
+
+    function openDiarioFrequenciaView() {
+      if (database.length === 0) {
+        showToast("Nenhuma turma cadastrada!");
+        return;
+      }
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('attendanceDate').value = today;
+      currentCalendarDate = new Date();
+      switchView('view-diario-frequencia');
+      switchFreqSubView('frequencia');
+    }
+
+    function switchFreqSubView(subviewName) {
+      document.getElementById('subview-frequencia').classList.add('d-none');
+      document.getElementById('subview-faltas').classList.add('d-none');
+      document.getElementById('subview-consulta').classList.add('d-none');
+
+      const btnBackToFreq = document.getElementById('btnBackToFreq');
+      const btnBackToDocente = document.getElementById('btnBackToDocente');
+      const headerTitle = document.getElementById('headerTitle');
+
+      if (subviewName === 'frequencia') {
+        document.getElementById('subview-frequencia').classList.remove('d-none');
+        btnBackToFreq.classList.add('d-none');
+        btnBackToDocente.classList.remove('d-none');
+        headerTitle.textContent = "Frequência";
+        renderFreqList();
+        renderCalendar();
+      } else if (subviewName === 'faltas') {
+        document.getElementById('subview-faltas').classList.remove('d-none');
+        btnBackToFreq.classList.remove('d-none');
+        btnBackToDocente.classList.add('d-none');
+        headerTitle.textContent = "Faltas";
+        renderFaltasContainer();
+      } else if (subviewName === 'consulta') {
+        document.getElementById('subview-consulta').classList.remove('d-none');
+        btnBackToFreq.classList.remove('d-none');
+        btnBackToDocente.classList.add('d-none');
+        headerTitle.textContent = "Consulta";
+        renderConsultaContainer();
+      }
+    }
+
+    function renderFreqList() {
+      const container = document.getElementById('listFreqContainer');
+      container.innerHTML = '';
+      const turma = database[activeTurmaIndex];
+      const dataSel = document.getElementById('attendanceDate').value;
+
+      if (!turma || !turma.alunos || turma.alunos.length === 0) {
+        container.innerHTML = `<div class="empty-state">Nenhum aluno nesta turma para lançar frequência.</div>`;
         return;
       }
 
-      const aluno = database[activeTurmaIndex].alunos[activeAlunoIndex];
-      
-      aluno.nome = document.getElementById('editName').value.trim().toUpperCase() || "SEM NOME";
-      aluno.matricula = document.getElementById('editMatricula').value.trim() || "Não informado";
-      aluno.nascimento = document.getElementById('editBirthDate').value.trim() || "Não informado";
-      aluno.telefone = document.getElementById('editPhone').value.trim() || "Não informado";
-      aluno.email = emailInput.value.trim() || "Não informado";
-      aluno.endereco = document.getElementById('editAddress').value.trim() || "Não informado";
-      aluno.observacoes = document.getElementById('editObs').value.trim() || "";
-      
-      if (currentEditPhotoBase64) {
-        aluno.foto = currentEditPhotoBase64;
-      }
+      turma.alunos.forEach((aluno) => {
+        if (!aluno.historicoFrequencia) aluno.historicoFrequencia = {};
+        const estaPresente = aluno.historicoFrequencia[dataSel] !== false; // Default true se não lançado
 
-      const box = document.getElementById('alertEditBox');
-      box.innerText = "Informações atualizadas com sucesso!";
-      box.style.display = 'block';
+        const item = document.createElement('div');
+        item.className = 'student-item-freq';
+        item.innerHTML = `
+          <div class="student-info-freq">
+            <img src="${aluno.foto || 'https://via.placeholder.com/150'}" class="student-avatar-freq" alt="Foto">
+            <span class="student-name-freq">${aluno.nome}</span>
+          </div>
+          <input type="checkbox" class="presence-checkbox" data-alunoid="${aluno.id}" ${estaPresente ? 'checked' : ''}>
+        `;
+        container.appendChild(item);
+      });
+    }
 
-      setTimeout(() => { 
-        box.style.display = 'none';
-        renderAlunos(); renderTurmas(); 
-        switchView('view-dashboard');
-      }, 1000);
+    document.getElementById('btnLaunch').addEventListener('click', async () => {
+      const turma = database[activeTurmaIndex];
+      const dataSel = document.getElementById('attendanceDate').value;
+      if (!turma || !turma.alunos) return;
+
+      const checkboxes = document.querySelectorAll('#listFreqContainer .presence-checkbox');
+      checkboxes.forEach(chk => {
+        const aId = chk.getAttribute('data-alunoid');
+        const aluno = turma.alunos.find(a => a.id === aId);
+        if (aluno) {
+          if (!aluno.historicoFrequencia) aluno.historicoFrequencia = {};
+          const eraPresente = aluno.historicoFrequencia[dataSel];
+          const estaChecked = chk.checked;
+
+          aluno.historicoFrequencia[dataSel] = estaChecked;
+
+          // Ajusta contagem total de faltas no perfil do aluno
+          if (eraPresente === false && estaChecked) {
+            aluno.faltas = Math.max(0, (aluno.faltas || 0) - 1);
+          } else if ((eraPresente === true || eraPresente === undefined) && !estaChecked) {
+            aluno.faltas = (aluno.faltas || 0) + 1;
+          }
+        }
+      });
+
+      await saveDatabase();
+      showToast("Frequência lançada com sucesso!");
     });
 
+    function renderFaltasContainer() {
+      const container = document.getElementById('listFaltasContainer');
+      container.innerHTML = '';
+      const turma = database[activeTurmaIndex];
+
+      if (!turma || !turma.alunos || turma.alunos.length === 0) {
+        container.innerHTML = `<div class="empty-state">Nenhum aluno nesta turma.</div>`;
+        return;
+      }
+
+      turma.alunos.forEach((aluno) => {
+        const item = document.createElement('div');
+        item.className = 'student-item-freq';
+        item.innerHTML = `
+          <div class="student-info-freq">
+            <img src="${aluno.foto || 'https://via.placeholder.com/150'}" class="student-avatar-freq" alt="Foto">
+            <span class="student-name-freq">${aluno.nome}</span>
+          </div>
+          <div class="absence-badge">
+            <input type="number" class="absence-input" data-alunoid="${aluno.id}" value="${aluno.faltas || 0}" min="0" ${isEditingFaltas ? '' : 'disabled'}>
+          </div>
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    document.getElementById('btnGoToFaltas').addEventListener('click', () => {
+      switchFreqSubView('faltas');
+    });
+
+    document.getElementById('btnEditFaltas').addEventListener('click', async () => {
+      const btn = document.getElementById('btnEditFaltas');
+      const inputs = document.querySelectorAll('#listFaltasContainer .absence-input');
+      const turma = database[activeTurmaIndex];
+
+      if (!isEditingFaltas) {
+        isEditingFaltas = true;
+        btn.classList.add('editing-mode');
+        btn.querySelector('span').textContent = 'SALVAR FALTAS';
+        inputs.forEach(inp => inp.removeAttribute('disabled'));
+      } else {
+        isEditingFaltas = false;
+        btn.classList.remove('editing-mode');
+        btn.querySelector('span').textContent = 'EDITAR MANUAMENTE';
+        inputs.forEach(inp => {
+          inp.setAttribute('disabled', 'true');
+          const aId = inp.getAttribute('data-alunoid');
+          const aluno = turma.alunos.find(a => a.id === aId);
+          if (aluno) aluno.faltas = parseInt(inp.value) || 0;
+        });
+        await saveDatabase();
+        showToast("Faltas atualizadas com sucesso!");
+      }
+    });
+
+    function renderConsultaContainer() {
+      const container = document.getElementById('listConsultaContainer');
+      container.innerHTML = '';
+      const turma = database[activeTurmaIndex];
+      const dataSel = document.getElementById('attendanceDate').value;
+
+      document.getElementById('consultDateLabel').textContent = `Data: ${dataSel.split('-').reverse().join('/')}`;
+
+      if (!turma || !turma.alunos || turma.alunos.length === 0) {
+        container.innerHTML = `<div class="empty-state">Nenhum aluno para exibir.</div>`;
+        return;
+      }
+
+      turma.alunos.forEach((aluno) => {
+        const estaPresente = aluno.historicoFrequencia ? aluno.historicoFrequencia[dataSel] : undefined;
+        let badgeHtml = `<span style="color:#20bf55; font-weight:bold;"><i class="fa-solid fa-check"></i> Presente</span>`;
+
+        if (estaPresente === false) {
+          badgeHtml = `<span style="color:#e63946; font-weight:bold;"><i class="fa-solid fa-xmark"></i> Faltou</span>`;
+        }
+
+        const item = document.createElement('div');
+        item.className = 'student-item-freq';
+        item.innerHTML = `
+          <div class="student-info-freq">
+            <img src="${aluno.foto || 'https://via.placeholder.com/150'}" class="student-avatar-freq" alt="Foto">
+            <span class="student-name-freq">${aluno.nome}</span>
+          </div>
+          <div>${badgeHtml}</div>
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    document.getElementById('btnConsult').addEventListener('click', () => {
+      switchFreqSubView('consulta');
+    });
+
+    // Calendário Interativo
+    const monthsNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+
+    function renderCalendar() {
+      const year = currentCalendarDate.getFullYear();
+      const month = currentCalendarDate.getMonth();
+      const calendarGrid = document.getElementById('calendarGrid');
+      
+      document.getElementById('calMonthYear').innerText = `${monthsNames[month]} ${year}`;
+      
+      const headers = calendarGrid.querySelectorAll('.calendar-day-head');
+      calendarGrid.innerHTML = '';
+      headers.forEach(h => calendarGrid.appendChild(h));
+      
+      const firstDayIndex = new Date(year, month, 1).getDay();
+      const totalDays = new Date(year, month + 1, 0).getDate();
+      
+      for (let i = 0; i < firstDayIndex; i++) {
+        const emptyCell = document.createElement('div');
+        emptyCell.className = 'calendar-day empty';
+        calendarGrid.appendChild(emptyCell);
+      }
+      
+      const selectedVal = document.getElementById('attendanceDate').value;
+      for (let day = 1; day <= totalDays; day++) {
+        const dayCell = document.createElement('div');
+        dayCell.className = 'calendar-day';
+        dayCell.innerText = day;
+        
+        const formattedMonth = String(month + 1).padStart(2, '0');
+        const formattedDay = String(day).padStart(2, '0');
+        const dateStr = `${year}-${formattedMonth}-${formattedDay}`;
+        
+        if (dateStr === selectedVal) {
+          dayCell.classList.add('selected');
+        }
+        
+        dayCell.addEventListener('click', () => {
+          document.getElementById('attendanceDate').value = dateStr;
+          renderFreqList();
+          renderCalendar();
+        });
+        
+        calendarGrid.appendChild(dayCell);
+      }
+    }
+
+    document.getElementById('calPrev').addEventListener('click', () => {
+      currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1);
+      renderCalendar();
+    });
+
+    document.getElementById('calNext').addEventListener('click', () => {
+      currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1);
+      renderCalendar();
+    });
+
+    document.getElementById('attendanceDate').addEventListener('change', (e) => {
+      const parts = e.target.value.split('-');
+      if(parts.length === 3) {
+        currentCalendarDate = new Date(parts[0], parts[1] - 1, parts[2]);
+        renderCalendar();
+      }
+      renderFreqList();
+    });
+
+    // Limpeza de Validações nos Campos
     document.getElementById('classNameInput').addEventListener('input', () => document.getElementById('class-nameGroup').classList.remove('error'));
     document.querySelectorAll('input[name="classShift"]').forEach(radio => radio.addEventListener('change', () => document.getElementById('class-shiftGroup').classList.remove('error')));
     document.getElementById('studentNameInput').addEventListener('input', () => document.getElementById('student-nameGroup').classList.remove('error'));
@@ -1005,9 +1501,9 @@
     document.getElementById('studentEmailInput').addEventListener('input', () => document.getElementById('student-emailGroup').classList.remove('error'));
     document.getElementById('editEmail').addEventListener('input', () => document.getElementById('edit-emailGroup').classList.remove('error'));
 
-    document.addEventListener('DOMContentLoaded', () => {
-      renderTurmas();
-      renderAlunos();
+    document.addEventListener('DOMContentLoaded', () => { 
+      loadDocenteHeader(); 
+      loadTurmas();
     });
   </script>
 </body>

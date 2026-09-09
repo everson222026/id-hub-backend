@@ -5,17 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ID HUB | Notas e Atividades Docente</title>
   
-  <!-- Google Fonts: Inter & Poppins -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
-  
-  <!-- Font Awesome para Ícones -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   
-  <!-- =========================================
-       ESTILOS CSS INTEGRADOS (GLASSMORPHISM)
-  ========================================= -->
   <style>
     :root {
       --bg-gradient: linear-gradient(135deg, #0d2b24 0%, #164e41 50%, #2d6a4f 100%);
@@ -33,406 +27,96 @@
       --font-title: 'Poppins', sans-serif;
     }
 
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: var(--font-main); background: var(--bg-gradient); color: var(--text-primary); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px 20px; overflow-x: hidden; }
+    
+    .app-container { position: relative; width: 100%; max-width: 1100px; background: var(--card-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid var(--card-border); border-radius: 28px; box-shadow: var(--shadow-lg); padding: 32px; overflow: hidden; animation: fadeIn 0.8s ease-out; }
+    .wave-bg { position: absolute; bottom: 0; left: 0; width: 100%; height: 180px; z-index: 0; pointer-events: none; }
+    .wave-bg svg { width: 100%; height: 100%; }
 
-    body {
-      font-family: var(--font-main);
-      background: var(--bg-gradient);
-      color: var(--text-primary);
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 24px 20px;
-      overflow-x: hidden;
-    }
+    .app-header { position: relative; z-index: 2; display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+    .logo-text { font-family: var(--font-title); font-size: 1.2rem; letter-spacing: 1px; }
+    .back-btn { color: var(--text-secondary); background: rgba(255, 255, 255, 0.1); border: 1px solid var(--card-border); width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; text-decoration: none; font-size: 1.1rem; transition: all 0.3s ease; cursor: pointer; }
+    .back-btn:hover { background: var(--accent-color); color: #0d2b24; transform: rotate(-15deg); }
 
-    /* Container Principal Glassmorphism */
-    .app-container {
-      position: relative;
-      width: 100%;
-      max-width: 900px;
-      background: var(--card-bg);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border: 1px solid var(--card-border);
-      border-radius: 28px;
-      box-shadow: var(--shadow-lg);
-      padding: 32px;
-      overflow: hidden;
-      animation: fadeIn 0.8s ease-out;
-    }
+    .student-card { position: relative; z-index: 2; display: flex; align-items: center; justify-content: space-between; background: rgba(0, 0, 0, 0.2); border: 1px solid var(--card-border); padding: 16px 20px; border-radius: 20px; margin-bottom: 28px; flex-wrap: wrap; gap: 15px; }
+    .student-card-left { display: flex; align-items: center; gap: 20px; }
+    .student-avatar { width: 70px; height: 70px; border-radius: 16px; object-fit: cover; border: 2px solid var(--accent-color); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); flex-shrink: 0; }
+    .student-info { display: flex; flex-direction: column; gap: 6px; }
+    .info-badge { background: rgba(255, 255, 255, 0.95); color: #1a1a1a; padding: 4px 12px; border-radius: 8px; font-size: 0.82rem; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.15); }
+    .info-badge strong { color: #0d2b24; font-family: var(--font-title); font-size: 0.85rem; text-transform: uppercase; }
 
-    /* Ondas Decorativas de Fundo */
-    .wave-bg {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      width: 100%;
-      height: 180px;
-      z-index: 0;
-      pointer-events: none;
-    }
+    /* CONTROLE DE CONFIGURAÇÃO DA TURMA (MÉDIA E PERÍODOS) */
+    .class-config-box { display: flex; gap: 12px; align-items: center; background: rgba(255, 255, 255, 0.1); border: 1px solid var(--card-border); padding: 10px 14px; border-radius: 12px; flex-wrap: wrap; }
+    .class-config-item { display: flex; flex-direction: column; gap: 2px; }
+    .class-config-label { font-size: 0.68rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 600; }
+    .class-config-input { width: 50px; background: rgba(255, 255, 255, 0.2); border: 1px solid var(--accent-color); color: #fff; text-align: center; border-radius: 6px; font-weight: bold; outline: none; padding: 2px; }
+    .class-config-select { background: rgba(255, 255, 255, 0.2); border: 1px solid var(--accent-color); color: #fff; border-radius: 6px; font-size: 0.78rem; outline: none; padding: 2px 4px; }
+    .class-config-select option { background: #11382f; color: #fff; }
 
-    .wave-bg svg {
-      width: 100%;
-      height: 100%;
-    }
+    .dashboard-grid { position: relative; z-index: 2; display: grid; grid-template-columns: 1.5fr 1fr; gap: 20px; }
+    @media (max-width: 900px) { .dashboard-grid { grid-template-columns: 1fr; } }
 
-    /* Header Superior */
-    .app-header {
-      position: relative;
-      z-index: 2;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 24px;
-    }
+    .section-card { background: rgba(255, 255, 255, 0.05); border: 1px solid var(--card-border); border-radius: 22px; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; }
+    .section-title { font-family: var(--font-title); font-size: 1.3rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; text-align: center; margin-bottom: 18px; color: var(--text-primary); }
 
-    .logo-text {
-      font-family: var(--font-title);
-      font-size: 1.2rem;
-      letter-spacing: 1px;
-    }
+    /* BARRA PARA ADICIONAR NOVA MATÉRIA */
+    .add-subject-box { display: flex; gap: 8px; margin-bottom: 14px; }
+    .add-subject-input { flex: 1; background: rgba(255, 255, 255, 0.12); border: 1px solid var(--card-border); border-radius: 8px; padding: 8px 12px; font-family: var(--font-main); font-size: 0.8rem; color: #fff; outline: none; text-transform: uppercase; }
+    .add-subject-input::placeholder { color: rgba(255, 255, 255, 0.5); }
+    .btn-add-subject { background: var(--accent-color); color: #0d2b24; border: none; padding: 8px 14px; border-radius: 8px; font-weight: 700; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s ease; }
+    .btn-add-subject:hover { background: #64d8a1; }
 
-    .back-btn {
-      color: var(--text-secondary);
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid var(--card-border);
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      text-decoration: none;
-      font-size: 1.1rem;
-      transition: all 0.3s ease;
-    }
+    .table-container { width: 100%; overflow-x: auto; margin-bottom: 16px; }
+    .grades-table { width: 100%; border-collapse: separate; border-spacing: 0; border: 1px solid var(--card-border); border-radius: 12px; overflow: hidden; background: rgba(0, 0, 0, 0.15); }
+    .grades-table th, .grades-table td { padding: 8px 6px; text-align: center; font-size: 0.8rem; border-bottom: 1px solid rgba(255, 255, 255, 0.1); border-right: 1px solid rgba(255, 255, 255, 0.1); }
+    .grades-table th:last-child, .grades-table td:last-child { border-right: none; }
+    .grades-table tr:last-child td { border-bottom: none; }
+    .grades-table th { background: rgba(13, 43, 36, 0.85); font-family: var(--font-title); font-weight: 700; color: var(--text-secondary); text-transform: uppercase; font-size: 0.72rem; }
+    .grades-table td.subject-name { font-family: var(--font-title); font-weight: 700; text-align: left; padding-left: 10px; color: #ffffff; text-transform: uppercase; font-size: 0.75rem; white-space: nowrap; }
 
-    .back-btn:hover {
-      background: var(--accent-color);
-      color: #0d2b24;
-      transform: rotate(-15deg);
-    }
+    /* AÇÕES DA TABELA (EDITAR/REMOVER MATÉRIA) */
+    .subject-action-btn { background: none; border: none; cursor: pointer; font-size: 0.75rem; padding: 2px 4px; transition: transform 0.2s ease; }
+    .btn-edit-sub { color: #ffd166; }
+    .btn-del-sub { color: var(--error-color); }
+    .subject-action-btn:hover { transform: scale(1.2); }
 
-    /* Cartão do Aluno */
-    .student-card {
-      position: relative;
-      z-index: 2;
-      display: flex;
-      align-items: center;
-      gap: 20px;
-      background: rgba(0, 0, 0, 0.2);
-      border: 1px solid var(--card-border);
-      padding: 16px 20px;
-      border-radius: 20px;
-      margin-bottom: 28px;
-    }
+    .grade-input { width: 100%; max-width: 38px; background: rgba(255, 255, 255, 0.1); border: 1px solid transparent; color: #ffffff; text-align: center; font-family: var(--font-main); font-weight: 600; border-radius: 6px; padding: 4px; outline: none; transition: all 0.2s ease; }
+    .grade-input:focus { background: rgba(255, 255, 255, 0.25); border-color: var(--accent-color); }
 
-    .student-avatar {
-      width: 80px;
-      height: 80px;
-      border-radius: 16px;
-      object-fit: cover;
-      border: 2px solid var(--accent-color);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-      flex-shrink: 0;
-    }
+    .total-val { font-weight: 700; color: #ffd166; }
+    .media-val { font-weight: 800; padding: 3px 6px; border-radius: 6px; }
+    .media-aprovado { background: rgba(32, 191, 85, 0.25); color: #20bf55; border: 1px solid #20bf55; }
+    .media-reprovado { background: rgba(255, 77, 77, 0.25); color: #ff4d4d; border: 1px solid #ff4d4d; }
 
-    .student-info {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      width: 100%;
-    }
+    .activities-list { display: flex; flex-direction: column; gap: 10px; }
+    .activity-item { display: flex; align-items: center; justify-content: space-between; background: rgba(255, 255, 255, 0.95); color: #1a1a1a; padding: 10px 14px; border-radius: 12px; font-family: var(--font-main); font-weight: 600; font-size: 0.85rem; letter-spacing: 0.5px; text-transform: uppercase; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15); transition: transform 0.2s ease; }
+    .activity-item:hover { transform: translateX(3px); }
+    .activity-actions { display: flex; align-items: center; gap: 12px; }
+    .btn-remove { background: none; border: none; color: var(--error-color); cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease; }
+    .btn-remove:hover { transform: scale(1.15); color: #cc0000; }
+    .activity-checkbox { appearance: none; width: 24px; height: 24px; border: 2px solid #20bf55; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; position: relative; background: #ffffff; transition: all 0.2s ease; flex-shrink: 0; }
+    .activity-checkbox:checked { background: var(--btn-green); border-color: var(--btn-green); }
+    .activity-checkbox:checked::after { content: '✓'; color: #ffffff; font-size: 14px; font-weight: bold; }
 
-    .info-badge {
-      background: rgba(255, 255, 255, 0.95);
-      color: #1a1a1a;
-      padding: 6px 14px;
-      border-radius: 8px;
-      font-size: 0.88rem;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-    }
+    .add-activity-row { display: flex; align-items: center; gap: 8px; }
+    .add-activity-row i { color: #0d2b24; font-size: 1.2rem; cursor: pointer; }
+    .add-activity-input { border: none; background: transparent; outline: none; font-family: var(--font-main); font-weight: 600; font-size: 0.85rem; text-transform: uppercase; color: #1a1a1a; width: 100%; }
+    .add-activity-input::placeholder { color: rgba(0, 0, 0, 0.45); }
 
-    .info-badge strong {
-      color: #0d2b24;
-      font-family: var(--font-title);
-      font-size: 0.9rem;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
+    .btn-submit { width: 100%; background: var(--btn-green); color: #ffffff; border: none; padding: 12px; border-radius: 50px; font-family: var(--font-title); font-size: 0.9rem; font-weight: 700; letter-spacing: 1px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 6px 20px rgba(32, 191, 85, 0.35); transition: all 0.3s ease; margin-top: auto; }
+    .btn-submit:hover { background: var(--btn-green-hover); transform: translateY(-2px); box-shadow: 0 8px 25px rgba(32, 191, 85, 0.5); }
 
-    /* Grid do Conteúdo Principal (Notas + Atividades) */
-    .dashboard-grid {
-      position: relative;
-      z-index: 2;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 24px;
-    }
+    .toast-msg { position: fixed; bottom: 20px; right: 20px; background: rgba(32, 191, 85, 0.95); color: #ffffff; padding: 12px 24px; border-radius: 12px; font-family: var(--font-title); font-size: 0.88rem; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3); display: none; z-index: 99; animation: slideUp 0.3s ease; }
+    .toast-error { background: rgba(255, 77, 77, 0.95); }
 
-    @media (max-width: 768px) {
-      .dashboard-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    /* Estilo dos Seções (Notas e Atividades) */
-    .section-card {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid var(--card-border);
-      border-radius: 22px;
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-    }
-
-    .section-title {
-      font-family: var(--font-title);
-      font-size: 1.5rem;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 1.5px;
-      text-align: center;
-      margin-bottom: 18px;
-      color: var(--text-primary);
-    }
-
-    /* TABELA DE NOTAS */
-    .table-container {
-      width: 100%;
-      overflow-x: auto;
-      margin-bottom: 16px;
-    }
-
-    .grades-table {
-      width: 100%;
-      border-collapse: separate;
-      border-spacing: 0;
-      border: 1px solid var(--card-border);
-      border-radius: 12px;
-      overflow: hidden;
-      background: rgba(0, 0, 0, 0.15);
-    }
-
-    .grades-table th,
-    .grades-table td {
-      padding: 10px 8px;
-      text-align: center;
-      font-size: 0.85rem;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-      border-right: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    .grades-table th:last-child,
-    .grades-table td:last-child {
-      border-right: none;
-    }
-
-    .grades-table tr:last-child td {
-      border-bottom: none;
-    }
-
-    .grades-table th {
-      background: rgba(13, 43, 36, 0.85);
-      font-family: var(--font-title);
-      font-weight: 700;
-      color: var(--text-secondary);
-      text-transform: uppercase;
-    }
-
-    .grades-table td.subject-name {
-      font-family: var(--font-title);
-      font-weight: 700;
-      text-align: left;
-      padding-left: 12px;
-      color: #ffffff;
-      text-transform: uppercase;
-      font-size: 0.8rem;
-      white-space: nowrap;
-    }
-
-    .grade-input {
-      width: 100%;
-      max-width: 42px;
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid transparent;
-      color: #ffffff;
-      text-align: center;
-      font-family: var(--font-main);
-      font-weight: 600;
-      border-radius: 6px;
-      padding: 4px;
-      outline: none;
-      transition: all 0.2s ease;
-    }
-
-    .grade-input:focus {
-      background: rgba(255, 255, 255, 0.25);
-      border-color: var(--accent-color);
-    }
-
-    /* LISTA DE ATIVIDADES */
-    .activities-list {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .activity-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background: rgba(255, 255, 255, 0.95);
-      color: #1a1a1a;
-      padding: 10px 14px;
-      border-radius: 12px;
-      font-family: var(--font-main);
-      font-weight: 600;
-      font-size: 0.85rem;
-      letter-spacing: 0.5px;
-      text-transform: uppercase;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-      transition: transform 0.2s ease;
-    }
-
-    .activity-item:hover {
-      transform: translateX(3px);
-    }
-
-    .activity-checkbox {
-      appearance: none;
-      width: 26px;
-      height: 26px;
-      border: 2px solid #20bf55;
-      border-radius: 6px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-      background: #ffffff;
-      transition: all 0.2s ease;
-      flex-shrink: 0;
-    }
-
-    .activity-checkbox:checked {
-      background: var(--btn-green);
-      border-color: var(--btn-green);
-    }
-
-    .activity-checkbox:checked::after {
-      content: '✓';
-      color: #ffffff;
-      font-size: 16px;
-      font-weight: bold;
-    }
-
-    /* Linha Adicionar Nova Atividade */
-    .add-activity-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background: rgba(255, 255, 255, 0.95);
-      padding: 6px 12px;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-      margin-top: 4px;
-    }
-
-    .add-activity-row i {
-      color: #0d2b24;
-      font-size: 1.2rem;
-      cursor: pointer;
-    }
-
-    .add-activity-input {
-      border: none;
-      background: transparent;
-      outline: none;
-      font-family: var(--font-main);
-      font-weight: 600;
-      font-size: 0.85rem;
-      text-transform: uppercase;
-      color: #1a1a1a;
-      width: 100%;
-    }
-
-    .add-activity-input::placeholder {
-      color: rgba(0, 0, 0, 0.45);
-    }
-
-    /* Botão Salvar Notas */
-    .btn-submit {
-      width: 100%;
-      background: var(--btn-green);
-      color: #ffffff;
-      border: none;
-      padding: 12px;
-      border-radius: 50px;
-      font-family: var(--font-title);
-      font-size: 0.9rem;
-      font-weight: 700;
-      letter-spacing: 1px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      box-shadow: 0 6px 20px rgba(32, 191, 85, 0.35);
-      transition: all 0.3s ease;
-      margin-top: auto;
-    }
-
-    .btn-submit:hover {
-      background: var(--btn-green-hover);
-      transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(32, 191, 85, 0.5);
-    }
-
-    /* Toast / Alert */
-    .toast-msg {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      background: rgba(32, 191, 85, 0.95);
-      color: #ffffff;
-      padding: 12px 24px;
-      border-radius: 12px;
-      font-family: var(--font-title);
-      font-size: 0.88rem;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
-      display: none;
-      z-index: 99;
-      animation: slideUp 0.3s ease;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(15px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    @keyframes slideUp {
-      from { transform: translateY(20px); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
-    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
   </style>
 </head>
 <body>
 
   <main class="app-container">
-    
-    <!-- Fundo de Ondas Decorativo -->
     <div class="wave-bg">
       <svg viewBox="0 0 1440 320" preserveAspectRatio="none">
         <path fill="rgba(255, 255, 255, 0.05)" d="M0,192L48,197.3C96,203,192,213,288,192C384,171,480,117,576,117.3C672,117,768,171,864,197.3C960,224,1056,224,1152,197.3C1248,171,1344,117,1392,90.7L1440,64L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path>
@@ -440,131 +124,111 @@
       </svg>
     </div>
 
-    <!-- Header Superior -->
     <header class="app-header">
       <span class="logo-text">ID<strong>HUB</strong></span>
-      <a href="docente.html" class="back-btn" title="Voltar para a Home Docente">
+      <button onclick="window.history.back()" class="back-btn" title="Voltar">
         <i class="fa-solid fa-arrow-left"></i>
-      </a>
+      </button>
     </header>
 
-    <!-- Cartão com Informações do Aluno -->
     <section class="student-card">
-      <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=300" alt="Foto do Aluno" class="student-avatar" id="studentAvatar">
-      <div class="student-info">
-        <div class="info-badge">
-          <strong>Nome:</strong> <span id="studentName">Ash Ketchum</span>
+      <div class="student-card-left">
+        <img src="https://via.placeholder.com/150" alt="Foto do Aluno" class="student-avatar" id="studentAvatar">
+        <div class="student-info">
+          <div class="info-badge">
+            <strong>Nome:</strong> <span id="studentName">Carregando...</span>
+          </div>
+          <div class="info-badge">
+            <strong>Turma:</strong> <span id="studentClass">Carregando...</span>
+          </div>
         </div>
-        <div class="info-badge">
-          <strong>Turma:</strong> <span id="studentClass">Equipe Rocket</span>
+      </div>
+
+      <!-- PAINEL DE AJUSTES DA TURMA (MÉDIA DE APROVAÇÃO, PERÍODOS E QUANTIDADE) -->
+      <div class="class-config-box">
+        <div class="class-config-item">
+          <span class="class-config-label"><i class="fa-solid fa-award"></i> Média Aprovação</span>
+          <input type="number" id="classPassingGrade" class="class-config-input" step="0.5" min="0" max="10" value="6.0">
+        </div>
+        <div class="class-config-item">
+          <span class="class-config-label"><i class="fa-solid fa-layer-group"></i> Modo</span>
+          <select id="classPeriodType" class="class-config-select">
+            <option value="bimestre">Bimestre</option>
+            <option value="trimestre">Trimestre</option>
+            <option value="semestre">Semestre</option>
+          </select>
+        </div>
+        <div class="class-config-item">
+          <span class="class-config-label"><i class="fa-solid fa-hashtag"></i> Qtd. Períodos</span>
+          <input type="number" id="classPeriodCount" class="class-config-input" min="1" max="10" value="4">
         </div>
       </div>
     </section>
 
-    <!-- Grid do Conteúdo (Notas | Atividades) -->
     <div class="dashboard-grid">
 
-      <!-- SEÇÃO 1: NOTAS -->
+      <!-- SEÇÃO NOTAS -->
       <section class="section-card">
         <div>
           <h2 class="section-title">NOTAS</h2>
+          
+          <!-- Adicionar Matéria -->
+          <div class="add-subject-box">
+            <input type="text" id="newSubjectInput" class="add-subject-input" placeholder="NOVA MATÉRIA">
+            <button class="btn-add-subject" id="btnAddSubject">
+              <i class="fa-solid fa-plus"></i> Adicionar
+            </button>
+          </div>
+
           <div class="table-container">
             <table class="grades-table">
-              <thead>
-                <tr>
-                  <th>MATÉRIAS</th>
-                  <th>B1</th>
-                  <th>B2</th>
-                  <th>B3</th>
-                  <th>B4</th>
-                </tr>
+              <thead id="gradesTableHead">
+                <!-- Cabeçalho dinâmico gerado pelo JS -->
               </thead>
               <tbody id="gradesTableBody">
-                <tr>
-                  <td class="subject-name">MATÉRIA 1</td>
-                  <td><input type="text" class="grade-input" placeholder="—" maxlength="4"></td>
-                  <td><input type="text" class="grade-input" placeholder="—" maxlength="4"></td>
-                  <td><input type="text" class="grade-input" placeholder="—" maxlength="4"></td>
-                  <td><input type="text" class="grade-input" placeholder="—" maxlength="4"></td>
-                </tr>
-                <tr>
-                  <td class="subject-name">MATÉRIA 2</td>
-                  <td><input type="text" class="grade-input" placeholder="—" maxlength="4"></td>
-                  <td><input type="text" class="grade-input" placeholder="—" maxlength="4"></td>
-                  <td><input type="text" class="grade-input" placeholder="—" maxlength="4"></td>
-                  <td><input type="text" class="grade-input" placeholder="—" maxlength="4"></td>
-                </tr>
-                <tr>
-                  <td class="subject-name">MATÉRIA 3</td>
-                  <td><input type="text" class="grade-input" placeholder="—" maxlength="4"></td>
-                  <td><input type="text" class="grade-input" placeholder="—" maxlength="4"></td>
-                  <td><input type="text" class="grade-input" placeholder="—" maxlength="4"></td>
-                  <td><input type="text" class="grade-input" placeholder="—" maxlength="4"></td>
-                </tr>
-                <tr>
-                  <td class="subject-name">MATÉRIA 4</td>
-                  <td><input type="text" class="grade-input" placeholder="—" maxlength="4"></td>
-                  <td><input type="text" class="grade-input" placeholder="—" maxlength="4"></td>
-                  <td><input type="text" class="grade-input" placeholder="—" maxlength="4"></td>
-                  <td><input type="text" class="grade-input" placeholder="—" maxlength="4"></td>
-                </tr>
+                <!-- Linhas inseridas pelo JS -->
               </tbody>
             </table>
           </div>
         </div>
-
-        <!-- Botão Ação das Notas -->
         <button class="btn-submit" id="btnSaveGrades">
           <i class="fa-solid fa-floppy-disk"></i>
-          <span>NOTAS</span>
+          <span>SALVAR NOTAS</span>
         </button>
       </section>
 
-      <!-- SEÇÃO 2: ATIVIDADES -->
+      <!-- SEÇÃO ATIVIDADES -->
       <section class="section-card">
         <div>
           <h2 class="section-title">ATIVIDADES</h2>
-          <div class="activities-list" id="activitiesList">
+          <div class="activities-list" id="activitiesList" style="max-height: 250px; overflow-y: auto; padding-right: 5px; margin-bottom: 10px;">
+            <!-- Atividades do Banco de Dados aqui -->
+          </div>
+
+          <div style="background: rgba(255, 255, 255, 0.95); padding: 12px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);">
+            <div class="add-activity-row" style="margin-bottom: 8px;">
+              <i class="fa-solid fa-circle-plus" id="btnAddActivity" title="Adicionar Atividade"></i>
+              <input type="text" class="add-activity-input" id="newActivityInput" placeholder="NOVA ATIVIDADE">
+            </div>
             
-            <div class="activity-item">
-              <span>CURSOS ADA.TECH</span>
-              <input type="checkbox" class="activity-checkbox" checked>
+            <div style="display: flex; gap: 15px; align-items: center; padding-left: 28px;">
+              <label style="color: #1a1a1a; font-size: 0.75rem; font-weight: 700; display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                <input type="radio" name="activityScope" value="individual" checked> INDIVIDUAL
+              </label>
+              <label style="color: #1a1a1a; font-size: 0.75rem; font-weight: 700; display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                <input type="radio" name="activityScope" value="turma"> P/ TURMA INTEIRA
+              </label>
             </div>
-
-            <div class="activity-item">
-              <span>DOCUMENTAÇÃO APP</span>
-              <input type="checkbox" class="activity-checkbox" checked>
-            </div>
-
-            <div class="activity-item">
-              <span>FLUXOGRAMA</span>
-              <input type="checkbox" class="activity-checkbox" checked>
-            </div>
-
-            <div class="activity-item">
-              <span>LAYOUT FIGMA</span>
-              <input type="checkbox" class="activity-checkbox">
-            </div>
-
           </div>
-
-          <!-- Adicionar Nova Atividade -->
-          <div class="add-activity-row">
-            <i class="fa-solid fa-circle-plus" id="btnAddActivity" title="Adicionar Atividade"></i>
-            <input type="text" class="add-activity-input" id="newActivityInput" placeholder="NOVA ATIVIDADE">
-          </div>
+          
         </div>
       </section>
 
     </div>
   </main>
 
-  <!-- Elemento de Alerta Flutuante -->
   <div class="toast-msg" id="toastMsg">Alterações salvas com sucesso!</div>
 
-  <!-- =========================================
-       JAVASCRIPT INTEGRADO (INTERATIVIDADE + API READY)
-  ========================================= -->
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       const btnSaveGrades = document.getElementById('btnSaveGrades');
@@ -572,54 +236,351 @@
       const activitiesList = document.getElementById('activitiesList');
       const newActivityInput = document.getElementById('newActivityInput');
       const btnAddActivity = document.getElementById('btnAddActivity');
+      const gradesTableHead = document.getElementById('gradesTableHead');
+      const gradesTableBody = document.getElementById('gradesTableBody');
+      const classPassingGradeInput = document.getElementById('classPassingGrade');
+      const classPeriodTypeSelect = document.getElementById('classPeriodType');
+      const classPeriodCountInput = document.getElementById('classPeriodCount');
+      const newSubjectInput = document.getElementById('newSubjectInput');
+      const btnAddSubject = document.getElementById('btnAddSubject');
 
-      // Mostrar Notificação Toast
-      function showToast(message) {
-        toastMsg.innerText = message;
-        toastMsg.style.display = 'block';
-        setTimeout(() => {
-          toastMsg.style.display = 'none';
-        }, 2500);
+      const urlParams = new URLSearchParams(window.location.search);
+      const turmaId = urlParams.get('turmaId');
+      const alunoId = urlParams.get('alunoId');
+      const database = JSON.parse(localStorage.getItem('idhub_database')) || [];
+
+      let turmaIndex = database.findIndex(t => t.id === turmaId);
+      let alunoIndex = turmaIndex !== -1 ? database[turmaIndex].alunos.findIndex(a => a.id === alunoId) : -1;
+      
+      let turma = turmaIndex !== -1 ? database[turmaIndex] : null;
+      let aluno = turma && alunoIndex !== -1 ? turma.alunos[alunoIndex] : null;
+
+      if (!aluno) {
+        alert("Erro: Aluno não encontrado.");
+        window.history.back();
+        return;
       }
 
-      // Salvar Notas
+      // Inicializa configurações padrão da turma caso não existam
+      if (!turma.tipoPeriodo) turma.tipoPeriodo = "bimestre";
+      if (!turma.qtdPeriodo) turma.qtdPeriodo = 4;
+      if (!turma.mediaAprovacao) turma.mediaAprovacao = 6.0;
+      if (!turma.materias) turma.materias = ["MATEMÁTICA", "PORTUGUÊS", "CIÊNCIAS", "HISTÓRIA"];
+
+      classPassingGradeInput.value = turma.mediaAprovacao;
+      classPeriodTypeSelect.value = turma.tipoPeriodo;
+      classPeriodCountInput.value = turma.qtdPeriodo;
+
+      if (!aluno.notas) aluno.notas = {};
+
+      document.getElementById('studentName').innerText = aluno.nome;
+      document.getElementById('studentClass').innerText = turma.nome;
+      document.getElementById('studentAvatar').src = aluno.foto || "https://via.placeholder.com/150";
+
+      // MAPEAMENTO DE PERÍODOS
+      function getPeriodList() {
+        const type = classPeriodTypeSelect.value;
+        const count = parseInt(classPeriodCountInput.value) || 1;
+        const prefix = type === 'semestre' ? 'S' : (type === 'trimestre' ? 'T' : 'B');
+        
+        let periods = [];
+        for (let i = 1; i <= count; i++) {
+          periods.push(`${prefix}${i}`);
+        }
+        return periods;
+      }
+
+      // RENDERIZAR TABELA DE NOTAS
+      function renderGradesTable() {
+        const periods = getPeriodList();
+        
+        // Renderizar Cabeçalho
+        let headHtml = `<tr><th>MATÉRIAS</th>`;
+        periods.forEach(p => { headHtml += `<th>${p}</th>`; });
+        headHtml += `<th>TOTAL</th><th>MÉDIA</th><th>AÇÕES</th></tr>`;
+        gradesTableHead.innerHTML = headHtml;
+
+        // Renderizar Corpo
+        gradesTableBody.innerHTML = '';
+        
+        if (turma.materias.length === 0) {
+          gradesTableBody.innerHTML = `<tr><td colspan="${periods.length + 3}" style="padding: 15px; color: #fff;">Nenhuma matéria cadastrada. Adicione uma acima.</td></tr>`;
+          return;
+        }
+
+        turma.materias.forEach(subject => {
+          if (!aluno.notas[subject]) aluno.notas[subject] = {};
+
+          let tr = document.createElement('tr');
+          tr.dataset.subject = subject;
+
+          let inputsHtml = `<td class="subject-name">${subject}</td>`;
+          let totalSum = 0;
+          let countFilled = 0;
+
+          periods.forEach(p => {
+            const valStr = aluno.notas[subject][p] || '';
+            const valNum = parseFloat(valStr.replace(',', '.'));
+            
+            if (!isNaN(valNum)) {
+              totalSum += valNum;
+              countFilled++;
+            }
+
+            inputsHtml += `<td><input type="text" class="grade-input" data-period="${p}" value="${valStr}" maxlength="4"></td>`;
+          });
+
+          const media = periods.length > 0 ? (totalSum / periods.length) : 0;
+          const passingGrade = parseFloat(turma.mediaAprovacao) || 6.0;
+          const mediaClass = (countFilled > 0 && media >= passingGrade) ? 'media-aprovado' : (countFilled > 0 ? 'media-reprovado' : '');
+
+          inputsHtml += `<td class="total-val">${countFilled > 0 ? totalSum.toFixed(1) : '-'}</td>`;
+          inputsHtml += `<td><span class="media-val ${mediaClass}">${countFilled > 0 ? media.toFixed(1) : '-'}</span></td>`;
+          inputsHtml += `
+            <td>
+              <button class="subject-action-btn btn-edit-sub" title="Editar Matéria" onclick="editarMateria('${subject}')"><i class="fa-solid fa-pen"></i></button>
+              <button class="subject-action-btn btn-del-sub" title="Remover Matéria" onclick="removerMateria('${subject}')"><i class="fa-solid fa-trash"></i></button>
+            </td>
+          `;
+
+          tr.innerHTML = inputsHtml;
+          gradesTableBody.appendChild(tr);
+        });
+
+        document.querySelectorAll('.grade-input').forEach(input => {
+          input.addEventListener('input', calculateDynamicTotals);
+        });
+      }
+
+      // CÁLCULO EM TEMPO REAL
+      function calculateDynamicTotals() {
+        const periods = getPeriodList();
+        const passingGrade = parseFloat(classPassingGradeInput.value) || 6.0;
+
+        document.querySelectorAll('#gradesTableBody tr').forEach(tr => {
+          let totalSum = 0;
+          let countFilled = 0;
+
+          tr.querySelectorAll('.grade-input').forEach(input => {
+            const valNum = parseFloat(input.value.replace(',', '.'));
+            if (!isNaN(valNum)) {
+              totalSum += valNum;
+              countFilled++;
+            }
+          });
+
+          const media = periods.length > 0 ? (totalSum / periods.length) : 0;
+          const totalTd = tr.querySelector('.total-val');
+          const mediaSpan = tr.querySelector('.media-val');
+
+          if (totalTd && mediaSpan) {
+            totalTd.innerText = countFilled > 0 ? totalSum.toFixed(1) : '-';
+            
+            if (countFilled > 0) {
+              mediaSpan.innerText = media.toFixed(1);
+              mediaSpan.className = `media-val ${media >= passingGrade ? 'media-aprovado' : 'media-reprovado'}`;
+            } else {
+              mediaSpan.innerText = '-';
+              mediaSpan.className = 'media-val';
+            }
+          }
+        });
+      }
+
+      // ADICIONAR NOVA MATÉRIA
+      btnAddSubject.addEventListener('click', () => {
+        const name = newSubjectInput.value.trim().toUpperCase();
+        if (!name) return showToast('Digite o nome da matéria!', true);
+
+        if (turma.materias.includes(name)) {
+          return showToast('Essa matéria já existe!', true);
+        }
+
+        turma.materias.push(name);
+        localStorage.setItem('idhub_database', JSON.stringify(database));
+        newSubjectInput.value = '';
+        renderGradesTable();
+        showToast('Matéria adicionada com sucesso!');
+      });
+
+      // EDITAR MATÉRIA (Global para chamada via onclick)
+      window.editarMateria = function(oldName) {
+        const newName = prompt("Edite o nome da matéria:", oldName);
+        if (newName && newName.trim() !== "" && newName.trim().toUpperCase() !== oldName) {
+          const formattedName = newName.trim().toUpperCase();
+          const idx = turma.materias.indexOf(oldName);
+          if (idx !== -1) {
+            turma.materias[idx] = formattedName;
+            
+            // Transfere as notas para o novo nome de matéria para todos os alunos
+            turma.alunos.forEach(a => {
+              if (a.notas && a.notas[oldName]) {
+                a.notas[formattedName] = a.notas[oldName];
+                delete a.notas[oldName];
+              }
+            });
+
+            localStorage.setItem('idhub_database', JSON.stringify(database));
+            renderGradesTable();
+            showToast('Matéria renomeada com sucesso!');
+          }
+        }
+      };
+
+      // REMOVER MATÉRIA (Global para chamada via onclick)
+      window.removerMateria = function(subjectName) {
+        if (confirm(`Deseja realmente remover a matéria "${subjectName}"?`)) {
+          turma.materias = turma.materias.filter(m => m !== subjectName);
+          
+          // Remove as notas dessa matéria em todos os alunos
+          turma.alunos.forEach(a => {
+            if (a.notas && a.notas[subjectName]) {
+              delete a.notas[subjectName];
+            }
+          });
+
+          localStorage.setItem('idhub_database', JSON.stringify(database));
+          renderGradesTable();
+          showToast('Matéria removida!', true);
+        }
+      };
+
+      // ALTERAÇÃO DOS PARÂMETROS DA TURMA (MÉDIA / TIPO / QTD)
+      classPassingGradeInput.addEventListener('change', () => {
+        turma.mediaAprovacao = parseFloat(classPassingGradeInput.value) || 6.0;
+        localStorage.setItem('idhub_database', JSON.stringify(database));
+        calculateDynamicTotals();
+      });
+
+      classPeriodTypeSelect.addEventListener('change', () => {
+        turma.tipoPeriodo = classPeriodTypeSelect.value;
+        localStorage.setItem('idhub_database', JSON.stringify(database));
+        renderGradesTable();
+      });
+
+      classPeriodCountInput.addEventListener('change', () => {
+        let val = parseInt(classPeriodCountInput.value);
+        if (val < 1) val = 1;
+        turma.qtdPeriodo = val;
+        classPeriodCountInput.value = val;
+        localStorage.setItem('idhub_database', JSON.stringify(database));
+        renderGradesTable();
+      });
+
+      // SALVAR NOTAS E CONFIGURAÇÕES
       btnSaveGrades.addEventListener('click', () => {
         btnSaveGrades.disabled = true;
         btnSaveGrades.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>SALVANDO...</span>`;
 
+        // Salva notas do aluno atual
+        document.querySelectorAll('#gradesTableBody tr').forEach(tr => {
+          const subject = tr.dataset.subject;
+          if (subject) {
+            if (!aluno.notas[subject]) aluno.notas[subject] = {};
+            tr.querySelectorAll('.grade-input').forEach(input => {
+              const period = input.dataset.period;
+              aluno.notas[subject][period] = input.value;
+            });
+          }
+        });
+
+        // Salva dados da turma
+        turma.mediaAprovacao = parseFloat(classPassingGradeInput.value) || 6.0;
+        turma.tipoPeriodo = classPeriodTypeSelect.value;
+        turma.qtdPeriodo = parseInt(classPeriodCountInput.value) || 4;
+
+        localStorage.setItem('idhub_database', JSON.stringify(database));
+
         setTimeout(() => {
           btnSaveGrades.disabled = false;
-          btnSaveGrades.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> <span>NOTAS</span>`;
-          showToast('Notas salvas com sucesso!');
-        }, 800);
+          btnSaveGrades.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> <span>SALVAR NOTAS</span>`;
+          showToast('Notas e Configurações salvas!');
+          renderGradesTable();
+        }, 500);
       });
 
-      // Função de Adicionar Nova Atividade na Lista
+      // RENDERIZAR ATIVIDADES
+      function renderActivities() {
+        activitiesList.innerHTML = '';
+        if (!aluno.atividades || aluno.atividades.length === 0) {
+          activitiesList.innerHTML = `<p style="font-size:0.85rem; color: #fff; text-align:center; padding: 20px 0;">Nenhuma atividade cadastrada.</p>`;
+          return;
+        }
+
+        aluno.atividades.forEach((act) => {
+          const activityDiv = document.createElement('div');
+          activityDiv.className = 'activity-item';
+          activityDiv.innerHTML = `
+            <span style="${act.concluida ? 'text-decoration: line-through; opacity: 0.5;' : ''}">${act.titulo.toUpperCase()}</span>
+            <div class="activity-actions">
+              <button class="btn-remove" data-id="${act.id}" title="Remover Atividade">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+              <input type="checkbox" class="activity-checkbox" data-id="${act.id}" ${act.concluida ? 'checked' : ''}>
+            </div>
+          `;
+          activitiesList.appendChild(activityDiv);
+        });
+      }
+
       function addNewActivity() {
         const title = newActivityInput.value.trim();
         if (!title) return;
 
-        const activityDiv = document.createElement('div');
-        activityDiv.className = 'activity-item';
-        activityDiv.innerHTML = `
-          <span>${title.toUpperCase()}</span>
-          <input type="checkbox" class="activity-checkbox">
-        `;
+        const scope = document.querySelector('input[name="activityScope"]:checked').value;
+        const newAct = { id: 'act_' + Date.now(), titulo: title, concluida: false };
 
-        activitiesList.appendChild(activityDiv);
+        if (scope === 'turma') {
+          turma.alunos.forEach(a => {
+            if (!a.atividades) a.atividades = [];
+            a.atividades.push(JSON.parse(JSON.stringify(newAct)));
+          });
+          showToast('Atividade enviada para a TURMA!');
+        } else {
+          if (!aluno.atividades) aluno.atividades = [];
+          aluno.atividades.push(newAct);
+          showToast('Atividade INDIVIDUAL adicionada!');
+        }
+
+        localStorage.setItem('idhub_database', JSON.stringify(database));
         newActivityInput.value = '';
-        showToast('Nova atividade criada!');
+        renderActivities();
       }
 
-      // Adicionar com Tecla Enter
-      newActivityInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-          addNewActivity();
+      newActivityInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') addNewActivity(); });
+      btnAddActivity.addEventListener('click', addNewActivity);
+
+      activitiesList.addEventListener('click', (e) => {
+        const removeBtn = e.target.closest('.btn-remove');
+        const checkbox = e.target.closest('.activity-checkbox');
+
+        if (removeBtn) {
+          const id = removeBtn.dataset.id;
+          aluno.atividades = aluno.atividades.filter(act => act.id !== id);
+          localStorage.setItem('idhub_database', JSON.stringify(database));
+          renderActivities(); showToast('Atividade removida!', true);
+        }
+
+        if (checkbox) {
+          const id = checkbox.dataset.id;
+          const act = aluno.atividades.find(a => a.id === id);
+          if (act) {
+            act.concluida = checkbox.checked;
+            localStorage.setItem('idhub_database', JSON.stringify(database));
+            renderActivities();
+          }
         }
       });
 
-      // Adicionar ao Clicar no Ícone
-      btnAddActivity.addEventListener('click', addNewActivity);
+      function showToast(message, isError = false) {
+        toastMsg.innerText = message;
+        if (isError) toastMsg.classList.add('toast-error'); else toastMsg.classList.remove('toast-error');
+        toastMsg.style.display = 'block'; setTimeout(() => { toastMsg.style.display = 'none'; }, 2500);
+      }
+
+      // Inicialização
+      renderGradesTable();
+      renderActivities();
     });
   </script>
 </body>

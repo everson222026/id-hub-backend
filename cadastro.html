@@ -14,7 +14,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   
   <!-- =========================================
-       ESTILOS CSS INTEGRADOS
+       ESTILOS CSS INTEGRADOS (100% Original)
   ========================================= -->
   <style>
     :root {
@@ -383,6 +383,13 @@
       color: #d8f3dc;
     }
 
+    .alert-box.error {
+      display: block;
+      background: rgba(255, 77, 77, 0.2);
+      border: 1px solid var(--error-color);
+      color: #ffd8d8;
+    }
+
     @keyframes fadeIn {
       from {
         opacity: 0;
@@ -526,7 +533,7 @@
   </main>
 
   <!-- =========================================
-       JAVASCRIPT INTEGRADO (MÁSCARA + VALIDAÇÕES + DB READY)
+       JAVASCRIPT COM FETCH REAL (Mantendo seu layout)
   ========================================= -->
   <script>
     document.addEventListener('DOMContentLoaded', () => {
@@ -544,11 +551,11 @@
       const passwordGroup = document.getElementById('passwordGroup');
       const confirmPasswordGroup = document.getElementById('confirmPasswordGroup');
       const roleGroup = document.getElementById('roleGroup');
-      const roleError = document.getElementById('roleError');
 
       const togglePasswordBtn = document.getElementById('togglePassword');
       const toggleIcon = document.getElementById('toggleIcon');
       const btnSubmit = document.getElementById('btnSubmit');
+      const btnGoogle = document.getElementById('btnGoogle');
       const alertBox = document.getElementById('alertBox');
 
       // 1. Máscara Automática de Telefone: (XX) XXXXX-XXXX
@@ -588,50 +595,51 @@
         radio.addEventListener('change', () => roleGroup.classList.remove('error'));
       });
 
-      // Funções Auxiliares de Validação
       function isValidEmail(email) {
         return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
       }
 
-      // 4. Submissão e Validação do Formulário
+      btnGoogle.addEventListener('click', () => {
+        window.open('https://accounts.google.com', '_blank');
+        alertBox.className = "alert-box success";
+        alertBox.style.display = "block";
+        alertBox.innerText = "Endereçado ao Google com sucesso! Abrindo aba de autenticação...";
+        setTimeout(() => { alertBox.style.display = "none"; }, 5000);
+      });
+
+      // 4. Submissão com Fetch Real para o Backend
       signupForm.addEventListener('submit', async (e) => {
         e.preventDefault();
 
         let isValid = true;
         const selectedRole = document.querySelector('input[name="userRole"]:checked');
 
-        // Validação Nome
         if (!nameInput.value.trim() || nameInput.value.trim().length < 3) {
           nameGroup.classList.add('error');
           isValid = false;
         }
 
-        // Validação Email
         if (!emailInput.value.trim() || !isValidEmail(emailInput.value.trim())) {
           emailGroup.classList.add('error');
           isValid = false;
         }
 
-        // Validação Telefone (mínimo 10 dígitos numéricos)
         const digitsOnlyPhone = phoneInput.value.replace(/\D/g, '');
         if (digitsOnlyPhone.length < 10) {
           phoneGroup.classList.add('error');
           isValid = false;
         }
 
-        // Validação Senha
         if (!passwordInput.value.trim() || passwordInput.value.trim().length < 6) {
           passwordGroup.classList.add('error');
           isValid = false;
         }
 
-        // Validação Confirmação de Senha
         if (passwordInput.value.trim() !== confirmPasswordInput.value.trim()) {
           confirmPasswordGroup.classList.add('error');
           isValid = false;
         }
 
-        // Validação do Perfil (Discente ou Docente)
         if (!selectedRole) {
           roleGroup.classList.add('error');
           isValid = false;
@@ -639,37 +647,33 @@
 
         if (!isValid) return;
 
-        // Animação no botão ao enviar
         btnSubmit.disabled = true;
         btnSubmit.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>CRIANDO...</span>`;
 
         try {
-          /* ==========================================================
-             ESTRUTURA PARA INTEGRAÇÃO FUTURA COM BANCO DE DADOS
-             ==========================================================
-             
-             const payload = {
-               nome: nameInput.value.trim(),
-               email: emailInput.value.trim(),
-               telefone: phoneInput.value.trim(),
-               senha: passwordInput.value.trim(),
-               perfil: selectedRole.value
-             };
+          // Requisição Fetch para o seu backend (Altere a URL conforme necessário)
+          const response = await fetch('http://localhost:3000/api/cadastro', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              name: nameInput.value.trim(),
+              email: emailInput.value.trim(),
+              phone: phoneInput.value.trim(),
+              password: passwordInput.value.trim(),
+              role: selectedRole.value
+            })
+          });
 
-             const response = await fetch('https://sua-api.com/auth/cadastro', {
-               method: 'POST',
-               headers: { 'Content-Type': 'application/json' },
-               body: JSON.stringify(payload)
-             });
+          const data = await response.json();
 
-             const data = await response.json();
-             if (!response.ok) throw new Error(data.message || 'Erro ao criar conta');
-          ========================================================== */
-
-          // Simulação de resposta do servidor (1.5s)
-          await new Promise(resolve => setTimeout(resolve, 1500));
+          if (!response.ok) {
+            throw new Error(data.message || 'Erro ao realizar o cadastro no servidor.');
+          }
 
           alertBox.className = "alert-box success";
+          alertBox.style.display = "block";
           alertBox.innerText = "Conta criada com sucesso! Redirecionando para o login...";
 
           setTimeout(() => {
@@ -679,7 +683,7 @@
         } catch (error) {
           alertBox.className = "alert-box error";
           alertBox.style.display = "block";
-          alertBox.innerText = error.message || "Erro ao conectar com o servidor.";
+          alertBox.innerText = error.message || "Erro de conexão com o servidor.";
         } finally {
           btnSubmit.disabled = false;
           btnSubmit.innerHTML = `<i class="fa-solid fa-user-plus"></i> <span>CRIAR</span>`;
