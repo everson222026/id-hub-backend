@@ -13,9 +13,7 @@
   <!-- Font Awesome para Ícones Profissionais -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   
-  <!-- =========================================
-       ESTILOS CSS INTEGRADOS (100% Original)
-  ========================================= -->
+  <!-- Estilos CSS Integrados -->
   <style>
     :root {
       --bg-gradient: linear-gradient(135deg, #0d2b24 0%, #164e41 50%, #2d6a4f 100%);
@@ -532,9 +530,10 @@
     </form>
   </main>
 
-  <!-- =========================================
-       JAVASCRIPT COM FETCH REAL (Mantendo seu layout)
-  ========================================= -->
+  <!-- Importa o arquivo de configuração da URL do Backend -->
+  <script src="api.js"></script>
+
+  <!-- Lógica JavaScript do Cadastro -->
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       const signupForm = document.getElementById('signupForm');
@@ -607,7 +606,7 @@
         setTimeout(() => { alertBox.style.display = "none"; }, 5000);
       });
 
-      // 4. Submissão com Fetch Real para o Backend
+      // 4. Submissão Dinâmica
       signupForm.addEventListener('submit', async (e) => {
         e.preventDefault();
 
@@ -650,9 +649,11 @@
         btnSubmit.disabled = true;
         btnSubmit.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>CRIANDO...</span>`;
 
+        // Define o endereço base do backend dinamicamente
+        const baseUrl = (typeof API_URL !== 'undefined') ? API_URL : 'http://localhost:3000/api';
+
         try {
-          // Requisição Fetch para o seu backend (Altere a URL conforme necessário)
-          const response = await fetch('http://localhost:3000/api/cadastro', {
+          const response = await fetch(`${baseUrl}/cadastro`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
@@ -669,7 +670,7 @@
           const data = await response.json();
 
           if (!response.ok) {
-            throw new Error(data.message || 'Erro ao realizar o cadastro no servidor.');
+            throw new Error(data.message || data.error || 'Erro ao realizar o cadastro no servidor.');
           }
 
           alertBox.className = "alert-box success";

@@ -1,4 +1,5 @@
 // server.js
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const bcrypt = require('bcrypt');
@@ -10,18 +11,19 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 app.use(express.static(path.join(__dirname)));
 
 const recoveryCodes = new Map();
 
+// Configuração do Nodemailer usando exclusivamente variáveis de ambiente
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
-    user: 'idhub2026@gmail.com',
-    pass: 'wvcxtplejmhrvcnl'
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
   },
   logger: true,
   debug: true
@@ -100,7 +102,7 @@ app.post('/api/forgot-password', async (req, res) => {
     recoveryCodes.set(email, code);
 
     const mailOptions = {
-      from: '"ID HUB" <idhub2026@gmail.com>',
+      from: `"ID HUB" <${process.env.EMAIL_USER}>`,
       to: email,
       subject: 'Código de Recuperação de Senha',
       text: `Olá! Seu código de validação para redefinir a senha no ID HUB é: ${code}. Este código é válido por tempo limitado.`
@@ -148,42 +150,97 @@ app.post('/api/reset-password', async (req, res) => {
   }
 });
 
-// --- ROTAS DE DADOS ---
+// --- ROTAS DE DADOS (Turmas, Alunos, Frequências) ---
 
+// Listar Turmas
 app.get('/api/turmas', async (req, res) => {
   try {
-    const turmas = await db.query('SELECT * FROM turmas');
-    res.json(turmas.rows);
+    const result = await db.query('SELECT * FROM turmas');
+    const turmas = result.rows.map(row => ({
+      id: row.id,
+      nome: row.nome,
+      turno: row.turno,
+      badgeClass: row.badge_class || row.badgeClass,
+      descricao: row.descricao,
+      tipoPeriodo: row.tipo_periodo || row.tipoPeriodo,
+      mediaAprovacao: parseFloat(row.media_aprovacao || row.mediaAprovacao || 6.0),
+      professorNome: row.professor_nome || row.professorNome,
+      professorFoto: row.professor_foto || row.professorFoto,
+      alunos: typeof row.alunos === 'string' ? JSON.parse(row.alunos) : (row.alunos || [])
+    }));
+    res.json(turmas);
   } catch (err) {
+    console.error('Erro ao buscar turmas:', err);
     res.status(500).json({ error: 'Erro ao buscar turmas.' });
   }
 });
 
-app.post('/api/alunos', async (req, res) => {
+// Cadastrar/Salvar Turmas
+app.post('/api/turmas', async (req, res) => {
   try {
-    const { nome, turma_id } = req.body;
-    const novoAluno = await db.query(
-      'INSERT INTO alunos (nome, turma_id) VALUES ($1, $2) RETURNING *',
-      [nome, turma_id]
-    );
-    res.status(201).json(novoAluno.rows[0]);
+    const list = Array.isArray(req.body) ? req.body : [req.body];
+
+    for (const turma of list) {
+      const {
+        id,
+        nome,
+        turno,
+        badgeClass,
+        descricao,
+        tipoPeriodo,
+        mediaAprovacao,
+        professorNome,
+        professorFoto,
+        alunos
+      } = turma;
+
+      await db.query(`
+        INSERT INTO turmas (
+          id, nome, turno, badge_class, descricao, tipo_periodo, media_aprovacao, professor_nome, professor_foto, alunos
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        ON CONFLICT (id) DO UPDATE SET
+          nome = EXCLUDED.nome,
+          turno = EXCLUDED.turno,
+          badge_class = EXCLUDED.badge_class,
+          descricao = EXCLUDED.descricao,
+          tipo_periodo = EXCLUDED.tipo_periodo,
+          media_aprovacao = EXCLUDED.media_aprovacao,
+          professor_nome = EXCLUDED.professor_nome,
+          professor_foto = EXCLUDED.professor_foto,
+          alunos = EXCLUDED.alunos
+      `, [
+        id || `turma_${Date.now()}`,
+        nome,
+        turno,
+        badgeClass || (turno ? turno.toLowerCase() : 'matutino'),
+        descricao || '',
+        tipoPeriodo || '4_bimestres',
+        mediaAprovacao || 6.0,
+        professorNome || 'Professor não informado',
+        professorFoto || null,
+        JSON.stringify(alunos || [])
+      ]);
+    }
+
+    res.status(201).json({ message: 'Turmas salvas com sucesso no banco de dados Neon!' });
   } catch (err) {
-    res.status(500).json({ error: 'Erro ao cadastrar aluno.' });
+    console.error('Erro ao salvar turma:', err);
+    res.status(500).json({ error: 'Erro ao salvar turma no banco de dados.' });
   }
 });
-app.post('/api/frequencias', async (req, res) => {
+
+// Deletar Turma
+app.delete('/api/turmas/:id', async (req, res) => {
   try {
-    const { aluno_id, turma_id, data, status } = req.body;
-    const novaFreq = await db.query(
-      'INSERT INTO frequencias (aluno_id, turma_id, data, status) VALUES ($1, $2, $3, $4) RETURNING *',
-      [aluno_id, turma_id, data, status]
-    );
-    res.status(201).json(novaFreq.rows[0]);
+    const { id } = req.params;
+    await db.query('DELETE FROM turmas WHERE id = $1', [id]);
+    res.json({ message: 'Turma excluída com sucesso!' });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Erro ao registrar frequência.' });
+    console.error('Erro ao excluir turma:', err);
+    res.status(500).json({ error: 'Erro ao excluir turma do banco de dados.' });
   }
 });
+
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
 });

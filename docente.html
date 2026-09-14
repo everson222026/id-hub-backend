@@ -981,7 +981,7 @@
 
     function confirmDeleteStudent() {
       const turma = database[activeTurmaIndex];
-      if (!turma || turma.alunos.length === 0) return;
+      if (!turma || !turma.alunos || turma.alunos.length === 0) return;
       const aluno = turma.alunos[activeAlunoIndex];
       showConfirmModal("Excluir Aluno", `Deseja realmente excluir o(a) aluno(a) "${aluno.nome}"?`, async () => {
         turma.alunos.splice(activeAlunoIndex, 1);
@@ -1204,7 +1204,10 @@
     });
 
     function openEditStudent() {
-      const aluno = database[activeTurmaIndex].alunos[activeAlunoIndex]; if(!aluno) return;
+      const turma = database[activeTurmaIndex];
+      if (!turma || !turma.alunos || turma.alunos.length === 0) return;
+      const aluno = turma.alunos[activeAlunoIndex]; 
+      if(!aluno) return;
       currentEditPhotoBase64 = null; document.getElementById('editPhotoInput').value = ""; 
       document.getElementById('lblEditStudentName').innerText = aluno.nome; document.getElementById('editName').value = aluno.nome;
       document.getElementById('editMatricula').value = aluno.matricula !== "Não informado" ? aluno.matricula : "";
@@ -1219,7 +1222,10 @@
     document.getElementById('formEditStudent').addEventListener('submit', async (e) => {
       e.preventDefault(); const emailInput = document.getElementById('editEmail');
       if (emailInput.value.trim() && !isValidEmail(emailInput.value.trim())) { document.getElementById('edit-emailGroup').classList.add('error'); return; }
-      const aluno = database[activeTurmaIndex].alunos[activeAlunoIndex];
+      const turma = database[activeTurmaIndex];
+      if (!turma || !turma.alunos) return;
+      const aluno = turma.alunos[activeAlunoIndex];
+      if (!aluno) return;
       aluno.nome = document.getElementById('editName').value.trim().toUpperCase() || "SEM NOME"; aluno.matricula = document.getElementById('editMatricula').value.trim() || "Não informado";
       aluno.nascimento = document.getElementById('editBirthDate').value.trim() || "Não informado"; aluno.telefone = document.getElementById('editPhone').value.trim() || "Não informado";
       aluno.email = emailInput.value.trim() || "Não informado"; aluno.endereco = document.getElementById('editAddress').value.trim() || "Não informado"; aluno.observacoes = document.getElementById('editObs').value.trim() || "";
@@ -1284,7 +1290,7 @@
       const dataSel = document.getElementById('attendanceDate').value;
 
       if (!turma || !turma.alunos || turma.alunos.length === 0) {
-        container.innerHTML = `<div class="empty-state">Nenhum aluno nesta turma para lançar frequência.</div>`;
+        container.innerHTML = `<div class="empty-state" style="color:var(--text-secondary); text-align:center; padding:20px;">Nenhum aluno nesta turma para lançar frequência.</div>`;
         return;
       }
 
@@ -1340,7 +1346,7 @@
       const turma = database[activeTurmaIndex];
 
       if (!turma || !turma.alunos || turma.alunos.length === 0) {
-        container.innerHTML = `<div class="empty-state">Nenhum aluno nesta turma.</div>`;
+        container.innerHTML = `<div class="empty-state" style="color:var(--text-secondary); text-align:center; padding:20px;">Nenhum aluno nesta turma.</div>`;
         return;
       }
 
@@ -1398,7 +1404,7 @@
       document.getElementById('consultDateLabel').textContent = `Data: ${dataSel.split('-').reverse().join('/')}`;
 
       if (!turma || !turma.alunos || turma.alunos.length === 0) {
-        container.innerHTML = `<div class="empty-state">Nenhum aluno para exibir.</div>`;
+        container.innerHTML = `<div class="empty-state" style="color:var(--text-secondary); text-align:center; padding:20px;">Nenhum aluno para exibir.</div>`;
         return;
       }
 

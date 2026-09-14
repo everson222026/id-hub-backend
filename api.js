@@ -1,5 +1,6 @@
 // js/api.js
-
+// Vamos substituir esta URL no final assim que criarmos a API no Render
+const API_URL = 'https://SUA-API-AQUI.onrender.com/api';
 const API_URL = 'http://localhost:3000/api'; // URL da sua API backend
 
 /**
