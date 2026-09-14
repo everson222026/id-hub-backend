@@ -5,15 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ID HUB | Cadastro</title>
   
-  <!-- Google Fonts: Inter & Poppins -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
-  
-  <!-- Font Awesome para Ícones Profissionais -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   
-  <!-- Estilos CSS Integrados -->
   <style>
     :root {
       --bg-gradient: linear-gradient(135deg, #0d2b24 0%, #164e41 50%, #2d6a4f 100%);
@@ -31,11 +27,7 @@
       --font-title: 'Poppins', sans-serif;
     }
 
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
       font-family: var(--font-main);
@@ -49,7 +41,6 @@
       overflow-x: hidden;
     }
 
-    /* Container Principal Glassmorphism */
     .app-container {
       position: relative;
       width: 100%;
@@ -65,7 +56,6 @@
       animation: fadeIn 0.8s ease-out;
     }
 
-    /* Ondas Decorativas de Fundo */
     .wave-bg {
       position: absolute;
       bottom: 0;
@@ -76,12 +66,8 @@
       pointer-events: none;
     }
 
-    .wave-bg svg {
-      width: 100%;
-      height: 100%;
-    }
+    .wave-bg svg { width: 100%; height: 100%; }
 
-    /* Topo da Aplicação */
     .app-header {
       position: relative;
       z-index: 2;
@@ -101,17 +87,9 @@
       transition: color 0.3s ease;
     }
 
-    .back-link:hover {
-      color: var(--text-primary);
-    }
+    .back-link:hover { color: var(--text-primary); }
+    .logo-text { font-family: var(--font-title); font-size: 1.2rem; letter-spacing: 1px; }
 
-    .logo-text {
-      font-family: var(--font-title);
-      font-size: 1.2rem;
-      letter-spacing: 1px;
-    }
-
-    /* Bloco do Usuário (Avatar + Título) */
     .user-welcome-header {
       position: relative;
       z-index: 2;
@@ -163,7 +141,6 @@
       letter-spacing: 1px;
     }
 
-    /* Formulário de Cadastro */
     .signup-form {
       position: relative;
       z-index: 2;
@@ -172,17 +149,8 @@
       gap: 14px;
     }
 
-    .input-group {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    .input-wrapper {
-      position: relative;
-      display: flex;
-      align-items: center;
-    }
+    .input-group { display: flex; flex-direction: column; gap: 4px; }
+    .input-wrapper { position: relative; display: flex; align-items: center; }
 
     .input-icon {
       position: absolute;
@@ -205,17 +173,13 @@
       transition: all 0.3s ease;
     }
 
-    .custom-input::placeholder {
-      color: rgba(255, 255, 255, 0.5);
-    }
-
+    .custom-input::placeholder { color: rgba(255, 255, 255, 0.5); }
     .custom-input:focus {
       border-color: var(--accent-color);
       box-shadow: 0 0 10px rgba(46, 196, 182, 0.3);
       background: rgba(255, 255, 255, 0.18);
     }
 
-    /* Input Error State */
     .input-group.error .custom-input {
       border-color: var(--error-color);
       box-shadow: 0 0 8px rgba(255, 77, 77, 0.3);
@@ -228,11 +192,8 @@
       display: none;
     }
 
-    .input-group.error .error-message {
-      display: block;
-    }
+    .input-group.error .error-message { display: block; }
 
-    /* Toggle Mostrar/Ocultar Senha */
     .toggle-password {
       position: absolute;
       right: 16px;
@@ -244,7 +205,6 @@
       padding: 4px;
     }
 
-    /* Seleção Discente / Docente */
     .role-selection-wrapper {
       margin: 6px 0;
       display: flex;
@@ -301,7 +261,6 @@
       transform: translate(-50%, -50%);
     }
 
-    /* Botão Criar */
     .btn-submit {
       width: 100%;
       max-width: 240px;
@@ -330,7 +289,6 @@
       box-shadow: 0 8px 25px rgba(94, 84, 142, 0.55);
     }
 
-    /* Botões Sociais e Secundários */
     .social-buttons-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -356,15 +314,9 @@
       transition: all 0.3s ease;
     }
 
-    .btn-secondary:hover {
-      background: rgba(255, 255, 255, 0.2);
-    }
+    .btn-secondary:hover { background: rgba(255, 255, 255, 0.2); }
+    .google-icon { color: #ea4335; }
 
-    .google-icon {
-      color: #ea4335;
-    }
-
-    /* Alerta de Feedback */
     .alert-box {
       display: none;
       padding: 10px 14px;
@@ -389,30 +341,19 @@
     }
 
     @keyframes fadeIn {
-      from {
-        opacity: 0;
-        transform: translateY(15px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+      from { opacity: 0; transform: translateY(15px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
     @media (max-width: 480px) {
-      .app-container {
-        padding: 28px 20px;
-      }
-      .social-buttons-grid {
-        grid-template-columns: 1fr;
-      }
+      .app-container { padding: 28px 20px; }
+      .social-buttons-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
 <body>
 
   <main class="app-container">
-    <!-- Fundo decorativo com ondas -->
     <div class="wave-bg">
       <svg viewBox="0 0 1440 320" preserveAspectRatio="none">
         <path fill="rgba(255, 255, 255, 0.05)" d="M0,192L48,197.3C96,203,192,213,288,192C384,171,480,117,576,117.3C672,117,768,171,864,197.3C960,224,1056,224,1152,197.3C1248,171,1344,117,1392,90.7L1440,64L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path>
@@ -420,7 +361,6 @@
       </svg>
     </div>
 
-    <!-- Topo da Janela -->
     <header class="app-header">
       <a href="index.html" class="back-link">
         <i class="fa-solid fa-arrow-left"></i> Voltar
@@ -428,7 +368,6 @@
       <span class="logo-text">ID<strong>HUB</strong></span>
     </header>
 
-    <!-- Bloco de Título / Avatar -->
     <div class="user-welcome-header">
       <div class="avatar-circle">
         <i class="fa-solid fa-user"></i>
@@ -440,10 +379,7 @@
       </div>
     </div>
 
-    <!-- Formulário de Cadastro -->
     <form id="signupForm" class="signup-form" novalidate>
-      
-      <!-- Nome -->
       <div class="input-group" id="nameGroup">
         <div class="input-wrapper">
           <i class="fa-solid fa-user input-icon"></i>
@@ -452,7 +388,6 @@
         <span class="error-message" id="nameError">Por favor, insira seu nome completo.</span>
       </div>
 
-      <!-- E-mail -->
       <div class="input-group" id="emailGroup">
         <div class="input-wrapper">
           <i class="fa-solid fa-envelope input-icon"></i>
@@ -461,7 +396,6 @@
         <span class="error-message" id="emailError">Insira um endereço de e-mail válido.</span>
       </div>
 
-      <!-- Telefone -->
       <div class="input-group" id="phoneGroup">
         <div class="input-wrapper">
           <i class="fa-solid fa-phone input-icon"></i>
@@ -470,7 +404,6 @@
         <span class="error-message" id="phoneError">Insira um telefone válido com DDD.</span>
       </div>
 
-      <!-- Senha -->
       <div class="input-group" id="passwordGroup">
         <div class="input-wrapper">
           <i class="fa-solid fa-lock input-icon"></i>
@@ -482,7 +415,6 @@
         <span class="error-message" id="passwordError">A senha deve ter no mínimo 6 caracteres.</span>
       </div>
 
-      <!-- Confirmar Senha -->
       <div class="input-group" id="confirmPasswordGroup">
         <div class="input-wrapper">
           <i class="fa-solid fa-lock input-icon"></i>
@@ -491,7 +423,6 @@
         <span class="error-message" id="confirmPasswordError">As senhas não coincidem.</span>
       </div>
 
-      <!-- Seleção Discente / Docente -->
       <div class="role-selection-wrapper" id="roleGroup">
         <div class="role-selection">
           <label class="role-option">
@@ -506,13 +437,11 @@
         <span class="error-message" id="roleError" style="text-align: center; padding-left:0;">Selecione Discente ou Docente.</span>
       </div>
 
-      <!-- Botão Criar -->
       <button type="submit" class="btn-submit" id="btnSubmit">
         <i class="fa-solid fa-user-plus"></i>
         <span>CRIAR</span>
       </button>
 
-      <!-- Opções Secundárias / Redes Sociais -->
       <div class="social-buttons-grid">
         <button type="button" class="btn-secondary" id="btnGoogle">
           <span>Continuar com google</span>
@@ -524,16 +453,12 @@
         </a>
       </div>
 
-      <!-- Caixa de Feedback -->
       <div class="alert-box" id="alertBox"></div>
-
     </form>
   </main>
 
-  <!-- Importa o arquivo de configuração da URL do Backend -->
   <script src="api.js"></script>
 
-  <!-- Lógica JavaScript do Cadastro -->
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       const signupForm = document.getElementById('signupForm');
@@ -557,7 +482,6 @@
       const btnGoogle = document.getElementById('btnGoogle');
       const alertBox = document.getElementById('alertBox');
 
-      // 1. Máscara Automática de Telefone: (XX) XXXXX-XXXX
       phoneInput.addEventListener('input', (e) => {
         let v = e.target.value.replace(/\D/g, '');
         if (v.length > 11) v = v.substring(0, 11);
@@ -572,7 +496,6 @@
         e.target.value = v;
       });
 
-      // 2. Alternar visibilidade da senha
       togglePasswordBtn.addEventListener('click', () => {
         const isPassword = passwordInput.getAttribute('type') === 'password';
         passwordInput.setAttribute('type', isPassword ? 'text' : 'password');
@@ -582,7 +505,6 @@
         toggleIcon.classList.toggle('fa-eye', isPassword);
       });
 
-      // 3. Limpar marcações de erro ao digitar
       const inputs = [nameInput, emailInput, phoneInput, passwordInput, confirmPasswordInput];
       const groups = [nameGroup, emailGroup, phoneGroup, passwordGroup, confirmPasswordGroup];
 
@@ -606,7 +528,6 @@
         setTimeout(() => { alertBox.style.display = "none"; }, 5000);
       });
 
-      // 4. Submissão Dinâmica
       signupForm.addEventListener('submit', async (e) => {
         e.preventDefault();
 
@@ -649,7 +570,7 @@
         btnSubmit.disabled = true;
         btnSubmit.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>CRIANDO...</span>`;
 
-        // Define o endereço base do backend dinamicamente
+        // Utiliza a variável global (de api.js) caso exista. Caso contrário fallback local.
         const baseUrl = (typeof API_URL !== 'undefined') ? API_URL : 'http://localhost:3000/api';
 
         try {
@@ -667,10 +588,16 @@
             })
           });
 
-          const data = await response.json();
+          // Previne "crashing" do código caso o servidor retorne HTML de erro em vez de JSON
+          let data = {};
+          try {
+            data = await response.json();
+          } catch(jsonErr) {
+            console.warn("A resposta do servidor não é um JSON válido.");
+          }
 
           if (!response.ok) {
-            throw new Error(data.message || data.error || 'Erro ao realizar o cadastro no servidor.');
+            throw new Error(data.message || data.error || `Erro HTTP ${response.status} ao realizar o cadastro no servidor.`);
           }
 
           alertBox.className = "alert-box success";

@@ -1,7 +1,7 @@
 // js/api.js
-// Vamos substituir esta URL no final assim que criarmos a API no Render
-const API_URL = 'https://SUA-API-AQUI.onrender.com/api';
-const API_URL = 'http://localhost:3000/api'; // URL da sua API backend
+// Removido o "/index.html" do final da URL. 
+// Assumindo que seu backend use "/api" como rota base (de acordo com seu localhost).
+const API_URL = 'https://id-hub-backend-wkul.onrender.com/api';
 
 /**
  * Função utilitária para realizar requisições HTTP para a API.

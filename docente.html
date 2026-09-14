@@ -77,7 +77,7 @@
     .class-desc-display { font-size: 0.8rem; color: var(--text-secondary); margin-top: -8px; margin-bottom: 10px; font-style: italic; background: rgba(255,255,255,0.05); padding: 8px; border-radius: 8px; border-left: 3px solid var(--accent-color); }
     
     .teacher-badge-info { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; padding: 8px 10px; background: rgba(0,0,0,0.25); border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); }
-    .teacher-badge-avatar { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; border: 1px solid var(--accent-color); background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 0.9rem; }
+    .teacher-badge-avatar { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; border: 1px solid var(--accent-color); background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 0.9rem; overflow: hidden; }
     .teacher-badge-details { display: flex; flex-direction: column; }
     .teacher-badge-label { font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; }
     .teacher-badge-name { font-size: 0.85rem; font-weight: 600; color: #fff; }
@@ -406,7 +406,7 @@
         
         <div style="margin-top: auto;">
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 6px;">
-            <a href="notas-atividades-docente.html" class="btn-notes-action" id="btnOpenNotes">
+            <a href="#" class="btn-notes-action" id="btnOpenNotes">
               <i class="fa-solid fa-book-open"></i> Notas & Ativ.
             </a>
             <button onclick="openDiarioFrequenciaView()" class="btn-attendance-action" id="btnOpenAttendance">
@@ -490,7 +490,7 @@
       <section class="actions-panel" style="justify-content: center;">
         <button class="btn-action-freq btn-edit-faltas" id="btnEditFaltas">
           <i class="fa-solid fa-pen-to-square"></i>
-          <span>EDITAR MANUAMENTE</span>
+          <span>EDITAR MANUALMENTE</span>
         </button>
       </section>
     </div>
@@ -769,6 +769,17 @@
     // BASE DE DADOS GLOBAL
     let database = JSON.parse(localStorage.getItem('idhub_database')) || [];
 
+    function ensureIds() {
+      database.forEach((t, ti) => {
+        if (!t.id) t.id = 'turma_' + (Date.now() + ti);
+        if (t.alunos) {
+          t.alunos.forEach((a, ai) => {
+            if (!a.id) a.id = 'aluno_' + (Date.now() + (ti * 100) + ai);
+          });
+        }
+      });
+    }
+
     async function apiRequest(endpoint, method = 'GET', body = null) {
       try {
         const options = { method, headers: { 'Content-Type': 'application/json' } };
@@ -787,11 +798,12 @@
         const apiTurmas = await apiRequest('/turmas');
         if (apiTurmas && Array.isArray(apiTurmas)) {
           database = apiTurmas;
-          saveDatabase();
+          localStorage.setItem('idhub_database', JSON.stringify(database));
         }
       } catch (err) {
         console.error("Erro ao carregar turmas", err);
       }
+      ensureIds();
       renderTurmas();
       renderAlunos();
     }
@@ -955,11 +967,13 @@
       document.getElementById('displayProfileSpec').textContent = docente.especialidade || 'Especialidade / Cargo';
       
       loadDocenteHeader();
+      renderTurmas();
       if(database.length > 0) renderAlunos();
       showToast('Alterações do perfil salvas!');
     }
 
     async function saveDatabase() { 
+      ensureIds();
       localStorage.setItem('idhub_database', JSON.stringify(database)); 
       await apiRequest('/turmas', 'POST', database);
     }
@@ -1039,7 +1053,7 @@
           <div class="class-header"><span class="class-name">${turma.nome}</span></div>
           <div class="class-info" style="margin-bottom: 6px;"><span><i class="fa-solid fa-user-group"></i> ${turma.alunos ? turma.alunos.length : 0} Alunos</span></div>
           <div class="class-item-actions">
-            <button class="btn-class-freq" onclick="event.stopPropagation(); activeTurmaIndex = ${index}; openDiarioFrequenciaView();"><i class="fa-solid fa-chart-pie"></i> Frequência</button>
+            <button class="btn-class-freq" onclick="event.stopPropagation(); activeTurmaIndex = ${index}; activeAlunoIndex = 0; openDiarioFrequenciaView();"><i class="fa-solid fa-chart-pie"></i> Frequência</button>
             <span class="shift-badge ${turma.badgeClass || 'matutino'}">${turma.turno || 'Matutino'}</span>
           </div>`;
         classesListContainer.appendChild(item);
@@ -1106,16 +1120,26 @@
       
       btnOpenNotes.href = `notas-atividades-docente.html?turmaId=${turma.id}&alunoId=${aluno.id}`;
 
-      btnOpenNotes.style.display = 'flex'; btnOpenAttendance.style.display = 'flex'; btnOpenEdit.style.display = 'flex'; btnDeleteStudent.style.display = 'flex';
+      btnOpenNotes.style.display = 'flex'; 
+      btnOpenAttendance.style.display = 'flex'; 
+      btnOpenEdit.style.display = 'flex'; 
+      btnDeleteStudent.style.display = 'flex';
     }
 
     function clearStudentDetails() {
       document.getElementById('studentPhoto').src = "https://via.placeholder.com/150";
       document.getElementById('studentNameDisplay').innerText = "-";
       document.getElementById('studentTurmaDisplay').innerText = "-";
-      document.getElementById('studentBirth').innerText = "-"; document.getElementById('studentPhone').innerText = "-"; document.getElementById('studentEmail').innerText = "-";
-      document.getElementById('studentMatricula').innerText = "-"; document.getElementById('studentAddress').innerText = "-"; document.getElementById('studentObs').innerText = "-";
-      btnOpenNotes.style.display = 'none'; btnOpenAttendance.style.display = 'none'; btnOpenEdit.style.display = 'none'; btnDeleteStudent.style.display = 'none';
+      document.getElementById('studentBirth').innerText = "-"; 
+      document.getElementById('studentPhone').innerText = "-"; 
+      document.getElementById('studentEmail').innerText = "-";
+      document.getElementById('studentMatricula').innerText = "-"; 
+      document.getElementById('studentAddress').innerText = "-"; 
+      document.getElementById('studentObs').innerText = "-";
+      btnOpenNotes.style.display = 'none'; 
+      btnOpenAttendance.style.display = 'none'; 
+      btnOpenEdit.style.display = 'none'; 
+      btnDeleteStudent.style.display = 'none';
     }
 
     document.getElementById('formAddClass').addEventListener('submit', async (e) => {
@@ -1171,8 +1195,13 @@
 
     document.getElementById('formAddStudent').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const nomeInput = document.getElementById('studentNameInput'); const matriculaInput = document.getElementById('studentMatriculaInput'); const birthInput = document.getElementById('addBirthDate');
-      const phoneInput = document.getElementById('studentPhoneInput'); const emailInput = document.getElementById('studentEmailInput'); const box = document.getElementById('alertStudentBox');
+      const nomeInput = document.getElementById('studentNameInput'); 
+      const matriculaInput = document.getElementById('studentMatriculaInput'); 
+      const birthInput = document.getElementById('addBirthDate');
+      const phoneInput = document.getElementById('studentPhoneInput'); 
+      const emailInput = document.getElementById('studentEmailInput'); 
+      const box = document.getElementById('alertStudentBox');
+      
       let isValid = true;
       if (!nomeInput.value.trim()) { document.getElementById('student-nameGroup').classList.add('error'); isValid = false; }
       if (!matriculaInput.value.trim()) { document.getElementById('student-matriculaGroup').classList.add('error'); isValid = false; }
@@ -1197,10 +1226,21 @@
       };
 
       if (!database[activeTurmaIndex].alunos) database[activeTurmaIndex].alunos = [];
-      database[activeTurmaIndex].alunos.push(novoAluno); activeAlunoIndex = database[activeTurmaIndex].alunos.length - 1; 
+      database[activeTurmaIndex].alunos.push(novoAluno); 
+      activeAlunoIndex = database[activeTurmaIndex].alunos.length - 1; 
       await saveDatabase();
-      box.className = "alert-box success"; box.innerText = "Aluno adicionado com sucesso!";
-      setTimeout(() => { document.getElementById('formAddStudent').reset(); currentAddPhotoBase64 = null; box.style.display = 'none'; renderAlunos(); renderTurmas(); switchView('view-dashboard'); }, 1000);
+      
+      box.className = "alert-box success"; 
+      box.innerText = "Aluno adicionado com sucesso!";
+      
+      setTimeout(() => { 
+        document.getElementById('formAddStudent').reset(); 
+        currentAddPhotoBase64 = null; 
+        box.style.display = 'none'; 
+        renderAlunos(); 
+        renderTurmas(); 
+        switchView('view-dashboard'); 
+      }, 1000);
     });
 
     function openEditStudent() {
@@ -1208,8 +1248,11 @@
       if (!turma || !turma.alunos || turma.alunos.length === 0) return;
       const aluno = turma.alunos[activeAlunoIndex]; 
       if(!aluno) return;
-      currentEditPhotoBase64 = null; document.getElementById('editPhotoInput').value = ""; 
-      document.getElementById('lblEditStudentName').innerText = aluno.nome; document.getElementById('editName').value = aluno.nome;
+      
+      currentEditPhotoBase64 = null; 
+      document.getElementById('editPhotoInput').value = ""; 
+      document.getElementById('lblEditStudentName').innerText = aluno.nome; 
+      document.getElementById('editName').value = aluno.nome;
       document.getElementById('editMatricula').value = aluno.matricula !== "Não informado" ? aluno.matricula : "";
       document.getElementById('editBirthDate').value = aluno.nascimento !== "Não informado" ? aluno.nascimento : "";
       document.getElementById('editPhone').value = aluno.telefone !== "Não informado" ? aluno.telefone : "";
@@ -1220,18 +1263,38 @@
     }
 
     document.getElementById('formEditStudent').addEventListener('submit', async (e) => {
-      e.preventDefault(); const emailInput = document.getElementById('editEmail');
-      if (emailInput.value.trim() && !isValidEmail(emailInput.value.trim())) { document.getElementById('edit-emailGroup').classList.add('error'); return; }
+      e.preventDefault(); 
+      const emailInput = document.getElementById('editEmail');
+      if (emailInput.value.trim() && !isValidEmail(emailInput.value.trim())) { 
+        document.getElementById('edit-emailGroup').classList.add('error'); 
+        return; 
+      }
+      
       const turma = database[activeTurmaIndex];
       if (!turma || !turma.alunos) return;
       const aluno = turma.alunos[activeAlunoIndex];
       if (!aluno) return;
-      aluno.nome = document.getElementById('editName').value.trim().toUpperCase() || "SEM NOME"; aluno.matricula = document.getElementById('editMatricula').value.trim() || "Não informado";
-      aluno.nascimento = document.getElementById('editBirthDate').value.trim() || "Não informado"; aluno.telefone = document.getElementById('editPhone').value.trim() || "Não informado";
-      aluno.email = emailInput.value.trim() || "Não informado"; aluno.endereco = document.getElementById('editAddress').value.trim() || "Não informado"; aluno.observacoes = document.getElementById('editObs').value.trim() || "";
+
+      aluno.nome = document.getElementById('editName').value.trim().toUpperCase() || "SEM NOME"; 
+      aluno.matricula = document.getElementById('editMatricula').value.trim() || "Não informado";
+      aluno.nascimento = document.getElementById('editBirthDate').value.trim() || "Não informado"; 
+      aluno.telefone = document.getElementById('editPhone').value.trim() || "Não informado";
+      aluno.email = emailInput.value.trim() || "Não informado"; 
+      aluno.endereco = document.getElementById('editAddress').value.trim() || "Não informado"; 
+      aluno.observacoes = document.getElementById('editObs').value.trim() || "";
       if (currentEditPhotoBase64) aluno.foto = currentEditPhotoBase64;
-      await saveDatabase(); const box = document.getElementById('alertEditBox'); box.innerText = "Informações atualizadas com sucesso!"; box.style.display = 'block';
-      setTimeout(() => { box.style.display = 'none'; renderAlunos(); renderTurmas(); switchView('view-dashboard'); }, 1000);
+      
+      await saveDatabase(); 
+      const box = document.getElementById('alertEditBox'); 
+      box.innerText = "Informações atualizadas com sucesso!"; 
+      box.style.display = 'block';
+      
+      setTimeout(() => { 
+        box.style.display = 'none'; 
+        renderAlunos(); 
+        renderTurmas(); 
+        switchView('view-dashboard'); 
+      }, 1000);
     });
 
     // ==========================================
@@ -1383,7 +1446,7 @@
       } else {
         isEditingFaltas = false;
         btn.classList.remove('editing-mode');
-        btn.querySelector('span').textContent = 'EDITAR MANUAMENTE';
+        btn.querySelector('span').textContent = 'EDITAR MANUALMENTE';
         inputs.forEach(inp => {
           inp.setAttribute('disabled', 'true');
           const aId = inp.getAttribute('data-alunoid');
@@ -1401,7 +1464,8 @@
       const turma = database[activeTurmaIndex];
       const dataSel = document.getElementById('attendanceDate').value;
 
-      document.getElementById('consultDateLabel').textContent = `Data: ${dataSel.split('-').reverse().join('/')}`;
+      const dataFormatada = dataSel ? dataSel.split('-').reverse().join('/') : 'Não Selecionada';
+      document.getElementById('consultDateLabel').textContent = `Data: ${dataFormatada}`;
 
       if (!turma || !turma.alunos || turma.alunos.length === 0) {
         container.innerHTML = `<div class="empty-state" style="color:var(--text-secondary); text-align:center; padding:20px;">Nenhum aluno para exibir.</div>`;
