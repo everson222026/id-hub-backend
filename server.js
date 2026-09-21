@@ -631,36 +631,85 @@ app.get('/api/alunos/:id/frequencias', auth, async (req, res) => {
   }
 });
 
-// Recuperação de senha: mantida para não quebrar o front-end, mas o envio por SMTP
-// pode ser bloqueado em hosts gratuitos. Para o Render Free, prefira um provedor HTTP.
-const recoveryCodes = new Map();
+// ---------- RECUPERAÇÃO DE SENHA ----------
 app.post('/api/forgot-password', async (req, res) => {
   try {
     const email = String(req.body.email || '').trim().toLowerCase();
-    const result = await db.query('SELECT id FROM usuarios WHERE email = $1', [email]);
-    if (!result.rows.length) return res.status(404).json({ message: 'E-mail não encontrado no sistema.' });
 
-    const code = String(crypto.randomInt(100000, 1000000));
-    recoveryCodes.set(email, { code, expiresAt: Date.now() + 10 * 60 * 1000 });
-
-    // Sem provedor de e-mail configurado, não expõe o código em produção.
-    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS || process.env.NODE_ENV === 'production') {
-      return res.json({ message: 'Código criado. Configure um provedor de e-mail HTTP para receber o código.' });
+    if (!email) {
+      return res.status(400).json({ message: 'Informe um e-mail válido.' });
     }
 
-    const nodemailer = require('nodemailer');
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
+    const result = await db.query(
+      'SELECT id, name, email FROM usuarios WHERE email = $1',
+      [email]
+    );
+
+    if (!result.rows.length) {
+      return res.status(404).json({ message: 'E-mail não encontrado no sistema.' });
+    }
+
+    if (!process.env.RESEND_API_KEY) {
+      console.error('[FORGOT PASSWORD] RESEND_API_KEY não configurada no ambiente.');
+      return res.status(500).json({
+        message: 'O serviço de e-mail não está configurado. Adicione RESEND_API_KEY no Render.'
+      });
+    }
+
+    if (!process.env.EMAIL_FROM) {
+      console.error('[FORGOT PASSWORD] EMAIL_FROM não configurado no ambiente.');
+      return res.status(500).json({
+        message: 'O remetente do e-mail não está configurado. Adicione EMAIL_FROM no Render.'
+      });
+    }
+
+    const user = result.rows[0];
+    const code = String(crypto.randomInt(100000, 1000000));
+    const codeHash = crypto.createHash('sha256').update(code).digest('hex');
+
+    await db.query(
+      `INSERT INTO password_reset_tokens (usuario_id, code_hash, expires_at)
+       VALUES ($1, $2, NOW() + INTERVAL '10 minutes')
+       ON CONFLICT (usuario_id)
+       DO UPDATE SET code_hash = EXCLUDED.code_hash, expires_at = EXCLUDED.expires_at, created_at = NOW()`,
+      [user.id, codeHash]
+    );
+
+    const emailResponse = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.RESEND_API_KEY}`
+      },
+      body: JSON.stringify({
+        from: process.env.EMAIL_FROM,
+        to: [email],
+        subject: 'Código de recuperação de senha - ID HUB',
+        html: `
+          <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#1f2937">
+            <h2 style="margin-bottom:8px">ID HUB</h2>
+            <p>Olá${user.name ? `, ${user.name}` : ''}!</p>
+            <p>Recebemos uma solicitação para redefinir a sua senha.</p>
+            <div style="font-size:32px;font-weight:700;letter-spacing:8px;text-align:center;padding:18px 0">${code}</div>
+            <p>Este código expira em <strong>10 minutos</strong>.</p>
+            <p style="color:#6b7280;font-size:13px">Se você não solicitou a redefinição, ignore este e-mail.</p>
+          </div>
+        `,
+        text: `Seu código de recuperação do ID HUB é: ${code}. Ele expira em 10 minutos.`
+      })
     });
 
-    await transporter.sendMail({
-      from: `"ID HUB" <${process.env.EMAIL_USER}>`,
-      to: email,
-      subject: 'Código de Recuperação de Senha - ID HUB',
-      text: `Seu código de recuperação do ID HUB é: ${code}. Ele expira em 10 minutos.`
-    });
+    const payload = await emailResponse.json().catch(() => ({}));
 
+    if (!emailResponse.ok) {
+      await db.query('DELETE FROM password_reset_tokens WHERE usuario_id = $1', [user.id]);
+      console.error('[RESEND ERROR]', emailResponse.status, payload);
+      return res.status(502).json({
+        message: payload.message || payload.error || 'O provedor de e-mail recusou o envio do código.'
+      });
+    }
+
+    console.log(`[FORGOT PASSWORD] E-mail enviado para ${email}. ID: ${payload.id || 'sem-id'}`);
     res.json({ message: 'Código de recuperação enviado para seu e-mail.' });
   } catch (error) {
     console.error('[FORGOT PASSWORD]', error);
@@ -674,24 +723,55 @@ app.post('/api/reset-password', async (req, res) => {
     const code = String(req.body.code || '').trim();
     const password = String(req.body.password || '');
 
-    if (!email || !code || password.length < 6) {
-      return res.status(400).json({ message: 'E-mail, código e nova senha são obrigatórios.' });
+    if (!email || !/^\d{6}$/.test(code) || password.length < 6) {
+      return res.status(400).json({
+        message: 'E-mail, código de 6 dígitos e nova senha são obrigatórios.'
+      });
     }
 
-    const saved = recoveryCodes.get(email);
-    if (!saved || saved.expiresAt < Date.now() || saved.code !== code) {
+    const userResult = await db.query(
+      'SELECT id FROM usuarios WHERE email = $1',
+      [email]
+    );
+
+    if (!userResult.rows.length) {
+      return res.status(404).json({ message: 'Usuário não encontrado.' });
+    }
+
+    const userId = userResult.rows[0].id;
+    const codeHash = crypto.createHash('sha256').update(code).digest('hex');
+
+    const tokenResult = await db.query(
+      `SELECT id
+         FROM password_reset_tokens
+        WHERE usuario_id = $1
+          AND code_hash = $2
+          AND expires_at > NOW()`,
+      [userId, codeHash]
+    );
+
+    if (!tokenResult.rows.length) {
       return res.status(400).json({ message: 'Código de verificação inválido ou expirado.' });
     }
 
     const hash = await bcrypt.hash(password, 12);
-    const result = await db.query(
-      'UPDATE usuarios SET senha = $1 WHERE email = $2 RETURNING id',
-      [hash, email]
-    );
 
-    if (!result.rows.length) return res.status(404).json({ message: 'Usuário não encontrado.' });
+    await db.query('BEGIN');
+    try {
+      await db.query(
+        'UPDATE usuarios SET senha = $1 WHERE id = $2',
+        [hash, userId]
+      );
+      await db.query(
+        'DELETE FROM password_reset_tokens WHERE usuario_id = $1',
+        [userId]
+      );
+      await db.query('COMMIT');
+    } catch (transactionError) {
+      await db.query('ROLLBACK');
+      throw transactionError;
+    }
 
-    recoveryCodes.delete(email);
     res.json({ message: 'Senha redefinida com sucesso!' });
   } catch (error) {
     console.error('[RESET PASSWORD]', error);

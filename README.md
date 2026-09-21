@@ -123,7 +123,9 @@ Como o frontend é servido pelo mesmo Express, o sistema chama `/api` e não pre
 
 ## Recuperação de senha
 
-O projeto mantém as rotas de recuperação para não quebrar a interface. Porém, no Render Free, o envio SMTP tradicional pode ser bloqueado. Para recuperação por e-mail em produção, use um provedor de e-mail por HTTPS/API e configure isso no backend.
+A recuperação de senha usa a API HTTPS do Resend, evitando dependência de SMTP no Render. Configure `RESEND_API_KEY` e `EMAIL_FROM` no Render. O endereço de `EMAIL_FROM` deve pertencer a um domínio verificado no Resend. O plano gratuito atual do Resend inclui até 3.000 e-mails por mês, com limite de 100 por dia.
+
+O código de recuperação fica salvo no PostgreSQL com validade de 10 minutos, então ele não é perdido quando o Web Service do Render reinicia ou sai do modo de suspensão.
 
 ## Importante sobre os dados antigos
 

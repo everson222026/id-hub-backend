@@ -120,6 +120,17 @@ async function ensureDatabase() {
       UNIQUE (aluno_id, data)
     );
 
+    CREATE TABLE IF NOT EXISTS password_reset_tokens (
+      id SERIAL PRIMARY KEY,
+      usuario_id INT NOT NULL UNIQUE REFERENCES usuarios(id) ON DELETE CASCADE,
+      code_hash CHAR(64) NOT NULL,
+      expires_at TIMESTAMPTZ NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+
+    CREATE INDEX IF NOT EXISTS password_reset_tokens_expires_idx
+      ON password_reset_tokens(expires_at);
+
     CREATE INDEX IF NOT EXISTS turmas_professor_idx ON turmas(professor_id);
     CREATE INDEX IF NOT EXISTS alunos_turma_idx ON alunos(turma_id);
     CREATE INDEX IF NOT EXISTS notas_aluno_idx ON notas(aluno_id);

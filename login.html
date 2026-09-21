@@ -675,7 +675,7 @@
           const data = await response.json();
           if (!response.ok) throw new Error(data.message || 'Erro ao enviar o código de recuperação.');
 
-          showToast("Código de recuperação gerado! (Veja o console do servidor)", "success");
+          showToast(data.message || "Código de recuperação enviado para seu e-mail!", "success");
           setTimeout(() => { switchView('reset'); }, 1800);
 
         } catch (error) {
