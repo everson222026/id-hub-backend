@@ -1,34 +1,23 @@
 {
   "name": "id-hub",
-  "version": "1.0.0",
-  "description": "",
-  "main": "api.js",
+  "version": "2.0.0",
+  "private": true,
+  "description": "ID HUB - sistema docente com PostgreSQL/Neon",
+  "main": "server.js",
   "scripts": {
-    "db:push": "node push.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "start": "node server.js",
+    "db:init": "node init-db.js"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/everson222026/id-hub.git"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
-  "bugs": {
-    "url": "https://github.com/everson222026/id-hub/issues"
-  },
-  "homepage": "https://github.com/everson222026/id-hub#readme",
-  "devDependencies": {
-    "@prisma/client": "^7.10.0",
-    "prisma": "^8.0.0-rc.12"
+  "engines": {
+    "node": ">=18"
   },
   "dependencies": {
-    "bcrypt": "^6.0.0",
-    "cors": "^2.8.6",
-    "express": "^5.2.1",
-    "nodemailer": "^10.0.0",
-    "pg": "^8.23.0"
+    "bcryptjs": "^3.0.2",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.2",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "nodemailer": "^7.0.6",
+    "pg": "^8.16.3"
   }
 }

@@ -1,246 +1,718 @@
-// server.js
 require('dotenv').config();
+
 const express = require('express');
 const cors = require('cors');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 const path = require('path');
-const nodemailer = require('nodemailer');
+const crypto = require('crypto');
 const db = require('./db');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = Number(process.env.PORT || 3000);
+const JWT_SECRET = process.env.JWT_SECRET || 'TROQUE_ESTA_CHAVE_EM_PRODUCAO';
 
-app.use(cors());
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+if (JWT_SECRET === 'TROQUE_ESTA_CHAVE_EM_PRODUCAO') {
+  console.warn('[IDHUB] AVISO: defina JWT_SECRET nas variáveis de ambiente do Render.');
+}
 
+app.use(cors({
+  origin: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+app.use(express.json({ limit: '25mb' }));
+app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 app.use(express.static(path.join(__dirname)));
 
-const recoveryCodes = new Map();
+const { ensureDatabase } = require('./schema');
 
-// Configuração do Nodemailer usando exclusivamente variáveis de ambiente
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  },
-  logger: true,
-  debug: true
+function createToken(user) {
+  return jwt.sign(
+    { id: user.id, email: user.email, role: user.role },
+    JWT_SECRET,
+    { expiresIn: '7d' }
+  );
+}
+
+function auth(req, res, next) {
+  const header = req.headers.authorization || '';
+  const token = header.startsWith('Bearer ') ? header.slice(7) : null;
+
+  if (!token) {
+    return res.status(401).json({ error: 'Sessão não encontrada. Faça login novamente.' });
+  }
+
+  try {
+    req.user = jwt.verify(token, JWT_SECRET);
+    next();
+  } catch (error) {
+    return res.status(401).json({ error: 'Sessão expirada ou inválida. Faça login novamente.' });
+  }
+}
+
+function normalizeRole(role) {
+  return role === 'docente' ? 'docente' : 'discente';
+}
+
+function normalizeStudent(student) {
+  return {
+    ...student,
+    faltas: Number(student.faltas || 0),
+    notas: student.notas && typeof student.notas === 'object' ? student.notas : {},
+    historicoFrequencia:
+      student.historicoFrequencia && typeof student.historicoFrequencia === 'object'
+        ? student.historicoFrequencia
+        : {},
+    atividades: Array.isArray(student.atividades) ? student.atividades : []
+  };
+}
+
+function normalizeGradeEntries(notas) {
+  if (!notas || typeof notas !== 'object') return [];
+  const entries = [];
+
+  for (const [materia, rawValue] of Object.entries(notas)) {
+    if (rawValue === null || rawValue === undefined || rawValue === '') continue;
+
+    if (typeof rawValue === 'number' || (!Number.isNaN(Number(rawValue)) && typeof rawValue !== 'object')) {
+      const valor = Number(rawValue);
+      if (Number.isFinite(valor)) entries.push({ materia, valor });
+      continue;
+    }
+
+    if (typeof rawValue === 'object') {
+      const valor = Number(rawValue.valor ?? rawValue.value ?? rawValue.nota);
+      if (Number.isFinite(valor)) {
+        entries.push({
+          materia,
+          valor,
+          bimestre: rawValue.bimestre ?? rawValue.periodo ?? null,
+          atividade: rawValue.atividade ?? rawValue.nome ?? null
+        });
+      }
+    }
+  }
+
+  return entries;
+}
+
+function buildUser(row) {
+  return {
+    id: row.id,
+    name: row.name || '',
+    email: row.email,
+    phone: row.phone || '',
+    role: normalizeRole(row.role || row.perfil),
+    perfil: normalizeRole(row.role || row.perfil),
+    especialidade: row.especialidade || '',
+    foto: row.foto || null
+  };
+}
+
+function buildTurma(row) {
+  return {
+    id: row.id,
+    clientId: row.client_id,
+    nome: row.nome,
+    turno: row.turno || 'Matutino',
+    badgeClass: row.badge_class || row.turno?.toLowerCase() || 'matutino',
+    descricao: row.descricao || '',
+    tipoPeriodo: row.tipo_periodo || '4_bimestres',
+    mediaAprovacao: Number(row.media_aprovacao ?? 6),
+    professorNome: row.professor_nome || 'Professor não informado',
+    professorFoto: row.professor_foto || null,
+    alunos: []
+  };
+}
+
+async function getTurmasDoDocente(userId) {
+  const turmaResult = await db.query(
+    `SELECT * FROM turmas WHERE professor_id = $1 ORDER BY created_at DESC, id DESC`,
+    [userId]
+  );
+
+  if (turmaResult.rows.length === 0) return [];
+
+  const turmaIds = turmaResult.rows.map(row => row.id);
+
+  const alunoResult = await db.query(
+    `SELECT * FROM alunos WHERE turma_id = ANY($1::int[]) ORDER BY id ASC`,
+    [turmaIds]
+  );
+
+  const alunoIds = alunoResult.rows.map(row => row.id);
+
+  let notas = [];
+  let frequencias = [];
+
+  if (alunoIds.length > 0) {
+    const [notasResult, freqResult] = await Promise.all([
+      db.query(`SELECT * FROM notas WHERE aluno_id = ANY($1::int[]) ORDER BY id ASC`, [alunoIds]),
+      db.query(`SELECT * FROM frequencias WHERE aluno_id = ANY($1::int[]) ORDER BY data ASC, id ASC`, [alunoIds])
+    ]);
+    notas = notasResult.rows;
+    frequencias = freqResult.rows;
+  }
+
+  const notasPorAluno = new Map();
+  for (const nota of notas) {
+    if (!notasPorAluno.has(nota.aluno_id)) notasPorAluno.set(nota.aluno_id, {});
+    const valor = Number(nota.valor);
+    const baseKey = nota.materia || 'Nota';
+    let key = baseKey;
+    if (nota.bimestre || nota.atividade) {
+      key = [baseKey, nota.bimestre, nota.atividade].filter(Boolean).join(' - ');
+    }
+    notasPorAluno.get(nota.aluno_id)[key] = valor;
+  }
+
+  const freqPorAluno = new Map();
+  for (const freq of frequencias) {
+    if (!freqPorAluno.has(freq.aluno_id)) freqPorAluno.set(freq.aluno_id, {});
+    const iso = new Date(freq.data).toISOString().slice(0, 10);
+    freqPorAluno.get(freq.aluno_id)[iso] = freq.presente;
+  }
+
+  const alunosPorTurma = new Map();
+  for (const aluno of alunoResult.rows) {
+    if (!alunosPorTurma.has(aluno.turma_id)) alunosPorTurma.set(aluno.turma_id, []);
+    alunosPorTurma.get(aluno.turma_id).push({
+      id: aluno.id,
+      clientId: aluno.client_id,
+      nome: aluno.nome,
+      matricula: aluno.matricula || 'Não informado',
+      nascimento: aluno.nascimento || 'Não informado',
+      telefone: aluno.telefone || 'Não informado',
+      email: aluno.email || 'Não informado',
+      endereco: aluno.endereco || 'Não informado',
+      observacoes: aluno.observacoes || '',
+      foto: aluno.foto || 'https://via.placeholder.com/150',
+      faltas: Number(aluno.faltas || 0),
+      historicoFrequencia: freqPorAluno.get(aluno.id) || {},
+      notas: notasPorAluno.get(aluno.id) || {},
+      atividades: Array.isArray(aluno.atividades) ? aluno.atividades : []
+    });
+  }
+
+  return turmaResult.rows.map(row => ({
+    ...buildTurma(row),
+    alunos: alunosPorTurma.get(row.id) || []
+  }));
+}
+
+// ---------- HEALTH ----------
+app.get('/api/health', async (req, res) => {
+  try {
+    await db.query('SELECT 1');
+    res.json({ ok: true, database: 'connected', service: 'ID HUB API' });
+  } catch (error) {
+    console.error('[HEALTH]', error);
+    res.status(500).json({ ok: false, database: 'disconnected' });
+  }
 });
 
-// --- ROTAS DE AUTENTICAÇÃO ---
-
+// ---------- AUTH ----------
 app.post('/api/cadastro', async (req, res) => {
   try {
-    const { name, email, phone, role } = req.body;
-    const senhaUser = req.body.senha || req.body.password;
+    const { name, email, phone } = req.body;
+    const role = normalizeRole(req.body.role || req.body.perfil);
+    const senha = String(req.body.senha || req.body.password || '');
 
-    if (!senhaUser) {
-      return res.status(400).json({ error: 'A senha é obrigatória.' });
+    if (!name || !email || !senha) {
+      return res.status(400).json({ error: 'Nome, e-mail e senha são obrigatórios.' });
+    }
+    if (senha.length < 6) {
+      return res.status(400).json({ error: 'A senha deve ter pelo menos 6 caracteres.' });
     }
 
-    const userExists = await db.query('SELECT * FROM usuarios WHERE email = $1', [email]);
-    if (userExists.rows.length > 0) {
-      return res.status(400).json({ error: 'E-mail já cadastrado.' });
+    const emailNormalizado = String(email).trim().toLowerCase();
+    const exists = await db.query('SELECT id FROM usuarios WHERE email = $1', [emailNormalizado]);
+    if (exists.rows.length) {
+      return res.status(409).json({ error: 'E-mail já cadastrado.' });
     }
 
-    const hashedPassword = await bcrypt.hash(senhaUser, 10);
-
-    const novoUsuario = await db.query(
-      'INSERT INTO usuarios (name, email, phone, senha, role) VALUES ($1, $2, $3, $4, $5) RETURNING id, email, role',
-      [name, email, phone, hashedPassword, role || 'discente']
+    const hash = await bcrypt.hash(senha, 12);
+    const result = await db.query(
+      `INSERT INTO usuarios (name, email, phone, senha, role, perfil)
+       VALUES ($1, $2, $3, $4, $5, $5)
+       RETURNING id, name, email, phone, role, perfil, especialidade, foto`,
+      [String(name).trim(), emailNormalizado, phone || '', hash, role]
     );
 
-    res.status(201).json({ message: 'Usuário cadastrado com sucesso!', user: novoUsuario.rows[0] });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Erro interno no servidor.' });
+    res.status(201).json({
+      message: 'Usuário cadastrado com sucesso!',
+      user: buildUser(result.rows[0])
+    });
+  } catch (error) {
+    console.error('[CADASTRO]', error);
+    res.status(500).json({ error: 'Erro interno ao cadastrar usuário.' });
   }
 });
 
 app.post('/api/login', async (req, res) => {
   try {
-    const { email } = req.body;
-    const senhaUser = req.body.senha || req.body.password;
+    const email = String(req.body.email || '').trim().toLowerCase();
+    const senha = String(req.body.senha || req.body.password || '');
 
-    if (!senhaUser) {
-      return res.status(400).json({ error: 'A senha é obrigatória.' });
+    if (!email || !senha) {
+      return res.status(400).json({ error: 'E-mail e senha são obrigatórios.' });
     }
 
-    const resultado = await db.query('SELECT * FROM usuarios WHERE email = $1', [email]);
-    if (resultado.rows.length === 0) {
-      return res.status(400).json({ error: 'E-mail ou senha inválidos.' });
+    const result = await db.query('SELECT * FROM usuarios WHERE email = $1', [email]);
+    if (!result.rows.length) {
+      return res.status(401).json({ error: 'E-mail ou senha inválidos.' });
     }
 
-    const usuario = resultado.rows[0];
-    const senhaValida = await bcrypt.compare(senhaUser, usuario.senha);
-
-    if (!senhaValida) {
-      return res.status(400).json({ error: 'E-mail ou senha inválidos.' });
+    const usuario = result.rows[0];
+    const ok = await bcrypt.compare(senha, usuario.senha);
+    if (!ok) {
+      return res.status(401).json({ error: 'E-mail ou senha inválidos.' });
     }
 
-    res.json({ message: 'Login realizado com sucesso!', perfil: usuario.role, email: usuario.email });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Erro interno no servidor.' });
+    const user = buildUser(usuario);
+    const token = createToken(user);
+
+    res.json({
+      message: 'Login realizado com sucesso!',
+      token,
+      perfil: user.role,
+      email: user.email,
+      user
+    });
+  } catch (error) {
+    console.error('[LOGIN]', error);
+    res.status(500).json({ error: 'Erro interno no login.' });
   }
 });
 
-// --- ROTAS DE RECUPERAÇÃO E REDEFINIÇÃO DE SENHA ---
-
-app.post('/api/forgot-password', async (req, res) => {
+app.get('/api/me', auth, async (req, res) => {
   try {
-    const { email } = req.body;
-    const resultado = await db.query('SELECT * FROM usuarios WHERE email = $1', [email]);
-    
-    if (resultado.rows.length === 0) {
-      return res.status(404).json({ message: 'E-mail não encontrado no sistema.' });
+    const result = await db.query(
+      `SELECT id, name, email, phone, role, perfil, especialidade, foto
+         FROM usuarios WHERE id = $1`,
+      [req.user.id]
+    );
+    if (!result.rows.length) return res.status(404).json({ error: 'Usuário não encontrado.' });
+    res.json({ user: buildUser(result.rows[0]) });
+  } catch (error) {
+    console.error('[ME]', error);
+    res.status(500).json({ error: 'Erro ao carregar perfil.' });
+  }
+});
+
+app.patch('/api/me', auth, async (req, res) => {
+  try {
+    const { name, email, phone, especialidade, foto } = req.body;
+    const emailNormalizado = email ? String(email).trim().toLowerCase() : undefined;
+
+    if (emailNormalizado) {
+      const emailUsado = await db.query(
+        'SELECT id FROM usuarios WHERE email = $1 AND id <> $2',
+        [emailNormalizado, req.user.id]
+      );
+      if (emailUsado.rows.length) {
+        return res.status(409).json({ error: 'Esse e-mail já pertence a outro usuário.' });
+      }
     }
 
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-    recoveryCodes.set(email, code);
+    const result = await db.query(
+      `UPDATE usuarios
+          SET name = COALESCE($1, name),
+              email = COALESCE($2, email),
+              phone = COALESCE($3, phone),
+              especialidade = COALESCE($4, especialidade),
+              foto = COALESCE($5, foto),
+              role = COALESCE(role, perfil, 'discente'),
+              perfil = COALESCE(perfil, role, 'discente')
+        WHERE id = $6
+      RETURNING id, name, email, phone, role, perfil, especialidade, foto`,
+      [
+        name !== undefined ? String(name).trim() : null,
+        emailNormalizado || null,
+        phone !== undefined ? String(phone) : null,
+        especialidade !== undefined ? String(especialidade) : null,
+        foto !== undefined ? foto : null,
+        req.user.id
+      ]
+    );
 
-    const mailOptions = {
+    if (!result.rows.length) return res.status(404).json({ error: 'Usuário não encontrado.' });
+
+    const user = buildUser(result.rows[0]);
+    const token = createToken(user);
+    res.json({ message: 'Perfil atualizado com sucesso!', user, token });
+  } catch (error) {
+    console.error('[PATCH ME]', error);
+    res.status(500).json({ error: 'Erro ao atualizar o perfil.' });
+  }
+});
+
+// ---------- TURMAS / ALUNOS / NOTAS / FREQUÊNCIA ----------
+app.get('/api/turmas', auth, async (req, res) => {
+  try {
+    const turmas = await getTurmasDoDocente(req.user.id);
+    res.json(turmas);
+  } catch (error) {
+    console.error('[GET TURMAS]', error);
+    res.status(500).json({ error: 'Erro ao buscar turmas.' });
+  }
+});
+
+app.post('/api/turmas', auth, async (req, res) => {
+  const turmas = Array.isArray(req.body) ? req.body : req.body.turmas;
+  const replaceAll = Array.isArray(req.body) ? true : req.body.replaceAll === true;
+
+  if (!Array.isArray(turmas)) {
+    return res.status(400).json({ error: 'Envie um array de turmas ou { turmas: [...] }.' });
+  }
+
+  const client = await db.pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    const turmaIdsMantidas = [];
+
+    for (const rawTurma of turmas) {
+      const turma = rawTurma || {};
+      const clientId = String(turma.clientId || (typeof turma.id === 'string' ? turma.id : '') || `turma_${crypto.randomUUID()}`).slice(0, 100);
+      const numericId = Number.isInteger(Number(turma.id)) ? Number(turma.id) : null;
+
+      let existing = null;
+      if (numericId !== null) {
+        const r = await client.query(
+          'SELECT id FROM turmas WHERE id = $1 AND professor_id = $2',
+          [numericId, req.user.id]
+        );
+        existing = r.rows[0] || null;
+      }
+      if (!existing) {
+        const r = await client.query(
+          'SELECT id FROM turmas WHERE client_id = $1 AND professor_id = $2',
+          [clientId, req.user.id]
+        );
+        existing = r.rows[0] || null;
+      }
+
+      let turmaId;
+      if (existing) {
+        turmaId = existing.id;
+        await client.query(
+          `UPDATE turmas SET
+             nome = $1,
+             turno = $2,
+             badge_class = $3,
+             descricao = $4,
+             tipo_periodo = $5,
+             media_aprovacao = $6,
+             professor_nome = $7,
+             professor_foto = $8,
+             client_id = $9
+           WHERE id = $10 AND professor_id = $11`,
+          [
+            String(turma.nome || 'SEM NOME').slice(0, 100),
+            turma.turno || 'Matutino',
+            turma.badgeClass || String(turma.turno || 'Matutino').toLowerCase(),
+            turma.descricao || '',
+            turma.tipoPeriodo || '4_bimestres',
+            Number(turma.mediaAprovacao ?? 6),
+            turma.professorNome || '',
+            turma.professorFoto || null,
+            clientId,
+            turmaId,
+            req.user.id
+          ]
+        );
+      } else {
+        const r = await client.query(
+          `INSERT INTO turmas
+             (client_id, nome, turno, badge_class, descricao, tipo_periodo, media_aprovacao, professor_nome, professor_foto, professor_id)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+           RETURNING id`,
+          [
+            clientId,
+            String(turma.nome || 'SEM NOME').slice(0, 100),
+            turma.turno || 'Matutino',
+            turma.badgeClass || String(turma.turno || 'Matutino').toLowerCase(),
+            turma.descricao || '',
+            turma.tipoPeriodo || '4_bimestres',
+            Number(turma.mediaAprovacao ?? 6),
+            turma.professorNome || '',
+            turma.professorFoto || null,
+            req.user.id
+          ]
+        );
+        turmaId = r.rows[0].id;
+      }
+
+      turmaIdsMantidas.push(turmaId);
+
+      const incomingAlunoIds = [];
+      const alunos = Array.isArray(turma.alunos) ? turma.alunos : [];
+
+      for (const rawAluno of alunos) {
+        const aluno = normalizeStudent(rawAluno);
+        const alunoClientId = String(
+          aluno.clientId || (typeof aluno.id === 'string' ? aluno.id : '') || `aluno_${crypto.randomUUID()}`
+        ).slice(0, 100);
+        const numericAlunoId = Number.isInteger(Number(aluno.id)) ? Number(aluno.id) : null;
+
+        let existingAluno = null;
+        if (numericAlunoId !== null) {
+          const r = await client.query(
+            'SELECT id FROM alunos WHERE id = $1 AND turma_id = $2',
+            [numericAlunoId, turmaId]
+          );
+          existingAluno = r.rows[0] || null;
+        }
+        if (!existingAluno) {
+          const r = await client.query(
+            'SELECT id FROM alunos WHERE client_id = $1 AND turma_id = $2',
+            [alunoClientId, turmaId]
+          );
+          existingAluno = r.rows[0] || null;
+        }
+
+        let alunoId;
+        const alunoData = [
+          alunoClientId,
+          String(aluno.nome || 'SEM NOME').slice(0, 255),
+          String(aluno.matricula || 'Não informado').slice(0, 100),
+          String(aluno.nascimento || 'Não informado').slice(0, 100),
+          String(aluno.telefone || 'Não informado').slice(0, 50),
+          String(aluno.email || 'Não informado').slice(0, 255),
+          String(aluno.endereco || 'Não informado'),
+          String(aluno.observacoes || ''),
+          aluno.foto || null,
+          Math.max(0, Number(aluno.faltas || 0)),
+          JSON.stringify(aluno.atividades || [])
+        ];
+
+        if (existingAluno) {
+          alunoId = existingAluno.id;
+          await client.query(
+            `UPDATE alunos SET
+               client_id=$1, nome=$2, matricula=$3, nascimento=$4, telefone=$5,
+               email=$6, endereco=$7, observacoes=$8, foto=$9, faltas=$10, atividades=$11::jsonb
+             WHERE id=$12 AND turma_id=$13`,
+            [...alunoData, alunoId, turmaId]
+          );
+        } else {
+          const r = await client.query(
+            `INSERT INTO alunos
+              (client_id, turma_id, nome, matricula, nascimento, telefone, email, endereco, observacoes, foto, faltas, atividades)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12::jsonb)
+             RETURNING id`,
+            [
+              alunoClientId,
+              turmaId,
+              ...alunoData.slice(1)
+            ]
+          );
+          alunoId = r.rows[0].id;
+        }
+
+        incomingAlunoIds.push(alunoId);
+
+        await client.query('DELETE FROM notas WHERE aluno_id = $1', [alunoId]);
+        for (const nota of normalizeGradeEntries(aluno.notas)) {
+          await client.query(
+            `INSERT INTO notas (aluno_id, materia, valor, bimestre, atividade)
+             VALUES ($1,$2,$3,$4,$5)`,
+            [alunoId, String(nota.materia).slice(0, 100), nota.valor, nota.bimestre || null, nota.atividade || null]
+          );
+        }
+
+        await client.query('DELETE FROM frequencias WHERE aluno_id = $1', [alunoId]);
+        for (const [data, presente] of Object.entries(aluno.historicoFrequencia || {})) {
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) continue;
+          await client.query(
+            `INSERT INTO frequencias (aluno_id, data, presente)
+             VALUES ($1,$2,$3)
+             ON CONFLICT (aluno_id, data) DO UPDATE SET presente = EXCLUDED.presente`,
+            [alunoId, data, Boolean(presente)]
+          );
+        }
+      }
+
+      // Reconcilia alunos removidos do front-end.
+      if (incomingAlunoIds.length === 0) {
+        await client.query('DELETE FROM alunos WHERE turma_id = $1', [turmaId]);
+      } else {
+        await client.query(
+          'DELETE FROM alunos WHERE turma_id = $1 AND NOT (id = ANY($2::int[]))',
+          [turmaId, incomingAlunoIds]
+        );
+      }
+    }
+
+    if (replaceAll) {
+      if (turmaIdsMantidas.length === 0) {
+        await client.query('DELETE FROM turmas WHERE professor_id = $1', [req.user.id]);
+      } else {
+        await client.query(
+          'DELETE FROM turmas WHERE professor_id = $1 AND NOT (id = ANY($2::int[]))',
+          [req.user.id, turmaIdsMantidas]
+        );
+      }
+    }
+
+    await client.query('COMMIT');
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('[SYNC TURMAS]', error);
+    return res.status(500).json({ error: 'Erro ao salvar turmas, alunos, notas e frequências.' });
+  } finally {
+    client.release();
+  }
+
+  try {
+    const saved = await getTurmasDoDocente(req.user.id);
+    res.status(200).json({ message: 'Dados salvos no Neon!', turmas: saved });
+  } catch (error) {
+    console.error('[SYNC RESPONSE]', error);
+    res.status(500).json({ error: 'Dados salvos, mas não foi possível recarregar a lista.' });
+  }
+});
+
+app.delete('/api/turmas/:id', auth, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id)) return res.status(400).json({ error: 'ID da turma inválido.' });
+
+    const result = await db.query(
+      'DELETE FROM turmas WHERE id = $1 AND professor_id = $2 RETURNING id',
+      [id, req.user.id]
+    );
+    if (!result.rows.length) return res.status(404).json({ error: 'Turma não encontrada.' });
+    res.json({ message: 'Turma excluída com sucesso!' });
+  } catch (error) {
+    console.error('[DELETE TURMA]', error);
+    res.status(500).json({ error: 'Erro ao excluir turma.' });
+  }
+});
+
+app.get('/api/alunos/:id/notas', auth, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const result = await db.query(
+      `SELECT n.*
+         FROM notas n
+         JOIN alunos a ON a.id = n.aluno_id
+         JOIN turmas t ON t.id = a.turma_id
+        WHERE n.aluno_id = $1 AND t.professor_id = $2
+        ORDER BY n.id ASC`,
+      [id, req.user.id]
+    );
+    res.json(result.rows);
+  } catch (error) {
+    console.error('[GET NOTAS]', error);
+    res.status(500).json({ error: 'Erro ao buscar notas.' });
+  }
+});
+
+app.get('/api/alunos/:id/frequencias', auth, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const result = await db.query(
+      `SELECT f.*
+         FROM frequencias f
+         JOIN alunos a ON a.id = f.aluno_id
+         JOIN turmas t ON t.id = a.turma_id
+        WHERE f.aluno_id = $1 AND t.professor_id = $2
+        ORDER BY f.data ASC`,
+      [id, req.user.id]
+    );
+    res.json(result.rows);
+  } catch (error) {
+    console.error('[GET FREQUENCIAS]', error);
+    res.status(500).json({ error: 'Erro ao buscar frequências.' });
+  }
+});
+
+// Recuperação de senha: mantida para não quebrar o front-end, mas o envio por SMTP
+// pode ser bloqueado em hosts gratuitos. Para o Render Free, prefira um provedor HTTP.
+const recoveryCodes = new Map();
+app.post('/api/forgot-password', async (req, res) => {
+  try {
+    const email = String(req.body.email || '').trim().toLowerCase();
+    const result = await db.query('SELECT id FROM usuarios WHERE email = $1', [email]);
+    if (!result.rows.length) return res.status(404).json({ message: 'E-mail não encontrado no sistema.' });
+
+    const code = String(crypto.randomInt(100000, 1000000));
+    recoveryCodes.set(email, { code, expiresAt: Date.now() + 10 * 60 * 1000 });
+
+    // Sem provedor de e-mail configurado, não expõe o código em produção.
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS || process.env.NODE_ENV === 'production') {
+      return res.json({ message: 'Código criado. Configure um provedor de e-mail HTTP para receber o código.' });
+    }
+
+    const nodemailer = require('nodemailer');
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
+    });
+
+    await transporter.sendMail({
       from: `"ID HUB" <${process.env.EMAIL_USER}>`,
       to: email,
-      subject: 'Código de Recuperação de Senha',
-      text: `Olá! Seu código de validação para redefinir a senha no ID HUB é: ${code}. Este código é válido por tempo limitado.`
-    };
+      subject: 'Código de Recuperação de Senha - ID HUB',
+      text: `Seu código de recuperação do ID HUB é: ${code}. Ele expira em 10 minutos.`
+    });
 
-    await transporter.sendMail(mailOptions);
-
-    res.json({ message: 'Código de recuperação gerado com sucesso!' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Erro interno no servidor.' });
+    res.json({ message: 'Código de recuperação enviado para seu e-mail.' });
+  } catch (error) {
+    console.error('[FORGOT PASSWORD]', error);
+    res.status(500).json({ message: 'Não foi possível enviar o código de recuperação.' });
   }
 });
 
 app.post('/api/reset-password', async (req, res) => {
   try {
-    const { email, code, password } = req.body;
+    const email = String(req.body.email || '').trim().toLowerCase();
+    const code = String(req.body.code || '').trim();
+    const password = String(req.body.password || '');
 
-    if (!email || !code || !password) {
+    if (!email || !code || password.length < 6) {
       return res.status(400).json({ message: 'E-mail, código e nova senha são obrigatórios.' });
     }
 
-    const savedCode = recoveryCodes.get(email);
-    if (!savedCode || savedCode !== code) {
+    const saved = recoveryCodes.get(email);
+    if (!saved || saved.expiresAt < Date.now() || saved.code !== code) {
       return res.status(400).json({ message: 'Código de verificação inválido ou expirado.' });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const atualizado = await db.query(
-      'UPDATE usuarios SET senha = $1 WHERE email = $2 RETURNING email',
-      [hashedPassword, email]
+    const hash = await bcrypt.hash(password, 12);
+    const result = await db.query(
+      'UPDATE usuarios SET senha = $1 WHERE email = $2 RETURNING id',
+      [hash, email]
     );
 
-    if (atualizado.rows.length === 0) {
-      return res.status(404).json({ message: 'Usuário não encontrado.' });
-    }
+    if (!result.rows.length) return res.status(404).json({ message: 'Usuário não encontrado.' });
 
     recoveryCodes.delete(email);
-
     res.json({ message: 'Senha redefinida com sucesso!' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Erro interno no servidor.' });
+  } catch (error) {
+    console.error('[RESET PASSWORD]', error);
+    res.status(500).json({ message: 'Erro interno ao redefinir a senha.' });
   }
 });
 
-// --- ROTAS DE DADOS (Turmas, Alunos, Frequências) ---
-
-// Listar Turmas
-app.get('/api/turmas', async (req, res) => {
+async function start() {
   try {
-    const result = await db.query('SELECT * FROM turmas');
-    const turmas = result.rows.map(row => ({
-      id: row.id,
-      nome: row.nome,
-      turno: row.turno,
-      badgeClass: row.badge_class || row.badgeClass,
-      descricao: row.descricao,
-      tipoPeriodo: row.tipo_periodo || row.tipoPeriodo,
-      mediaAprovacao: parseFloat(row.media_aprovacao || row.mediaAprovacao || 6.0),
-      professorNome: row.professor_nome || row.professorNome,
-      professorFoto: row.professor_foto || row.professorFoto,
-      alunos: typeof row.alunos === 'string' ? JSON.parse(row.alunos) : (row.alunos || [])
-    }));
-    res.json(turmas);
-  } catch (err) {
-    console.error('Erro ao buscar turmas:', err);
-    res.status(500).json({ error: 'Erro ao buscar turmas.' });
-  }
-});
-
-// Cadastrar/Salvar Turmas
-app.post('/api/turmas', async (req, res) => {
-  try {
-    const list = Array.isArray(req.body) ? req.body : [req.body];
-
-    for (const turma of list) {
-      const {
-        id,
-        nome,
-        turno,
-        badgeClass,
-        descricao,
-        tipoPeriodo,
-        mediaAprovacao,
-        professorNome,
-        professorFoto,
-        alunos
-      } = turma;
-
-      await db.query(`
-        INSERT INTO turmas (
-          id, nome, turno, badge_class, descricao, tipo_periodo, media_aprovacao, professor_nome, professor_foto, alunos
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-        ON CONFLICT (id) DO UPDATE SET
-          nome = EXCLUDED.nome,
-          turno = EXCLUDED.turno,
-          badge_class = EXCLUDED.badge_class,
-          descricao = EXCLUDED.descricao,
-          tipo_periodo = EXCLUDED.tipo_periodo,
-          media_aprovacao = EXCLUDED.media_aprovacao,
-          professor_nome = EXCLUDED.professor_nome,
-          professor_foto = EXCLUDED.professor_foto,
-          alunos = EXCLUDED.alunos
-      `, [
-        id || `turma_${Date.now()}`,
-        nome,
-        turno,
-        badgeClass || (turno ? turno.toLowerCase() : 'matutino'),
-        descricao || '',
-        tipoPeriodo || '4_bimestres',
-        mediaAprovacao || 6.0,
-        professorNome || 'Professor não informado',
-        professorFoto || null,
-        JSON.stringify(alunos || [])
-      ]);
+    if (!process.env.DATABASE_URL) {
+      throw new Error('DATABASE_URL não está configurada.');
     }
-
-    res.status(201).json({ message: 'Turmas salvas com sucesso no banco de dados Neon!' });
-  } catch (err) {
-    console.error('Erro ao salvar turma:', err);
-    res.status(500).json({ error: 'Erro ao salvar turma no banco de dados.' });
+    await ensureDatabase();
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`[IDHUB] API online na porta ${PORT}`);
+      console.log('[IDHUB] Banco de dados inicializado/conferido.');
+    });
+  } catch (error) {
+    console.error('[IDHUB] Falha ao iniciar:', error);
+    process.exit(1);
   }
-});
+}
 
-// Deletar Turma
-app.delete('/api/turmas/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    await db.query('DELETE FROM turmas WHERE id = $1', [id]);
-    res.json({ message: 'Turma excluída com sucesso!' });
-  } catch (err) {
-    console.error('Erro ao excluir turma:', err);
-    res.status(500).json({ error: 'Erro ao excluir turma do banco de dados.' });
-  }
-});
-
-app.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
-});
+start();

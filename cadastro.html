@@ -457,167 +457,512 @@
     </form>
   </main>
 
-  <script src="api.js"></script>
 
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      const signupForm = document.getElementById('signupForm');
-      
-      const nameInput = document.getElementById('nameInput');
-      const emailInput = document.getElementById('emailInput');
-      const phoneInput = document.getElementById('phoneInput');
-      const passwordInput = document.getElementById('passwordInput');
-      const confirmPasswordInput = document.getElementById('confirmPasswordInput');
-      
-      const nameGroup = document.getElementById('nameGroup');
-      const emailGroup = document.getElementById('emailGroup');
-      const phoneGroup = document.getElementById('phoneGroup');
-      const passwordGroup = document.getElementById('passwordGroup');
-      const confirmPasswordGroup = document.getElementById('confirmPasswordGroup');
-      const roleGroup = document.getElementById('roleGroup');
 
-      const togglePasswordBtn = document.getElementById('togglePassword');
-      const toggleIcon = document.getElementById('toggleIcon');
-      const btnSubmit = document.getElementById('btnSubmit');
-      const btnGoogle = document.getElementById('btnGoogle');
-      const alertBox = document.getElementById('alertBox');
+ 
+   <script src="api.js"></script>
 
-      phoneInput.addEventListener('input', (e) => {
-        let v = e.target.value.replace(/\D/g, '');
-        if (v.length > 11) v = v.substring(0, 11);
+<script>
+document.addEventListener('DOMContentLoaded', () => {
 
-        if (v.length > 6) {
-          v = `(${v.substring(0,2)}) ${v.substring(2,7)}-${v.substring(7)}`;
-        } else if (v.length > 2) {
-          v = `(${v.substring(0,2)}) ${v.substring(2)}`;
-        } else if (v.length > 0) {
-          v = `(${v}`;
-        }
-        e.target.value = v;
+  const signupForm =
+    document.getElementById('signupForm');
+
+  const nameInput =
+    document.getElementById('nameInput');
+
+  const emailInput =
+    document.getElementById('emailInput');
+
+  const phoneInput =
+    document.getElementById('phoneInput');
+
+  const passwordInput =
+    document.getElementById('passwordInput');
+
+  const confirmPasswordInput =
+    document.getElementById('confirmPasswordInput');
+
+
+  const nameGroup =
+    document.getElementById('nameGroup');
+
+  const emailGroup =
+    document.getElementById('emailGroup');
+
+  const phoneGroup =
+    document.getElementById('phoneGroup');
+
+  const passwordGroup =
+    document.getElementById('passwordGroup');
+
+  const confirmPasswordGroup =
+    document.getElementById('confirmPasswordGroup');
+
+  const roleGroup =
+    document.getElementById('roleGroup');
+
+
+  const togglePasswordBtn =
+    document.getElementById('togglePassword');
+
+  const toggleIcon =
+    document.getElementById('toggleIcon');
+
+  const btnSubmit =
+    document.getElementById('btnSubmit');
+
+  const btnGoogle =
+    document.getElementById('btnGoogle');
+
+  const alertBox =
+    document.getElementById('alertBox');
+
+
+  // ==================================================
+  // MÁSCARA DE TELEFONE
+  // ==================================================
+
+  phoneInput.addEventListener('input', (e) => {
+
+    let value =
+      e.target.value.replace(/\D/g, '');
+
+    if (value.length > 11) {
+      value = value.substring(0, 11);
+    }
+
+    if (value.length > 6) {
+
+      value =
+        `(${value.substring(0, 2)}) ` +
+        `${value.substring(2, 7)}-` +
+        `${value.substring(7)}`;
+
+    } else if (value.length > 2) {
+
+      value =
+        `(${value.substring(0, 2)}) ` +
+        value.substring(2);
+
+    } else if (value.length > 0) {
+
+      value =
+        `(${value}`;
+    }
+
+    e.target.value = value;
+  });
+
+
+  // ==================================================
+  // MOSTRAR / OCULTAR SENHA
+  // ==================================================
+
+  togglePasswordBtn.addEventListener(
+    'click',
+    () => {
+
+      const passwordVisible =
+        passwordInput.type === 'text';
+
+      passwordInput.type =
+        passwordVisible
+          ? 'password'
+          : 'text';
+
+      confirmPasswordInput.type =
+        passwordVisible
+          ? 'password'
+          : 'text';
+
+      toggleIcon.classList.toggle(
+        'fa-eye-slash',
+        passwordVisible
+      );
+
+      toggleIcon.classList.toggle(
+        'fa-eye',
+        !passwordVisible
+      );
+    }
+  );
+
+
+  // ==================================================
+  // LIMPAR ERROS AO DIGITAR
+  // ==================================================
+
+  const inputs = [
+    nameInput,
+    emailInput,
+    phoneInput,
+    passwordInput,
+    confirmPasswordInput
+  ];
+
+  const groups = [
+    nameGroup,
+    emailGroup,
+    phoneGroup,
+    passwordGroup,
+    confirmPasswordGroup
+  ];
+
+  inputs.forEach((input, index) => {
+
+    input.addEventListener('input', () => {
+
+      groups[index]
+        .classList.remove('error');
+
+    });
+  });
+
+
+  document
+    .querySelectorAll('input[name="userRole"]')
+    .forEach(radio => {
+
+      radio.addEventListener('change', () => {
+
+        roleGroup.classList.remove('error');
+
       });
 
-      togglePasswordBtn.addEventListener('click', () => {
-        const isPassword = passwordInput.getAttribute('type') === 'password';
-        passwordInput.setAttribute('type', isPassword ? 'text' : 'password');
-        confirmPasswordInput.setAttribute('type', isPassword ? 'text' : 'password');
-        
-        toggleIcon.classList.toggle('fa-eye-slash', !isPassword);
-        toggleIcon.classList.toggle('fa-eye', isPassword);
-      });
+    });
 
-      const inputs = [nameInput, emailInput, phoneInput, passwordInput, confirmPasswordInput];
-      const groups = [nameGroup, emailGroup, phoneGroup, passwordGroup, confirmPasswordGroup];
 
-      inputs.forEach((input, idx) => {
-        input.addEventListener('input', () => groups[idx].classList.remove('error'));
-      });
+  // ==================================================
+  // VALIDAÇÃO DE EMAIL
+  // ==================================================
 
-      document.querySelectorAll('input[name="userRole"]').forEach(radio => {
-        radio.addEventListener('change', () => roleGroup.classList.remove('error'));
-      });
+  function isValidEmail(email) {
 
-      function isValidEmail(email) {
-        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      .test(email);
+  }
+
+
+  // ==================================================
+  // GOOGLE
+  // ==================================================
+
+  btnGoogle.addEventListener('click', () => {
+
+    window.open(
+      'https://accounts.google.com',
+      '_blank'
+    );
+
+    alertBox.className =
+      'alert-box success';
+
+    alertBox.style.display =
+      'block';
+
+    alertBox.innerText =
+      'Endereçado ao Google com sucesso! Abrindo aba de autenticação...';
+
+    setTimeout(() => {
+
+      alertBox.style.display =
+        'none';
+
+    }, 5000);
+
+  });
+
+
+  // ==================================================
+  // CADASTRO
+  // ==================================================
+
+  signupForm.addEventListener(
+    'submit',
+    async (e) => {
+
+      e.preventDefault();
+
+
+      let isValid = true;
+
+
+      const selectedRole =
+        document.querySelector(
+          'input[name="userRole"]:checked'
+        );
+
+
+      // ----------------------------------------------
+      // NOME
+      // ----------------------------------------------
+
+      const name =
+        nameInput.value.trim();
+
+      if (
+        !name ||
+        name.length < 3
+      ) {
+
+        nameGroup.classList.add('error');
+
+        isValid = false;
       }
 
-      btnGoogle.addEventListener('click', () => {
-        window.open('https://accounts.google.com', '_blank');
-        alertBox.className = "alert-box success";
-        alertBox.style.display = "block";
-        alertBox.innerText = "Endereçado ao Google com sucesso! Abrindo aba de autenticação...";
-        setTimeout(() => { alertBox.style.display = "none"; }, 5000);
-      });
 
-      signupForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
+      // ----------------------------------------------
+      // EMAIL
+      // ----------------------------------------------
 
-        let isValid = true;
-        const selectedRole = document.querySelector('input[name="userRole"]:checked');
+      const email =
+        emailInput.value
+          .trim()
+          .toLowerCase();
 
-        if (!nameInput.value.trim() || nameInput.value.trim().length < 3) {
-          nameGroup.classList.add('error');
-          isValid = false;
+      if (
+        !email ||
+        !isValidEmail(email)
+      ) {
+
+        emailGroup.classList.add('error');
+
+        isValid = false;
+      }
+
+
+      // ----------------------------------------------
+      // TELEFONE
+      // ----------------------------------------------
+
+      const phone =
+        phoneInput.value.trim();
+
+      const digitsOnlyPhone =
+        phone.replace(/\D/g, '');
+
+      if (
+        digitsOnlyPhone.length < 10
+      ) {
+
+        phoneGroup.classList.add('error');
+
+        isValid = false;
+      }
+
+
+      // ----------------------------------------------
+      // SENHA
+      // ----------------------------------------------
+
+      const password =
+        passwordInput.value.trim();
+
+      if (
+        !password ||
+        password.length < 6
+      ) {
+
+        passwordGroup.classList.add('error');
+
+        isValid = false;
+      }
+
+
+      // ----------------------------------------------
+      // CONFIRMAÇÃO
+      // ----------------------------------------------
+
+      const confirmPassword =
+        confirmPasswordInput.value.trim();
+
+      if (
+        password !== confirmPassword
+      ) {
+
+        confirmPasswordGroup
+          .classList.add('error');
+
+        isValid = false;
+      }
+
+
+      // ----------------------------------------------
+      // TIPO DE USUÁRIO
+      // ----------------------------------------------
+
+      if (!selectedRole) {
+
+        roleGroup.classList.add('error');
+
+        isValid = false;
+      }
+
+
+      if (!isValid) {
+        return;
+      }
+
+
+      // ==================================================
+      // BOTÃO
+      // ==================================================
+
+      btnSubmit.disabled = true;
+
+      btnSubmit.innerHTML =
+        '<i class="fa-solid fa-spinner fa-spin"></i>' +
+        '<span>CRIANDO...</span>';
+
+
+      // ==================================================
+      // ENVIO PARA O RENDER
+      // ==================================================
+
+      try {
+
+        console.log(
+          '[IDHUB] Enviando cadastro para:',
+          `${API_URL}/cadastro`
+        );
+
+
+        const response =
+          await fetch(
+            `${API_URL}/cadastro`,
+            {
+              method: 'POST',
+
+              headers: {
+                'Content-Type':
+                  'application/json'
+              },
+
+              body: JSON.stringify({
+
+                name: name,
+
+                email: email,
+
+                phone: phone,
+
+                password: password,
+
+                role: selectedRole.value
+
+              })
+            }
+          );
+
+
+        // ----------------------------------------------
+        // RESPOSTA
+        // ----------------------------------------------
+
+        let data = {};
+
+        const contentType =
+          response.headers
+            .get('content-type') || '';
+
+
+        if (
+          contentType.includes(
+            'application/json'
+          )
+        ) {
+
+          data =
+            await response.json();
+
+        } else {
+
+          const text =
+            await response.text();
+
+          data = {
+            message: text
+          };
         }
 
-        if (!emailInput.value.trim() || !isValidEmail(emailInput.value.trim())) {
-          emailGroup.classList.add('error');
-          isValid = false;
+
+        // ----------------------------------------------
+        // ERRO
+        // ----------------------------------------------
+
+        if (!response.ok) {
+
+          throw new Error(
+            data.message ||
+            data.error ||
+            `Erro HTTP ${response.status}`
+          );
         }
 
-        const digitsOnlyPhone = phoneInput.value.replace(/\D/g, '');
-        if (digitsOnlyPhone.length < 10) {
-          phoneGroup.classList.add('error');
-          isValid = false;
-        }
 
-        if (!passwordInput.value.trim() || passwordInput.value.trim().length < 6) {
-          passwordGroup.classList.add('error');
-          isValid = false;
-        }
+        // ----------------------------------------------
+        // SUCESSO
+        // ----------------------------------------------
 
-        if (passwordInput.value.trim() !== confirmPasswordInput.value.trim()) {
-          confirmPasswordGroup.classList.add('error');
-          isValid = false;
-        }
+        alertBox.className =
+          'alert-box success';
 
-        if (!selectedRole) {
-          roleGroup.classList.add('error');
-          isValid = false;
-        }
+        alertBox.style.display =
+          'block';
 
-        if (!isValid) return;
+        alertBox.innerText =
+          data.message ||
+          'Conta criada com sucesso! Redirecionando para o login...';
 
-        btnSubmit.disabled = true;
-        btnSubmit.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>CRIANDO...</span>`;
 
-        // Utiliza a variável global (de api.js) caso exista. Caso contrário fallback local.
-        const baseUrl = (typeof API_URL !== 'undefined') ? API_URL : 'http://localhost:3000/api';
+        // Limpa senha
+        passwordInput.value = '';
+        confirmPasswordInput.value = '';
 
-        try {
-          const response = await fetch(`${baseUrl}/cadastro`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              name: nameInput.value.trim(),
-              email: emailInput.value.trim(),
-              phone: phoneInput.value.trim(),
-              password: passwordInput.value.trim(),
-              role: selectedRole.value
-            })
-          });
 
-          // Previne "crashing" do código caso o servidor retorne HTML de erro em vez de JSON
-          let data = {};
-          try {
-            data = await response.json();
-          } catch(jsonErr) {
-            console.warn("A resposta do servidor não é um JSON válido.");
-          }
+        setTimeout(() => {
 
-          if (!response.ok) {
-            throw new Error(data.message || data.error || `Erro HTTP ${response.status} ao realizar o cadastro no servidor.`);
-          }
+          window.location.href =
+            'login.html';
 
-          alertBox.className = "alert-box success";
-          alertBox.style.display = "block";
-          alertBox.innerText = "Conta criada com sucesso! Redirecionando para o login...";
+        }, 1500);
 
-          setTimeout(() => {
-            window.location.href = 'login.html';
-          }, 1500);
 
-        } catch (error) {
-          alertBox.className = "alert-box error";
-          alertBox.style.display = "block";
-          alertBox.innerText = error.message || "Erro de conexão com o servidor.";
-        } finally {
-          btnSubmit.disabled = false;
-          btnSubmit.innerHTML = `<i class="fa-solid fa-user-plus"></i> <span>CRIAR</span>`;
-        }
-      });
-    });
-  </script>
+      } catch (error) {
+
+        console.error(
+          '[IDHUB] Erro no cadastro:',
+          error
+        );
+
+
+        alertBox.className =
+          'alert-box error';
+
+        alertBox.style.display =
+          'block';
+
+
+        alertBox.innerText =
+          error.message ||
+          'Não foi possível conectar ao servidor.';
+
+
+      } finally {
+
+        btnSubmit.disabled = false;
+
+        btnSubmit.innerHTML =
+          '<i class="fa-solid fa-user-plus"></i>' +
+          '<span>CRIAR</span>';
+      }
+
+    }
+  );
+
+});
+</script>
+ 
 </body>
 </html>

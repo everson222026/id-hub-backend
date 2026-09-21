@@ -1,65 +1,62 @@
-// js/api.js
-// Removido o "/index.html" do final da URL. 
-// Assumindo que seu backend use "/api" como rota base (de acordo com seu localhost).
-const API_URL = 'https://id-hub-backend-wkul.onrender.com/api';
+// API do ID HUB.
+// Como o frontend e o backend podem ficar no mesmo Web Service do Render,
+// usamos /api por padrão e não localhost.
+const API_URL = (window.IDHUB_API_URL || '/api').replace(/\/$/, '');
 
-/**
- * Função utilitária para realizar requisições HTTP para a API.
- * 
- * @param {string} endpoint - O caminho da rota (ex: '/turmas' ou '/alunos')
- * @param {string} method - Método HTTP ('GET', 'POST', 'PUT', 'DELETE')
- * @param {object|null} data - Dados a serem enviados no corpo da requisição
- * @returns {Promise<any|null>} Retorna o JSON da resposta ou null em caso de erro/offline
- */
 async function apiRequest(endpoint, method = 'GET', data = null) {
-  const headers = { 
-    'Content-Type': 'application/json' 
-  };
-
-  // Adiciona o token JWT caso o usuário esteja autenticado
+  const headers = { 'Content-Type': 'application/json' };
   const token = localStorage.getItem('token');
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
+
+  if (token) headers.Authorization = `Bearer ${token}`;
 
   const config = {
     method: method.toUpperCase(),
     headers
   };
 
-  // Se houver dados e o método não for GET/HEAD, inclui o body
-  if (data && config.method !== 'GET') {
+  if (data !== null && data !== undefined && !['GET', 'HEAD'].includes(config.method)) {
     config.body = JSON.stringify(data);
   }
 
+  const response = await fetch(`${API_URL}${endpoint}`, config);
+
+  let responseData = {};
+  const contentType = response.headers.get('content-type') || '';
+
+  if (contentType.includes('application/json')) {
+    responseData = await response.json();
+  } else {
+    responseData = { message: await response.text() };
+  }
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('perfil');
+      localStorage.removeItem('email');
+      localStorage.removeItem('idhub_docente');
+    }
+
+    throw new Error(
+      responseData.message ||
+      responseData.error ||
+      `Erro HTTP ${response.status}`
+    );
+  }
+
+  return responseData;
+}
+
+async function testarAPI() {
   try {
-    const response = await fetch(`${API_URL}${endpoint}`, config);
-
-    // Se o status for 204 (No Content) ou resposta vazia (comum em DELETE), retorna objeto de sucesso
-    if (response.status === 204) {
-      return { success: true };
-    }
-
-    // Trata erros de status HTTP (4xx e 5xx)
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error(`[API Error ${response.status}] ao acessar ${endpoint}:`, errorData);
-      
-      // Caso o token seja inválido/expirado (401), pode-se redirecionar para o login
-      if (response.status === 401) {
-        localStorage.removeItem('token');
-        // window.location.href = '/login.html'; // Descomente caso use página separada de login
-      }
-
-      return null;
-    }
-
-    // Retorna o JSON parseado da resposta
-    return await response.json();
-
+    await fetch(`${API_URL}/health`);
+    return true;
   } catch (error) {
-    // Falha de rede/servidor offline (Fallback local)
-    console.warn(`[API Offline] Falha na conexão com ${endpoint}. Usando dados do armazenamento local.`, error);
-    return null;
+    console.error('[IDHUB API] Backend offline:', error);
+    return false;
   }
 }
+
+window.API_URL = API_URL;
+window.apiRequest = apiRequest;
+window.testarAPI = testarAPI;
