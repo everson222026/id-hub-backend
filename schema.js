@@ -225,19 +225,14 @@ async function ensureDatabase() {
       FOREIGN KEY (aluno_id) REFERENCES alunos(id) ON DELETE CASCADE;
   `);
 
-  // Turmas antigas sem dono ficam associadas ao primeiro docente existente.
+  // Mantém a coluna legada alinhada quando houver um docente definido.
+  // Turmas realmente sem proprietário não são atribuídas automaticamente
+  // a outra conta, evitando vazamento de dados entre docentes.
   await db.query(`
-    UPDATE turmas t
-       SET docente_id = u.id,
-           professor_id = u.id
-      FROM (
-        SELECT id
-        FROM usuarios
-        WHERE tipo = 'docente' OR role = 'docente' OR perfil = 'docente'
-        ORDER BY id
-        LIMIT 1
-      ) u
-     WHERE t.docente_id IS NULL;
+    UPDATE turmas
+       SET professor_id = docente_id
+     WHERE docente_id IS NOT NULL
+       AND (professor_id IS NULL OR professor_id <> docente_id);
   `);
 }
 

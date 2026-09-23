@@ -16,9 +16,13 @@
     defaultUrl = 'http://localhost:3000/api';
   } else if (window.location.hostname.endsWith('.onrender.com')) {
     defaultUrl = `${window.location.origin}/api`;
+  } else if (window.location.protocol === 'http:' || window.location.protocol === 'https:') {
+    // Quando o próprio Express serve o frontend (Render ou localhost),
+    // a API está na mesma origem. Isso evita apontar para um backend antigo.
+    defaultUrl = `${window.location.origin}/api`;
   } else {
-    // Compatibilidade com a publicação do backend usada anteriormente pelo projeto.
-    defaultUrl = 'https://id-hub-backend-wkul.onrender.com/api';
+    // HTML aberto diretamente pelo arquivo: o modo suportado é o servidor local.
+    defaultUrl = 'http://localhost:3000/api';
   }
 
   const API_URL = defaultUrl.replace(/\/$/, '');

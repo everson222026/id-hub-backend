@@ -791,44 +791,6 @@
       });
     }
 
-    async function saveSingleTurma(turma) {
-      if (!turma || turma.id == null) {
-        throw new Error('Turma inválida para salvar.');
-      }
-
-      ensureIds();
-
-      const response = await apiRequest('/turmas', 'POST', {
-        turmas: [turma],
-        replaceAll: false
-      });
-
-      if (!response || !Array.isArray(response.turmas)) {
-        throw new Error('O servidor não retornou as turmas após o salvamento.');
-      }
-
-      database = response.turmas;
-      ensureIds();
-
-      const savedIndex = database.findIndex(
-        (item) => String(item.id) === String(turma.id) ||
-                  (item.clientId && turma.clientId && String(item.clientId) === String(turma.clientId))
-      );
-
-      if (savedIndex === -1) {
-        throw new Error('A turma salva não foi encontrada no retorno do servidor.');
-      }
-
-      activeTurmaIndex = savedIndex;
-      if (!Array.isArray(database[activeTurmaIndex].alunos)) {
-        database[activeTurmaIndex].alunos = [];
-      }
-
-      localStorage.setItem('idhub_database', JSON.stringify(database));
-
-      return database[activeTurmaIndex];
-    }
-
     async function loadTurmas() {
       try {
         const me = JSON.parse(localStorage.getItem('idhub_docente') || '{}');
@@ -1132,20 +1094,6 @@
       showToast('Alterações do perfil salvas!');
     }
 
-    async function saveDatabase() {
-      ensureIds();
-      const result = await apiRequest('/turmas', 'POST', {
-        turmas: database,
-        replaceAll: true
-      });
-
-      if (Array.isArray(result.turmas)) {
-        database = result.turmas;
-      }
-      localStorage.setItem('idhub_database', JSON.stringify(database));
-      return result;
-    }
-
     function handlePhoneMask(event) { event.target.value = phoneMask(event.target.value); }
     function phoneMask(value) { if (!value) return ""; value = value.replace(/\D/g, ''); if (value.length > 11) value = value.slice(0, 11); value = value.replace(/(\d{2})(\d)/, "($1) $2"); value = value.replace(/(\d)(\d{4})$/, "$1-$2"); return value; }
     function isValidEmail(email) { if (!email) return true; return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email); }
@@ -1169,17 +1117,23 @@
 
       showConfirmModal("Excluir Aluno", `Deseja realmente excluir o(a) aluno(a) "${aluno.nome}"?`, async () => {
         try {
-          turma.alunos.splice(activeAlunoIndex, 1);
+          const alunoId = aluno.id;
+          await apiRequest(`/alunos/${encodeURIComponent(alunoId)}`, 'DELETE');
 
-          const turmaSalva = await saveSingleTurma(turma);
-          activeTurmaIndex = database.findIndex(
-            (item) => String(item.id) === String(turmaSalva.id)
-          );
-          activeAlunoIndex = Math.max(
-            0,
-            Math.min(activeAlunoIndex, turmaSalva.alunos.length - 1)
-          );
+          const turmasResponse = await apiRequest('/turmas');
+          database = Array.isArray(turmasResponse)
+            ? turmasResponse
+            : (Array.isArray(turmasResponse?.turmas) ? turmasResponse.turmas : []);
+          ensureIds();
 
+          const turmaIndex = database.findIndex(
+            (item) => String(item.id) === String(turma.id)
+          );
+          activeTurmaIndex = turmaIndex >= 0 ? turmaIndex : 0;
+          const alunos = database[activeTurmaIndex]?.alunos || [];
+          activeAlunoIndex = Math.max(0, Math.min(activeAlunoIndex, alunos.length - 1));
+
+          localStorage.setItem('idhub_database', JSON.stringify(database));
           renderAlunos();
           renderTurmas();
           showToast('Aluno excluído com sucesso!');
@@ -1503,14 +1457,43 @@
       box.style.display = 'none';
 
       try {
-        if (!Array.isArray(turma.alunos)) turma.alunos = [];
-        turma.alunos.push(novoAluno);
-
-        const turmaSalva = await saveSingleTurma(turma);
-        activeAlunoIndex = Math.max(
-          0,
-          turmaSalva.alunos.length - 1
+        // Para alunos usamos a rota específica do backend.
+        // Assim a inclusão é atômica e não depende da sincronização
+        // da turma inteira. O Neon devolve o aluno com o client_id
+        // definitivo, e em seguida recarregamos a turma do servidor.
+        const response = await apiRequest(
+          `/turmas/${encodeURIComponent(turma.id)}/alunos`,
+          'POST',
+          novoAluno
         );
+
+        if (!response?.aluno) {
+          throw new Error('O servidor não confirmou o cadastro do aluno.');
+        }
+
+        const turmasResponse = await apiRequest('/turmas');
+        database = Array.isArray(turmasResponse)
+          ? turmasResponse
+          : (Array.isArray(turmasResponse?.turmas) ? turmasResponse.turmas : []);
+
+        ensureIds();
+        const turmaIndex = database.findIndex(
+          (item) => String(item.id) === String(turma.id)
+        );
+        if (turmaIndex === -1) {
+          throw new Error('A turma não foi encontrada após salvar o aluno.');
+        }
+
+        activeTurmaIndex = turmaIndex;
+        const alunoIndex = database[turmaIndex].alunos.findIndex(
+          (item) => String(item.id) === String(response.aluno.id)
+        );
+        if (alunoIndex === -1) {
+          throw new Error('O aluno foi salvo, mas não apareceu na turma retornada pelo servidor.');
+        }
+
+        activeAlunoIndex = alunoIndex;
+        localStorage.setItem('idhub_database', JSON.stringify(database));
 
         renderAlunos();
         renderTurmas();
@@ -1579,12 +1562,44 @@
       if (currentEditPhotoBase64) aluno.foto = currentEditPhotoBase64;
       
       try {
-        const turmaSalva = await saveSingleTurma(turma);
-        const novoIndice = turmaSalva.alunos.findIndex(
-          (item) => String(item.id) === String(aluno.id) ||
-                    (item.clientId && aluno.clientId && String(item.clientId) === String(aluno.clientId))
+        const response = await apiRequest(
+          `/alunos/${encodeURIComponent(aluno.id)}`,
+          'PATCH',
+          {
+            nome: aluno.nome,
+            matricula: aluno.matricula,
+            nascimento: aluno.nascimento,
+            telefone: aluno.telefone,
+            email: aluno.email,
+            endereco: aluno.endereco,
+            observacoes: aluno.observacoes,
+            foto: aluno.foto || null
+          }
         );
-        if (novoIndice >= 0) activeAlunoIndex = novoIndice;
+
+        if (!response?.aluno) {
+          throw new Error('O servidor não confirmou a atualização do aluno.');
+        }
+
+        const turmasResponse = await apiRequest('/turmas');
+        database = Array.isArray(turmasResponse)
+          ? turmasResponse
+          : (Array.isArray(turmasResponse?.turmas) ? turmasResponse.turmas : []);
+        ensureIds();
+
+        const turmaIndex = database.findIndex(
+          (item) => String(item.id) === String(turma.id)
+        );
+        if (turmaIndex === -1) throw new Error('A turma não foi encontrada após atualizar o aluno.');
+        activeTurmaIndex = turmaIndex;
+
+        const novoIndice = database[turmaIndex].alunos.findIndex(
+          (item) => String(item.id) === String(response.aluno.id)
+        );
+        if (novoIndice === -1) throw new Error('O aluno atualizado não apareceu na turma.');
+        activeAlunoIndex = novoIndice;
+
+        localStorage.setItem('idhub_database', JSON.stringify(database));
       } catch (error) {
         showToast(error.message || 'Não foi possível atualizar o aluno.', true);
         return;

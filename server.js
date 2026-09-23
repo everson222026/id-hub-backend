@@ -1054,6 +1054,68 @@ app.patch('/api/alunos/:id', auth, async (req, res) => {
   }
 });
 
+
+app.post('/api/turmas/:id/atividades-gerais', auth, async (req, res) => {
+  const client = await db.pool.connect();
+  try {
+    const turma = await obterTurmaDoDocente(client, req.usuario.id, req.params.id);
+    if (!turma) return enviarErro(res, 404, 'Turma não encontrada.');
+
+    const atividadeInput = req.body.atividade;
+    if (!atividadeInput || typeof atividadeInput !== 'object') {
+      return enviarErro(res, 400, 'Atividade inválida.');
+    }
+
+    const titulo = normalizarTexto(atividadeInput.titulo);
+    if (!titulo) return enviarErro(res, 400, 'O título da atividade é obrigatório.');
+
+    const atividadeId = clientIdOrNew(atividadeInput.id, 'atividade');
+    const atividade = {
+      id: atividadeId,
+      titulo,
+      concluida: Boolean(atividadeInput.concluida)
+    };
+
+    await client.query('BEGIN');
+
+    const result = await client.query(
+      `
+        UPDATE alunos
+        SET atividades = CASE
+          WHEN EXISTS (
+            SELECT 1
+            FROM jsonb_array_elements(COALESCE(alunos.atividades, '[]'::jsonb)) AS item
+            WHERE item->>'id' = $1
+          )
+          THEN COALESCE(alunos.atividades, '[]'::jsonb)
+          ELSE COALESCE(alunos.atividades, '[]'::jsonb) || $2::jsonb
+        END
+        WHERE turma_id = $3
+        RETURNING client_id
+      `,
+      [atividadeId, JSON.stringify([atividade]), turma.id]
+    );
+
+    await client.query('COMMIT');
+
+    const turmas = await getTurmasDoDocente(req.usuario.id);
+    const turmaAtualizada = turmas.find((item) => String(item.id) === String(turma.client_id)) || null;
+
+    return res.json({
+      mensagem: 'Atividade enviada para a turma inteira.',
+      quantidade: result.rowCount,
+      atividade,
+      turma: turmaAtualizada
+    });
+  } catch (error) {
+    try { await client.query('ROLLBACK'); } catch (_) {}
+    console.error('[ATIVIDADE TURMA POST]', error);
+    return enviarErro(res, 500, 'Erro ao enviar atividade para a turma.');
+  } finally {
+    client.release();
+  }
+});
+
 app.delete('/api/alunos/:id', auth, async (req, res) => {
   try {
     const aluno = await obterAlunoDoDocente(db, req.usuario.id, req.params.id);

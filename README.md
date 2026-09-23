@@ -11,6 +11,8 @@ Esta versão usa **Express + PostgreSQL (`pg`) + Neon**. Prisma não é usado pe
 - Perfil docente usa os mesmos campos em frontend e backend.
 - Cada turma pertence ao docente autenticado.
 - Turmas, alunos, matérias, notas, frequências e atividades são sincronizados com o PostgreSQL/Neon.
+- Cadastro/edição/exclusão de alunos usam rotas específicas, evitando regravar a turma inteira.
+- Atividade geral usa uma transação própria no backend para atualizar todos os alunos da turma de uma vez.
 - A estrutura antiga do `localStorage` continua sendo aceita para uma migração inicial.
 - IDs do navegador ficam em `client_id`, enquanto o PostgreSQL continua usando seus IDs internos.
 - Notas são armazenadas na tabela `notas` e reconstruídas no formato usado pela tela docente.
@@ -136,8 +138,14 @@ O `EMAIL_FROM` deve ser um endereço permitido/verificado pelo seu provedor de e
 
 Esta versão usa exclusivamente `pg` + PostgreSQL/Neon. Prisma não faz parte do runtime nem do deploy deste projeto.
 
-Arquivos de console/exportação ou configurações antigas do Prisma não devem ser enviados para produção.
+Arquivos de console/exportação e arquivos antigos do Prisma não fazem parte do deploy final. O runtime usa somente `pg` + PostgreSQL/Neon.
 
 ## Segurança
 
 Nunca publique `.env` ou credenciais de banco/e-mail no GitHub. Como credenciais reais já apareceram no material anterior do projeto, é recomendado gerar novas credenciais antes do próximo deploy.
+
+## Versão final revisada em 23/09/2026
+
+Nesta revisão, o cadastro/edição/exclusão de alunos usa as rotas específicas de alunos; o painel recarrega as turmas do servidor após operações de escrita; e o envio de atividade para a turma inteira usa a rota transacional `/api/turmas/:id/atividades-gerais`.
+
+Os arquivos HTML e JavaScript foram verificados com `node --check` para o JavaScript embutido e os arquivos `.js`. Não foi feita conexão ao banco Neon durante a revisão porque as credenciais de produção não devem ser colocadas no pacote.
