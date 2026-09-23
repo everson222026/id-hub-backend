@@ -83,10 +83,10 @@
     .teacher-badge-name { font-size: 0.85rem; font-weight: 600; color: #fff; }
 
     .classes-list, .students-list { display: flex; flex-direction: column; gap: 12px; overflow-y: auto; max-height: 420px; padding-right: 4px; }
-    .students-list { gap: 10px; max-height: 360px; }
+    .students-list { gap: 8px; max-height: 380px; }
     
     .class-item, .student-item-dash { background: var(--input-bg); border: 1px solid var(--card-border); border-radius: 14px; padding: 14px; cursor: pointer; transition: all 0.3s ease; position: relative; overflow: hidden; }
-    .student-item-dash { padding: 14px 16px; min-height: 56px; border-radius: 14px; display: flex; align-items: center; gap: 14px; background: rgba(255, 255, 255, 0.08); border-color: transparent; }
+    .student-item-dash { padding: 10px 12px; border-radius: 12px; display: flex; align-items: center; gap: 10px; background: rgba(255, 255, 255, 0.08); border-color: transparent; }
     .class-item::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: transparent; transition: background 0.3s ease; }
     .class-item.active, .class-item:hover, .student-item-dash:hover, .student-item-dash.active { background: rgba(255, 255, 255, 0.2); border-color: var(--accent-color); }
     .class-item.active, .class-item:hover { transform: translateX(4px); }
@@ -105,8 +105,10 @@
     .shift-badge.vespertino { background: rgba(247, 127, 0, 0.2); color: var(--badge-vespertino); }
     .shift-badge.noturno { background: rgba(162, 155, 254, 0.2); color: var(--badge-noturno); }
 
-    .student-avatar-small { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; background: var(--card-border); flex-shrink: 0; }
-    .student-name { font-size: 0.98rem; font-weight: 600; flex: 1; line-height: 1.35; word-break: break-word; color: #ffffff; }
+    .student-avatar-small { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; background: var(--card-border); flex-shrink: 0; }
+    
+    /* FIX DOS NOMES NA LISTA DE ALUNOS */
+    .student-name { font-size: 0.88rem; font-weight: 600; flex: 1; color: #ffffff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .student-tag { font-size: 0.65rem; color: var(--accent-color); font-weight: 700; flex-shrink: 0; }
 
     .student-detail-header { display: flex; gap: 16px; align-items: center; padding-bottom: 12px; border-bottom: 1px solid var(--card-border); }
@@ -223,11 +225,11 @@
     .students-list-panel::-webkit-scrollbar { width: 6px; }
     .students-list-panel::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 10px; }
 
-    .student-item-freq { display: flex; align-items: center; justify-content: space-between; background: rgba(255, 255, 255, 0.95); color: #1a1a1a; padding: 12px 16px; min-height: 58px; border-radius: 18px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); transition: transform 0.2s ease, box-shadow 0.2s ease; }
+    .student-item-freq { display: flex; align-items: center; justify-content: space-between; background: rgba(255, 255, 255, 0.95); color: #1a1a1a; padding: 10px 14px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); transition: transform 0.2s ease, box-shadow 0.2s ease; }
     .student-item-freq:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2); }
-    .student-info-freq { display: flex; align-items: center; gap: 14px; flex: 1; }
-    .student-avatar-freq { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 2px solid var(--btn-dark-green); flex-shrink: 0; }
-    .student-name-freq { font-family: var(--font-title); font-weight: 700; font-size: 0.98rem; line-height: 1.35; text-transform: uppercase; color: #0d2b24; word-break: break-word; }
+    .student-info-freq { display: flex; align-items: center; gap: 12px; flex: 1; overflow: hidden; }
+    .student-avatar-freq { width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 2px solid var(--btn-dark-green); flex-shrink: 0; }
+    .student-name-freq { font-family: var(--font-title); font-weight: 700; font-size: 0.88rem; color: #0d2b24; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-transform: uppercase; }
 
     .presence-checkbox { appearance: none; width: 32px; height: 32px; border: 2px solid #ccc; border-radius: 8px; background: #ffffff; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.25s ease; flex-shrink: 0; }
     .presence-checkbox:checked { background: var(--btn-green); border-color: var(--btn-green); }
@@ -770,6 +772,13 @@
     // BASE DE DADOS GLOBAL
     let database = JSON.parse(localStorage.getItem('idhub_database')) || [];
 
+    // Função para extrair apenas os 2 primeiros nomes
+    function obterDoisPrimeirosNomes(nomeCompleto) {
+      if (!nomeCompleto) return '';
+      const partes = nomeCompleto.trim().split(/\s+/);
+      return partes.slice(0, 2).join(' ');
+    }
+
     function ensureIds() {
       database.forEach((t, ti) => {
         if (!t.id) t.id = 'turma_' + (Date.now() + ti);
@@ -816,7 +825,6 @@
       try {
         const apiTurmas = await apiRequest('/turmas');
         if (Array.isArray(apiTurmas)) {
-          // Migra automaticamente as turmas antigas que ainda estavam somente no navegador.
           if (apiTurmas.length === 0 && database.length > 0) {
             ensureIds();
             const migrated = await apiRequest('/turmas', 'POST', { turmas: database, replaceAll: true });
@@ -1161,7 +1169,11 @@
         item.className = `student-item-dash ${index === activeAlunoIndex ? 'active' : ''}`;
         item.onclick = () => { activeAlunoIndex = index; renderAlunos(); };
         const fotoListIcon = !aluno.foto || aluno.foto.includes('placeholder') ? `<div class="student-avatar-small" style="display:flex;align-items:center;justify-content:center"><i class="fa-solid fa-user"></i></div>` : `<img src="${aluno.foto}" class="student-avatar-small" alt="Foto">`;
-        item.innerHTML = `${fotoListIcon} <span class="student-name">${aluno.nome}</span> <span class="student-tag">IDHUB</span>`;
+        
+        // Exibe somente os 2 primeiros nomes na lista de alunos
+        const nomeResumido = obterDoisPrimeirosNomes(aluno.nome);
+        
+        item.innerHTML = `${fotoListIcon} <span class="student-name">${nomeResumido}</span> <span class="student-tag">IDHUB</span>`;
         studentsListContainer.appendChild(item);
       });
       renderStudentDetails();
@@ -1173,6 +1185,7 @@
       if (!aluno) return clearStudentDetails();
 
       document.getElementById('studentPhoto').src = aluno.foto || "https://via.placeholder.com/150";
+      // Exibe o NOME COMPLETO no card de detalhes
       document.getElementById('studentNameDisplay').innerText = aluno.nome;
       document.getElementById('studentTurmaDisplay').innerText = turma.nome;
       document.getElementById('studentTurmaDisplay').className = `shift-badge ${turma.badgeClass || 'matutino'}`;
@@ -1424,14 +1437,14 @@
 
       turma.alunos.forEach((aluno) => {
         if (!aluno.historicoFrequencia) aluno.historicoFrequencia = {};
-        const estaPresente = aluno.historicoFrequencia[dataSel] !== false; // Default true se não lançado
+        const estaPresente = aluno.historicoFrequencia[dataSel] !== false;
 
         const item = document.createElement('div');
         item.className = 'student-item-freq';
         item.innerHTML = `
           <div class="student-info-freq">
             <img src="${aluno.foto || 'https://via.placeholder.com/150'}" class="student-avatar-freq" alt="Foto">
-            <span class="student-name-freq">${aluno.nome}</span>
+            <span class="student-name-freq">${obterDoisPrimeirosNomes(aluno.nome)}</span>
           </div>
           <input type="checkbox" class="presence-checkbox" data-alunoid="${aluno.id}" ${estaPresente ? 'checked' : ''}>
         `;
@@ -1455,7 +1468,6 @@
 
           aluno.historicoFrequencia[dataSel] = estaChecked;
 
-          // Ajusta contagem total de faltas no perfil do aluno
           if (eraPresente === false && estaChecked) {
             aluno.faltas = Math.max(0, (aluno.faltas || 0) - 1);
           } else if ((eraPresente === true || eraPresente === undefined) && !estaChecked) {
@@ -1484,7 +1496,7 @@
         item.innerHTML = `
           <div class="student-info-freq">
             <img src="${aluno.foto || 'https://via.placeholder.com/150'}" class="student-avatar-freq" alt="Foto">
-            <span class="student-name-freq">${aluno.nome}</span>
+            <span class="student-name-freq">${obterDoisPrimeirosNomes(aluno.nome)}</span>
           </div>
           <div class="absence-badge">
             <input type="number" class="absence-input" data-alunoid="${aluno.id}" value="${aluno.faltas || 0}" min="0" ${isEditingFaltas ? '' : 'disabled'}>
@@ -1550,7 +1562,7 @@
         item.innerHTML = `
           <div class="student-info-freq">
             <img src="${aluno.foto || 'https://via.placeholder.com/150'}" class="student-avatar-freq" alt="Foto">
-            <span class="student-name-freq">${aluno.nome}</span>
+            <span class="student-name-freq">${obterDoisPrimeirosNomes(aluno.nome)}</span>
           </div>
           <div>${badgeHtml}</div>
         `;
