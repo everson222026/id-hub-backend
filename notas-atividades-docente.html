@@ -269,115 +269,176 @@
           return false;
         }
 
-        // A tela de notas recebe o aluno já selecionado pelo painel docente.
-        // Não buscamos /turmas novamente aqui, evitando uma segunda consulta
-        // que poderia falhar mesmo com o aluno corretamente selecionado.
-        const turmaEncontrada = database.find((t) => String(t.id) === String(turmaId));
-        turma = turmaEncontrada || null;
-        aluno = turma && Array.isArray(turma.alunos)
-          ? turma.alunos.find((a) => String(a.id) === String(alunoId))
-          : null;
+        try {
+          // A fonte de verdade é o Neon. O localStorage serve apenas como cache.
+          const response = await apiRequest('/turmas');
+          const turmasServidor = Array.isArray(response)
+            ? response
+            : (Array.isArray(response?.turmas) ? response.turmas : []);
 
-        if (!turma || !aluno) {
-          showToast('Não foi possível localizar o aluno selecionado. Volte ao painel docente e abra as notas novamente.', true);
-          setTimeout(() => window.history.back(), 1200);
+          database = turmasServidor;
+          database.forEach((t) => {
+            if (t && t.id != null) t.id = String(t.id);
+            if (!Array.isArray(t.alunos)) t.alunos = [];
+            t.alunos.forEach((a) => {
+              if (a && a.id != null) a.id = String(a.id);
+              if (a && !Array.isArray(a.atividades)) a.atividades = [];
+              if (a && (!a.notas || typeof a.notas !== 'object')) a.notas = {};
+            });
+          });
+
+          const turmaEncontrada = database.find(
+            (t) => String(t.id) === String(turmaId) ||
+                  (t.clientId && String(t.clientId) === String(turmaId))
+          );
+
+          turma = turmaEncontrada || null;
+          aluno = turma && Array.isArray(turma.alunos)
+            ? turma.alunos.find(
+                (a) => String(a.id) === String(alunoId) ||
+                      (a.clientId && String(a.clientId) === String(alunoId))
+              )
+            : null;
+
+          if (!turma || !aluno) {
+            // Fallback somente quando o GET estiver indisponível: usa o cache já existente.
+            const cache = JSON.parse(localStorage.getItem('idhub_database') || '[]');
+            const turmaCache = cache.find((t) => String(t.id) === String(turmaId));
+            const alunoCache = turmaCache && Array.isArray(turmaCache.alunos)
+              ? turmaCache.alunos.find((a) => String(a.id) === String(alunoId))
+              : null;
+
+            if (turmaCache && alunoCache) {
+              database = cache;
+              turma = turmaCache;
+              aluno = alunoCache;
+            } else {
+              throw new Error('Não foi possível localizar o aluno selecionado no banco de dados.');
+            }
+          }
+
+          if (!Array.isArray(turma.materias)) {
+            turma.materias = ['MATEMÁTICA', 'PORTUGUÊS', 'CIÊNCIAS', 'HISTÓRIA'];
+          }
+          if (!turma.tipoPeriodo) turma.tipoPeriodo = 'bimestre';
+          if (!turma.qtdPeriodo) turma.qtdPeriodo = 4;
+          if (!turma.mediaAprovacao) turma.mediaAprovacao = 6.0;
+          if (!aluno.notas || typeof aluno.notas !== 'object') aluno.notas = {};
+          if (!Array.isArray(aluno.atividades)) aluno.atividades = [];
+
+          localStorage.setItem('idhub_database', JSON.stringify(database));
+
+          classPassingGradeInput.value = turma.mediaAprovacao;
+          classPeriodTypeSelect.value = turma.tipoPeriodo;
+          classPeriodCountInput.value = turma.qtdPeriodo;
+          document.getElementById('studentName').innerText = aluno.nome;
+          document.getElementById('studentClass').innerText = turma.nome;
+          document.getElementById('studentAvatar').src = aluno.foto || 'https://via.placeholder.com/150';
+
+          // Atualiza as notas específicas do aluno. Se falhar, mantém o que veio da turma.
+          try {
+            const notasResponse = await apiRequest(`/alunos/${encodeURIComponent(aluno.id)}/notas`);
+            const notas = Array.isArray(notasResponse)
+              ? notasResponse
+              : (Array.isArray(notasResponse?.notas) ? notasResponse.notas : []);
+
+            if (Array.isArray(notas)) {
+              aluno.notas = {};
+              notas.forEach((row) => {
+                const materia = row.materia || row.disciplina;
+                if (!materia) return;
+                const periodo = row.bimestre || 'B1';
+                if (!aluno.notas[materia]) aluno.notas[materia] = {};
+                aluno.notas[materia][periodo] = String(row.valor ?? row.nota ?? '');
+              });
+              localStorage.setItem('idhub_database', JSON.stringify(database));
+            }
+          } catch (error) {
+            console.warn('[IDHUB] Não foi possível atualizar as notas do servidor:', error);
+          }
+
+          // Após o GET do Neon, usa sempre o aluno que pertence à turma carregada.
+          const alunoAtualizado = turma.alunos.find(
+            (a) => String(a.id) === String(aluno.id)
+          );
+          if (alunoAtualizado) aluno = alunoAtualizado;
+
+          return true;
+        } catch (error) {
+          console.error('[IDHUB] Erro ao carregar turma/aluno:', error);
+          showToast(error.message || 'Não foi possível carregar os dados da turma.', true);
           return false;
         }
-
-        if (!Array.isArray(turma.materias)) {
-          turma.materias = ['MATEMÁTICA', 'PORTUGUÊS', 'CIÊNCIAS', 'HISTÓRIA'];
-        }
-        if (!turma.tipoPeriodo) turma.tipoPeriodo = 'bimestre';
-        if (!turma.qtdPeriodo) turma.qtdPeriodo = 4;
-        if (!turma.mediaAprovacao) turma.mediaAprovacao = 6.0;
-        if (!aluno.notas || typeof aluno.notas !== 'object') aluno.notas = {};
-        if (!Array.isArray(aluno.atividades)) aluno.atividades = [];
-
-        // Mantém o cache local consistente enquanto a página trabalha.
-        localStorage.setItem('idhub_database', JSON.stringify(database));
-
-        classPassingGradeInput.value = turma.mediaAprovacao;
-        classPeriodTypeSelect.value = turma.tipoPeriodo;
-        classPeriodCountInput.value = turma.qtdPeriodo;
-        document.getElementById('studentName').innerText = aluno.nome;
-        document.getElementById('studentClass').innerText = turma.nome;
-        document.getElementById('studentAvatar').src = aluno.foto || 'https://via.placeholder.com/150';
-
-        // Atualiza apenas as notas do aluno selecionado, sem buscar todas as turmas.
-        try {
-          const notasResponse = await apiRequest(`/alunos/${encodeURIComponent(aluno.id)}/notas`);
-          if (Array.isArray(notasResponse?.notas)) {
-            aluno.notas = {};
-            notasResponse.notas.forEach((row) => {
-              const materia = row.materia || row.disciplina;
-              if (!materia) return;
-              const periodo = row.bimestre || 'B1';
-              if (!aluno.notas[materia]) aluno.notas[materia] = {};
-              aluno.notas[materia][periodo] = String(row.valor ?? row.nota ?? '');
-            });
-            localStorage.setItem('idhub_database', JSON.stringify(database));
-          }
-        } catch (error) {
-          // Se o GET específico falhar, a tela continua usando o cache local.
-          // Isso evita bloquear a edição das notas por uma falha temporária.
-          console.warn('[IDHUB] Não foi possível atualizar as notas do servidor:', error);
-        }
-
-        return true;
       }
 
       async function persistDatabase(message = null) {
         try {
           if (!turma || !aluno) throw new Error('Turma ou aluno não carregado.');
+          if (!Array.isArray(turma.alunos)) turma.alunos = [];
 
-          const turmaPromise = apiRequest(`/turmas/${encodeURIComponent(turma.id)}`, 'PATCH', {
-            mediaAprovacao: Number.parseFloat(classPassingGradeInput.value) || 6,
-            tipoPeriodo: classPeriodTypeSelect.value,
-            qtdPeriodo: Math.max(1, parseInt(classPeriodCountInput.value, 10) || 4),
-            materias: Array.isArray(turma.materias) ? turma.materias : []
+          turma.mediaAprovacao = Number.parseFloat(classPassingGradeInput.value) || 6;
+          turma.tipoPeriodo = classPeriodTypeSelect.value;
+          turma.qtdPeriodo = Math.max(1, parseInt(classPeriodCountInput.value, 10) || 4);
+
+          // O backend atual não devolve todas as configurações visuais da turma
+          // (como matérias e quantidade de períodos). Preservamos esses dados
+          // locais ao incorporar o retorno persistido.
+          const materiasLocais = Array.isArray(turma.materias) ? [...turma.materias] : [
+            'MATEMÁTICA', 'PORTUGUÊS', 'CIÊNCIAS', 'HISTÓRIA'
+          ];
+          const qtdPeriodoLocal = turma.qtdPeriodo;
+          const tipoPeriodoLocal = turma.tipoPeriodo;
+          const mediaAprovacaoLocal = turma.mediaAprovacao;
+
+          // O backend atual persiste uma turma por vez e seus alunos/atividades.
+          // replaceAll:false impede que salvar uma turma apague as demais.
+          const response = await apiRequest('/turmas', 'POST', {
+            turmas: [turma],
+            replaceAll: false
           });
 
-          const notasPromise = apiRequest(`/alunos/${encodeURIComponent(aluno.id)}/notas`, 'PUT', {
-            notas: aluno.notas
-          });
-
-          const atividadesPromise = apiRequest(`/alunos/${encodeURIComponent(aluno.id)}`, 'PATCH', {
-            atividades: Array.isArray(aluno.atividades) ? aluno.atividades : []
-          });
-
-          const [turmaResponse, notasResponse, alunoResponse] = await Promise.all([
-            turmaPromise,
-            notasPromise,
-            atividadesPromise
-          ]);
-
-          if (!turmaResponse?.turma) {
-            throw new Error('O servidor não confirmou a atualização da turma.');
+          if (!response || !Array.isArray(response.turmas)) {
+            throw new Error('O servidor não confirmou o salvamento da turma.');
           }
 
-          if (turmaResponse?.turma) {
-            Object.assign(turma, turmaResponse.turma);
-          }
-
-          if (Array.isArray(notasResponse?.notas)) {
-            // Mantém o formato que a interface já utiliza.
-            aluno.notas = {};
-            notasResponse.notas.forEach((row) => {
-              const materia = row.materia || row.disciplina;
-              const periodo = row.bimestre || 'B1';
-              if (!materia) return;
-              if (!aluno.notas[materia]) aluno.notas[materia] = {};
-              aluno.notas[materia][periodo] = String(row.valor ?? row.nota ?? '');
+          database = response.turmas;
+          database.forEach((t) => {
+            if (t && t.id != null) t.id = String(t.id);
+            if (!Array.isArray(t.alunos)) t.alunos = [];
+            t.alunos.forEach((a) => {
+              if (a && a.id != null) a.id = String(a.id);
+              if (a && !Array.isArray(a.atividades)) a.atividades = [];
             });
+          });
+
+          const turmaSalva = database.find((t) => String(t.id) === String(turma.id));
+          if (!turmaSalva) {
+            throw new Error('A turma não foi encontrada após o salvamento.');
           }
 
-          if (alunoResponse?.aluno) {
-            aluno.atividades = Array.isArray(alunoResponse.aluno.atividades)
-              ? alunoResponse.aluno.atividades
-              : [];
+          const alunoSalvo = turmaSalva.alunos.find((a) => String(a.id) === String(aluno.id));
+          if (!alunoSalvo) {
+            throw new Error('O aluno não foi encontrado após o salvamento.');
           }
+
+          turma = {
+            ...turmaSalva,
+            materias: materiasLocais,
+            qtdPeriodo: qtdPeriodoLocal,
+            tipoPeriodo: tipoPeriodoLocal,
+            mediaAprovacao: mediaAprovacaoLocal,
+            alunos: Array.isArray(turmaSalva.alunos) ? turmaSalva.alunos : []
+          };
+          aluno = alunoSalvo;
+
+          // Recoloca a turma atualizada dentro do array completo.
+          const turmaIndex = database.findIndex(
+            (item) => String(item.id) === String(turmaSalva.id)
+          );
+          if (turmaIndex >= 0) database[turmaIndex] = turma;
 
           localStorage.setItem('idhub_database', JSON.stringify(database));
+
           if (message) showToast(message);
           return true;
         } catch (error) {
@@ -585,20 +646,38 @@
           throw new Error('Aluno sem ID válido para salvar a atividade.');
         }
 
-        const response = await apiRequest(`/alunos/${encodeURIComponent(student.id)}`, 'PATCH', {
-          atividades: Array.isArray(student.atividades) ? student.atividades : []
-        });
-
-        if (!response?.aluno) {
-          throw new Error(`O servidor não confirmou o salvamento das atividades de ${student.nome || 'um aluno'}.`);
+        if (!turma || !Array.isArray(turma.alunos)) {
+          throw new Error('Turma não carregada corretamente.');
         }
 
-        // Mantém o retorno do servidor sincronizado com o cache local.
-        student.atividades = Array.isArray(response.aluno.atividades)
-          ? response.aluno.atividades
+        const alunoNaTurma = turma.alunos.find(
+          (item) => String(item.id) === String(student.id)
+        );
+
+        if (!alunoNaTurma) {
+          throw new Error(`O aluno ${student.nome || ''} não pertence à turma atual.`);
+        }
+
+        alunoNaTurma.atividades = Array.isArray(student.atividades)
+          ? student.atividades
           : [];
 
-        return response.aluno;
+        const ok = await persistDatabase();
+        if (!ok) {
+          throw new Error(`Não foi possível salvar as atividades de ${student.nome || 'um aluno'}.`);
+        }
+
+        const alunoSalvo = turma.alunos.find(
+          (item) => String(item.id) === String(student.id)
+        );
+
+        if (alunoSalvo) {
+          student.atividades = Array.isArray(alunoSalvo.atividades)
+            ? alunoSalvo.atividades
+            : [];
+        }
+
+        return alunoSalvo || student;
       }
 
       async function addNewActivity() {
@@ -623,23 +702,19 @@
               throw new Error('A turma não possui alunos para receber a atividade.');
             }
 
-            // Adiciona a mesma atividade a TODOS os alunos da turma
-            // e salva cada registro no banco. Antes, apenas o aluno aberto
-            // nesta tela era enviado ao servidor.
+            // Adiciona a mesma atividade a TODOS os alunos.
+            // O salvamento é feito em uma única sincronização da turma,
+            // garantindo que todos os alunos sejam gravados no Neon juntos.
             turma.alunos.forEach((student) => {
               if (!Array.isArray(student.atividades)) student.atividades = [];
               student.atividades.push({ ...newAct });
             });
 
-            const resultados = await Promise.all(
-              turma.alunos.map((student) => salvarAtividadesDoAluno(student))
-            );
-
-            if (resultados.length !== turma.alunos.length) {
-              throw new Error('Nem todos os alunos receberam a atividade.');
+            const saved = await persistDatabase();
+            if (!saved) {
+              throw new Error('Não foi possível salvar a atividade para toda a turma.');
             }
 
-            localStorage.setItem('idhub_database', JSON.stringify(database));
             newActivityInput.value = '';
             renderActivities();
             showToast(`Atividade enviada para os ${turma.alunos.length} alunos da TURMA!`);
@@ -647,9 +722,11 @@
             if (!Array.isArray(aluno.atividades)) aluno.atividades = [];
             aluno.atividades.push(newAct);
 
-            await salvarAtividadesDoAluno(aluno);
+            const saved = await salvarAtividadesDoAluno(aluno);
+            if (!saved) {
+              throw new Error('Não foi possível salvar a atividade individual.');
+            }
 
-            localStorage.setItem('idhub_database', JSON.stringify(database));
             newActivityInput.value = '';
             renderActivities();
             showToast('Atividade INDIVIDUAL adicionada!');
