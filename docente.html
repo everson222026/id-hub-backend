@@ -1667,26 +1667,49 @@
       button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i><span>SALVANDO...</span>';
 
       try {
+        // Atualiza imediatamente o estado local para a interface não perder o lançamento.
+        registros.forEach((registro) => {
+          const aluno = turma.alunos.find(
+            (item) => String(item.id) === String(registro.alunoId)
+          );
+          if (!aluno) return;
+          if (!aluno.historicoFrequencia) aluno.historicoFrequencia = {};
+          aluno.historicoFrequencia[dataSel] = Boolean(registro.presente);
+        });
+        localStorage.setItem('idhub_database', JSON.stringify(database));
+
         const response = await apiRequest(
           `/turmas/${encodeURIComponent(turma.id)}/frequencia`,
           'POST',
           { data: dataSel, registros }
         );
 
-        if (Array.isArray(response.registros)) {
-          response.registros.forEach((item) => {
-            const aluno = turma.alunos.find((a) => String(a.id) === String(item.alunoId));
-            if (!aluno) return;
-            if (!aluno.historicoFrequencia) aluno.historicoFrequencia = {};
-            aluno.historicoFrequencia[dataSel] = Boolean(item.presente);
-            aluno.faltas = Number(item.faltas || 0);
-          });
+        if (!Array.isArray(response?.registros)) {
+          throw new Error('O servidor não confirmou o lançamento da frequência.');
         }
 
+        // O backend devolve o total atualizado de faltas de cada aluno.
+        response.registros.forEach((item) => {
+          const aluno = turma.alunos.find(
+            (a) => String(a.id) === String(item.alunoId)
+          );
+          if (!aluno) return;
+          if (!aluno.historicoFrequencia) aluno.historicoFrequencia = {};
+          aluno.historicoFrequencia[dataSel] = Boolean(item.presente);
+          aluno.faltas = Number(item.faltas || 0);
+        });
+
         localStorage.setItem('idhub_database', JSON.stringify(database));
+        renderFreqList();
         showToast('Frequência lançada com sucesso!');
       } catch (error) {
-        showToast(error.message || 'Não foi possível salvar a frequência.', true);
+        // O lançamento local permanece disponível, mas deixamos claro que o
+        // servidor não confirmou o salvamento.
+        localStorage.setItem('idhub_database', JSON.stringify(database));
+        showToast(
+          `${error.message || 'Não foi possível salvar a frequência.'} Os dados ficaram salvos localmente.`,
+          true
+        );
       } finally {
         button.disabled = false;
         button.style.opacity = '';

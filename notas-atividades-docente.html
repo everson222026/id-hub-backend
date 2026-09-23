@@ -269,17 +269,9 @@
           return false;
         }
 
-        try {
-          const response = await apiRequest('/turmas');
-          const serverTurmas = Array.isArray(response) ? response : response.turmas;
-          if (Array.isArray(serverTurmas)) database = serverTurmas;
-          localStorage.setItem('idhub_database', JSON.stringify(database));
-        } catch (error) {
-          console.error('[IDHUB] Falha ao carregar notas:', error);
-          showToast(error.message || 'Não foi possível carregar os dados.', true);
-          return false;
-        }
-
+        // A tela de notas recebe o aluno já selecionado pelo painel docente.
+        // Não buscamos /turmas novamente aqui, evitando uma segunda consulta
+        // que poderia falhar mesmo com o aluno corretamente selecionado.
         const turmaEncontrada = database.find((t) => String(t.id) === String(turmaId));
         turma = turmaEncontrada || null;
         aluno = turma && Array.isArray(turma.alunos)
@@ -287,8 +279,8 @@
           : null;
 
         if (!turma || !aluno) {
-          alert('Erro: aluno ou turma não encontrados.');
-          window.history.back();
+          showToast('Não foi possível localizar o aluno selecionado. Volte ao painel docente e abra as notas novamente.', true);
+          setTimeout(() => window.history.back(), 1200);
           return false;
         }
 
@@ -301,12 +293,36 @@
         if (!aluno.notas || typeof aluno.notas !== 'object') aluno.notas = {};
         if (!Array.isArray(aluno.atividades)) aluno.atividades = [];
 
+        // Mantém o cache local consistente enquanto a página trabalha.
+        localStorage.setItem('idhub_database', JSON.stringify(database));
+
         classPassingGradeInput.value = turma.mediaAprovacao;
         classPeriodTypeSelect.value = turma.tipoPeriodo;
         classPeriodCountInput.value = turma.qtdPeriodo;
         document.getElementById('studentName').innerText = aluno.nome;
         document.getElementById('studentClass').innerText = turma.nome;
         document.getElementById('studentAvatar').src = aluno.foto || 'https://via.placeholder.com/150';
+
+        // Atualiza apenas as notas do aluno selecionado, sem buscar todas as turmas.
+        try {
+          const notasResponse = await apiRequest(`/alunos/${encodeURIComponent(aluno.id)}/notas`);
+          if (Array.isArray(notasResponse?.notas)) {
+            aluno.notas = {};
+            notasResponse.notas.forEach((row) => {
+              const materia = row.materia || row.disciplina;
+              if (!materia) return;
+              const periodo = row.bimestre || 'B1';
+              if (!aluno.notas[materia]) aluno.notas[materia] = {};
+              aluno.notas[materia][periodo] = String(row.valor ?? row.nota ?? '');
+            });
+            localStorage.setItem('idhub_database', JSON.stringify(database));
+          }
+        } catch (error) {
+          // Se o GET específico falhar, a tela continua usando o cache local.
+          // Isso evita bloquear a edição das notas por uma falha temporária.
+          console.warn('[IDHUB] Não foi possível atualizar as notas do servidor:', error);
+        }
+
         return true;
       }
 
@@ -334,6 +350,10 @@
             notasPromise,
             atividadesPromise
           ]);
+
+          if (!turmaResponse?.turma) {
+            throw new Error('O servidor não confirmou a atualização da turma.');
+          }
 
           if (turmaResponse?.turma) {
             Object.assign(turma, turmaResponse.turma);
