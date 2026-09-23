@@ -772,11 +772,12 @@
     // BASE DE DADOS GLOBAL
     let database = JSON.parse(localStorage.getItem('idhub_database')) || [];
 
-    // Função para extrair apenas os 2 primeiros nomes
-    function obterDoisPrimeirosNomes(nomeCompleto) {
+    // Função para pegar apenas o PRIMEIRO e o ÚLTIMO nome
+    function obterPrimeiroEUltimoNome(nomeCompleto) {
       if (!nomeCompleto) return '';
       const partes = nomeCompleto.trim().split(/\s+/);
-      return partes.slice(0, 2).join(' ');
+      if (partes.length === 1) return partes[0];
+      return `${partes[0]} ${partes[partes.length - 1]}`;
     }
 
     function ensureIds() {
@@ -1162,7 +1163,14 @@
         classTeacherAvatar.innerHTML = `<i class="fa-solid fa-user-tie"></i>`;
       }
 
-      if (!currentTurma.alunos || currentTurma.alunos.length === 0) { studentsListContainer.innerHTML = `<p style="font-size:0.85rem; color: var(--text-secondary); text-align:center; padding: 20px 0;">Nenhum aluno nesta turma.</p>`; clearStudentDetails(); return; }
+      if (!currentTurma.alunos || currentTurma.alunos.length === 0) { 
+        studentsListContainer.innerHTML = `<p style="font-size:0.85rem; color: var(--text-secondary); text-align:center; padding: 20px 0;">Nenhum aluno nesta turma.</p>`; 
+        clearStudentDetails(); 
+        return; 
+      }
+
+      // Ordena os alunos em ORDEM ALFABÉTICA antes de renderizar
+      currentTurma.alunos.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
       
       currentTurma.alunos.forEach((aluno, index) => {
         const item = document.createElement('div');
@@ -1170,8 +1178,8 @@
         item.onclick = () => { activeAlunoIndex = index; renderAlunos(); };
         const fotoListIcon = !aluno.foto || aluno.foto.includes('placeholder') ? `<div class="student-avatar-small" style="display:flex;align-items:center;justify-content:center"><i class="fa-solid fa-user"></i></div>` : `<img src="${aluno.foto}" class="student-avatar-small" alt="Foto">`;
         
-        // Exibe somente os 2 primeiros nomes na lista de alunos
-        const nomeResumido = obterDoisPrimeirosNomes(aluno.nome);
+        // Exibe PRIMEIRO e ÚLTIMO nome na lista lateral
+        const nomeResumido = obterPrimeiroEUltimoNome(aluno.nome);
         
         item.innerHTML = `${fotoListIcon} <span class="student-name">${nomeResumido}</span> <span class="student-tag">IDHUB</span>`;
         studentsListContainer.appendChild(item);
@@ -1185,7 +1193,7 @@
       if (!aluno) return clearStudentDetails();
 
       document.getElementById('studentPhoto').src = aluno.foto || "https://via.placeholder.com/150";
-      // Exibe o NOME COMPLETO no card de detalhes
+      // Exibe o NOME COMPLETO no card de detalhes do aluno selecionado
       document.getElementById('studentNameDisplay').innerText = aluno.nome;
       document.getElementById('studentTurmaDisplay').innerText = turma.nome;
       document.getElementById('studentTurmaDisplay').className = `shift-badge ${turma.badgeClass || 'matutino'}`;
@@ -1435,6 +1443,9 @@
         return;
       }
 
+      // Ordenação alfabética
+      turma.alunos.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+
       turma.alunos.forEach((aluno) => {
         if (!aluno.historicoFrequencia) aluno.historicoFrequencia = {};
         const estaPresente = aluno.historicoFrequencia[dataSel] !== false;
@@ -1444,7 +1455,7 @@
         item.innerHTML = `
           <div class="student-info-freq">
             <img src="${aluno.foto || 'https://via.placeholder.com/150'}" class="student-avatar-freq" alt="Foto">
-            <span class="student-name-freq">${obterDoisPrimeirosNomes(aluno.nome)}</span>
+            <span class="student-name-freq">${obterPrimeiroEUltimoNome(aluno.nome)}</span>
           </div>
           <input type="checkbox" class="presence-checkbox" data-alunoid="${aluno.id}" ${estaPresente ? 'checked' : ''}>
         `;
@@ -1490,13 +1501,16 @@
         return;
       }
 
+      // Ordenação alfabética
+      turma.alunos.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+
       turma.alunos.forEach((aluno) => {
         const item = document.createElement('div');
         item.className = 'student-item-freq';
         item.innerHTML = `
           <div class="student-info-freq">
             <img src="${aluno.foto || 'https://via.placeholder.com/150'}" class="student-avatar-freq" alt="Foto">
-            <span class="student-name-freq">${obterDoisPrimeirosNomes(aluno.nome)}</span>
+            <span class="student-name-freq">${obterPrimeiroEUltimoNome(aluno.nome)}</span>
           </div>
           <div class="absence-badge">
             <input type="number" class="absence-input" data-alunoid="${aluno.id}" value="${aluno.faltas || 0}" min="0" ${isEditingFaltas ? '' : 'disabled'}>
@@ -1549,6 +1563,9 @@
         return;
       }
 
+      // Ordenação alfabética
+      turma.alunos.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+
       turma.alunos.forEach((aluno) => {
         const estaPresente = aluno.historicoFrequencia ? aluno.historicoFrequencia[dataSel] : undefined;
         let badgeHtml = `<span style="color:#20bf55; font-weight:bold;"><i class="fa-solid fa-check"></i> Presente</span>`;
@@ -1562,7 +1579,7 @@
         item.innerHTML = `
           <div class="student-info-freq">
             <img src="${aluno.foto || 'https://via.placeholder.com/150'}" class="student-avatar-freq" alt="Foto">
-            <span class="student-name-freq">${obterDoisPrimeirosNomes(aluno.nome)}</span>
+            <span class="student-name-freq">${obterPrimeiroEUltimoNome(aluno.nome)}</span>
           </div>
           <div>${badgeHtml}</div>
         `;
