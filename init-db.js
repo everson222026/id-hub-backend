@@ -9,6 +9,8 @@ async function setupDatabase() {
   } catch (err) {
     console.error('Erro ao preparar o banco:', err);
     process.exitCode = 1;
+  } finally {
+    await db.pool.end();
   }
 }
 

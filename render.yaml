@@ -7,21 +7,13 @@ services:
     startCommand: npm start
     healthCheckPath: /api/health
     envVars:
-      - key: NODE_VERSION
-        value: "20.11.0"
       - key: NODE_ENV
         value: production
       - key: JWT_SECRET
         generateValue: true
       - key: DATABASE_URL
         sync: false
-      - key: SMTP_HOST
-        value: smtp-relay.brevo.com
-      - key: SMTP_PORT
-        value: "587"
-      - key: SMTP_USER
-        sync: false
-      - key: SMTP_PASS
+      - key: RESEND_API_KEY
         sync: false
       - key: EMAIL_FROM
         sync: false
