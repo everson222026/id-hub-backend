@@ -529,26 +529,26 @@
     <input type="file" id="profilePhotoInput" accept="image/*" style="display: none;">
     
     <div class="profile-info-header">
-      <h1 id="displayProfileName">Insira seu Nome</h1>
-      <p id="displayProfileSpec">Especialidade / Cargo</p>
+      <h1 id="displayProfileName"></h1>
+      <p id="displayProfileSpec"></p>
     </div>
 
     <div class="info-grid" id="infoGrid">
       <div class="info-item">
         <div class="info-label">Nome Completo</div>
-        <input type="text" class="info-value profile-info-value" id="inputProfileName" placeholder="Seu Nome Completo" disabled>
+        <input type="text" class="info-value profile-info-value" id="inputProfileName" placeholder="" disabled>
       </div>
       <div class="info-item">
         <div class="info-label">E-mail Institucional</div>
-        <input type="email" class="info-value profile-info-value" id="inputProfileEmail" placeholder="seu.email@escola.com" disabled>
+        <input type="email" class="info-value profile-info-value" id="inputProfileEmail" placeholder="" disabled>
       </div>
       <div class="info-item">
         <div class="info-label">Telefone / WhatsApp</div>
-        <input type="tel" class="info-value profile-info-value" id="inputProfilePhone" placeholder="(00) 00000-0000" oninput="handlePhoneMask(event)" maxlength="15" disabled>
+        <input type="tel" class="info-value profile-info-value" id="inputProfilePhone" placeholder="" oninput="handlePhoneMask(event)" maxlength="15" disabled>
       </div>
       <div class="info-item">
         <div class="info-label">Especialidade</div>
-        <input type="text" class="info-value profile-info-value" id="inputProfileSpec" placeholder="Sua Especialidade" disabled>
+        <input type="text" class="info-value profile-info-value" id="inputProfileSpec" placeholder="" disabled>
       </div>
     </div>
 
@@ -665,7 +665,7 @@
           <label class="field-label"><i class="fa-solid fa-phone"></i> Telefone</label>
           <div class="input-wrapper">
             <i class="fa-solid fa-phone input-icon"></i>
-            <input type="tel" id="studentPhoneInput" class="custom-input" placeholder="(00) 00000-0000" oninput="handlePhoneMask(event)" maxlength="15">
+            <input type="tel" id="studentPhoneInput" class="custom-input" placeholder="" oninput="handlePhoneMask(event)" maxlength="15">
           </div>
         </div>
         <div class="input-group" id="student-emailGroup">
@@ -731,7 +731,7 @@
           <label class="field-label">Telefone</label>
           <div class="input-wrapper">
             <i class="fa-solid fa-phone input-icon"></i>
-            <input type="tel" id="editPhone" class="custom-input" placeholder="(00) 00000-0000" oninput="handlePhoneMask(event)" maxlength="15">
+            <input type="tel" id="editPhone" class="custom-input" placeholder="" oninput="handlePhoneMask(event)" maxlength="15">
           </div>
         </div>
         <div class="input-group" id="edit-emailGroup">
@@ -896,19 +896,73 @@
     let isEditingProfile = false;
     let profilePhotoBase64 = null;
 
-    function openProfileView() {
-      const docente = JSON.parse(localStorage.getItem('idhub_docente')) || {};
-      
-      document.getElementById('inputProfileName').value = docente.nome || '';
-      document.getElementById('inputProfileEmail').value = docente.email || '';
-      document.getElementById('inputProfilePhone').value = docente.telefone || '';
-      document.getElementById('inputProfileSpec').value = docente.especialidade || '';
+    function getCurrentUserId() {
+      const storedId = localStorage.getItem('idhub_database_owner_id');
+      return storedId ? String(storedId) : '';
+    }
 
-      document.getElementById('displayProfileName').textContent = docente.nome || 'Nome do Docente';
-      document.getElementById('displayProfileSpec').textContent = docente.especialidade || 'Especialidade / Cargo';
+    function getProfileStorageKey() {
+      const userId = getCurrentUserId();
+      return userId ? `idhub_docente_profile_${userId}` : null;
+    }
+
+    function getEmptyProfile() {
+      return {
+        id: getCurrentUserId() || null,
+        nome: '',
+        email: '',
+        telefone: '',
+        especialidade: '',
+        foto: null
+      };
+    }
+
+    function getCurrentProfile() {
+      const key = getProfileStorageKey();
+      if (!key) return getEmptyProfile();
+
+      try {
+        const stored = JSON.parse(localStorage.getItem(key) || 'null');
+        if (!stored || typeof stored !== 'object') return getEmptyProfile();
+
+        return {
+          id: getCurrentUserId() || stored.id || null,
+          nome: typeof stored.nome === 'string' ? stored.nome : '',
+          email: typeof stored.email === 'string' ? stored.email : '',
+          telefone: typeof stored.telefone === 'string' ? stored.telefone : '',
+          especialidade: typeof stored.especialidade === 'string' ? stored.especialidade : '',
+          foto: stored.foto || null
+        };
+      } catch {
+        return getEmptyProfile();
+      }
+    }
+
+    function saveCurrentProfile(profile) {
+      const key = getProfileStorageKey();
+      if (!key) return;
+
+      localStorage.setItem(key, JSON.stringify(profile));
+      // Mantém esta cópia apenas para compatibilidade com funções antigas da página.
+      localStorage.setItem('idhub_docente', JSON.stringify(profile));
+    }
+
+    function openProfileView() {
+      // O perfil é independente dos dados usados no cadastro/login.
+      // Uma conta nova não herda informações de outra conta.
+      const docente = getCurrentProfile();
+
+      document.getElementById('inputProfileName').value = docente.nome;
+      document.getElementById('inputProfileEmail').value = docente.email;
+      document.getElementById('inputProfilePhone').value = docente.telefone;
+      document.getElementById('inputProfileSpec').value = docente.especialidade;
+
+      document.getElementById('displayProfileName').textContent = docente.nome;
+      document.getElementById('displayProfileSpec').textContent = docente.especialidade;
+
+      profilePhotoBase64 = docente.foto || null;
 
       if (docente.foto) {
-        profilePhotoBase64 = docente.foto;
         document.getElementById('profileAvatarContent').innerHTML = `<img src="${docente.foto}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" alt="Foto Perfil">`;
       } else {
         document.getElementById('profileAvatarContent').innerHTML = `<i class="fa-solid fa-chalkboard-user"></i>`;
@@ -940,11 +994,13 @@
       }
     });
 
-    function toggleEditProfile() {
+    async function toggleEditProfile() {
       if (isEditingProfile) {
-        saveDocenteProfile();
+        await saveDocenteProfile();
+        isEditingProfile = false;
+      } else {
+        isEditingProfile = true;
       }
-      isEditingProfile = !isEditingProfile;
       updateProfileEditState();
     }
 
@@ -966,39 +1022,32 @@
     }
 
     async function saveDocenteProfile() {
-      const docente = {
+      const perfilAtual = {
+        id: getCurrentUserId() || null,
         nome: document.getElementById('inputProfileName').value.trim(),
         email: document.getElementById('inputProfileEmail').value.trim().toLowerCase(),
         telefone: document.getElementById('inputProfilePhone').value.trim(),
         especialidade: document.getElementById('inputProfileSpec').value.trim(),
-        foto: profilePhotoBase64
+        foto: profilePhotoBase64 || null
       };
 
-      const result = await apiRequest('/me', 'PATCH', docente);
-      const usuario = result.usuario || {};
-
-      if (result.token) localStorage.setItem('token', result.token);
-      const perfilAtual = {
-        id: usuario.id,
-        nome: usuario.nome ?? docente.nome,
-        email: usuario.email ?? docente.email,
-        telefone: usuario.telefone ?? docente.telefone,
-        especialidade: usuario.especialidade ?? docente.especialidade,
-        foto: usuario.foto ?? docente.foto
-      };
-      localStorage.setItem('idhub_docente', JSON.stringify(perfilAtual));
-      localStorage.setItem('email', perfilAtual.email || '');
-      localStorage.setItem('perfil', usuario.tipo || localStorage.getItem('perfil') || 'docente');
-      if (usuario.id) localStorage.setItem('idhub_database_owner_id', String(usuario.id));
+      // O perfil é salvo por ID de usuário.
+      // Assim os dados de uma conta nunca são reutilizados por outra.
+      saveCurrentProfile(perfilAtual);
 
       database.forEach(turma => {
-        turma.professorNome = perfilAtual.nome || 'Professor não informado';
-        turma.professorFoto = perfilAtual.foto || null;
+        turma.professorNome = perfilAtual.nome;
+        turma.professorFoto = perfilAtual.foto;
       });
-      await saveDatabase();
 
-      document.getElementById('displayProfileName').textContent = perfilAtual.nome || 'Nome do Docente';
-      document.getElementById('displayProfileSpec').textContent = perfilAtual.especialidade || 'Especialidade / Cargo';
+      try {
+        await saveDatabase();
+      } catch (error) {
+        console.warn('Não foi possível sincronizar as turmas após salvar o perfil:', error);
+      }
+
+      document.getElementById('displayProfileName').textContent = perfilAtual.nome;
+      document.getElementById('displayProfileSpec').textContent = perfilAtual.especialidade;
       loadDocenteHeader();
       renderTurmas();
       if (database.length > 0) renderAlunos();
@@ -1632,17 +1681,47 @@
           localStorage.removeItem('idhub_database');
         }
 
-        localStorage.setItem('idhub_docente', JSON.stringify({
-          id: me.id,
-          nome: me.nome || '',
-          email: me.email || '',
-          telefone: me.telefone || '',
-          especialidade: me.especialidade || '',
-          foto: me.foto || null
-        }));
+        // O ID da conta serve para separar os dados de cada usuário.
+        // Não copiamos nome, e-mail ou outros dados cadastrais para o perfil.
+        localStorage.setItem('idhub_database_owner_id', String(me.id));
         localStorage.setItem('perfil', me.tipo || 'docente');
         localStorage.setItem('email', me.email || '');
-        localStorage.setItem('idhub_database_owner_id', String(me.id));
+
+        const profileKey = `idhub_docente_profile_${me.id}`;
+        const existingProfile = localStorage.getItem(profileKey);
+
+        if (existingProfile) {
+          try {
+            const parsedProfile = JSON.parse(existingProfile);
+            localStorage.setItem('idhub_docente', JSON.stringify({
+              id: me.id,
+              nome: typeof parsedProfile.nome === 'string' ? parsedProfile.nome : '',
+              email: typeof parsedProfile.email === 'string' ? parsedProfile.email : '',
+              telefone: typeof parsedProfile.telefone === 'string' ? parsedProfile.telefone : '',
+              especialidade: typeof parsedProfile.especialidade === 'string' ? parsedProfile.especialidade : '',
+              foto: parsedProfile.foto || null
+            }));
+          } catch {
+            localStorage.setItem('idhub_docente', JSON.stringify({
+              id: me.id,
+              nome: '',
+              email: '',
+              telefone: '',
+              especialidade: '',
+              foto: null
+            }));
+          }
+        } else {
+          // Conta nova: perfil completamente vazio.
+          localStorage.setItem('idhub_docente', JSON.stringify({
+            id: me.id,
+            nome: '',
+            email: '',
+            telefone: '',
+            especialidade: '',
+            foto: null
+          }));
+        }
       } catch (error) {
         console.error('Sessão inválida:', error);
         localStorage.removeItem('token');
