@@ -778,9 +778,15 @@
     function ensureIds() {
       database.forEach((t, ti) => {
         if (!t.id) t.id = `turma_${Date.now()}_${ti}`;
+        // O arquivo de notas recebe os IDs pela URL como texto.
+        // Mantemos os IDs como string também no localStorage para evitar
+        // a comparação estrita (number !== string) ao abrir Notas & Ativ.
+        t.id = String(t.id);
+
         if (!Array.isArray(t.alunos)) t.alunos = [];
         t.alunos.forEach((a, ai) => {
           if (!a.id) a.id = `aluno_${Date.now()}_${ti}_${ai}`;
+          a.id = String(a.id);
         });
       });
     }
@@ -797,8 +803,18 @@
         }
 
         let response = await apiRequest('/turmas');
-        let apiTurmas = Array.isArray(response) ? response : response.turmas;
+        let apiTurmas = Array.isArray(response) ? response : (response?.turmas || []);
         apiTurmas = Array.isArray(apiTurmas) ? apiTurmas : [];
+
+        // Normaliza IDs vindos do PostgreSQL antes de salvar no localStorage.
+        apiTurmas.forEach((turma) => {
+          if (turma && turma.id != null) turma.id = String(turma.id);
+          if (turma && Array.isArray(turma.alunos)) {
+            turma.alunos.forEach((aluno) => {
+              if (aluno && aluno.id != null) aluno.id = String(aluno.id);
+            });
+          }
+        });
 
         // Migração única de turmas antigas que existiam somente no navegador.
         if (apiTurmas.length === 0 && database.length > 0) {
@@ -807,7 +823,15 @@
             turmas: database,
             replaceAll: true
           });
-          apiTurmas = Array.isArray(migrated.turmas) ? migrated.turmas : [];
+          apiTurmas = Array.isArray(migrated?.turmas) ? migrated.turmas : [];
+          apiTurmas.forEach((turma) => {
+            if (turma && turma.id != null) turma.id = String(turma.id);
+            if (turma && Array.isArray(turma.alunos)) {
+              turma.alunos.forEach((aluno) => {
+                if (aluno && aluno.id != null) aluno.id = String(aluno.id);
+              });
+            }
+          });
         }
 
         database = apiTurmas;
@@ -842,6 +866,24 @@
     const btnAdicionarAlunoLista = document.getElementById('btnAdicionarAlunoLista');
     const btnOpenNotes = document.getElementById('btnOpenNotes');
     const btnOpenAttendance = document.getElementById('btnOpenAttendance');
+
+    btnOpenNotes.addEventListener('click', (event) => {
+      const turma = database[activeTurmaIndex];
+      const aluno = turma && Array.isArray(turma.alunos) ? turma.alunos[activeAlunoIndex] : null;
+
+      if (!turma || !aluno || turma.id == null || aluno.id == null) {
+        event.preventDefault();
+        showToast('Selecione um aluno antes de abrir Notas & Ativ.');
+        return;
+      }
+
+      // Garante que a página seguinte encontre exatamente a turma e o aluno.
+      ensureIds();
+      localStorage.setItem('idhub_database', JSON.stringify(database));
+
+      btnOpenNotes.href =
+        `./notas-atividades-docente.html?turmaId=${encodeURIComponent(String(turma.id))}&alunoId=${encodeURIComponent(String(aluno.id))}`;
+    });
 
     function showToast(message) {
       const toast = document.getElementById('toastMsgGeneral');
@@ -1241,7 +1283,13 @@
       document.getElementById('studentAddress').innerText = aluno.endereco;
       document.getElementById('studentObs').innerText = aluno.observacoes;
       
-      btnOpenNotes.href = `notas-atividades-docente.html?turmaId=${turma.id}&alunoId=${aluno.id}`;
+      // A tela de notas usa os dados do localStorage e compara os IDs como texto.
+      // Garantimos que o contexto atual esteja salvo antes de abrir a página.
+      turma.id = String(turma.id);
+      aluno.id = String(aluno.id);
+      localStorage.setItem('idhub_database', JSON.stringify(database));
+
+      btnOpenNotes.href = `./notas-atividades-docente.html?turmaId=${encodeURIComponent(turma.id)}&alunoId=${encodeURIComponent(aluno.id)}`;
 
       btnOpenNotes.style.display = 'flex'; 
       btnOpenAttendance.style.display = 'flex'; 
@@ -1317,11 +1365,12 @@
 
       try {
         const response = await apiRequest('/turmas', 'POST', novaTurma);
-        if (!Array.isArray(response.turmas)) {
+        if (!response || !Array.isArray(response.turmas)) {
           throw new Error('O servidor não retornou a turma criada.');
         }
 
         database = response.turmas;
+        ensureIds();
         activeTurmaIndex = Math.max(0, database.findIndex((item) => String(item.id) === String(response.turma?.id)));
         if (activeTurmaIndex < 0) activeTurmaIndex = 0;
         activeAlunoIndex = 0;
@@ -1411,11 +1460,13 @@
 
       try {
         const response = await apiRequest(`/turmas/${encodeURIComponent(turma.id)}/alunos`, 'POST', novoAluno);
-        if (!response.aluno) {
+        if (!response || !response.aluno) {
           throw new Error('O servidor não retornou o aluno criado.');
         }
 
         if (!Array.isArray(turma.alunos)) turma.alunos = [];
+        if (response.aluno.id != null) response.aluno.id = String(response.aluno.id);
+        turma.id = String(turma.id);
         turma.alunos.push(response.aluno);
         activeAlunoIndex = turma.alunos.length - 1;
 
