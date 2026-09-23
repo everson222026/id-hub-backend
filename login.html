@@ -468,11 +468,12 @@
 
   <script src="api.js"></script>
   <script>
+
     document.addEventListener('DOMContentLoaded', () => {
       const loginForm = document.getElementById('loginForm');
       const forgotForm = document.getElementById('forgotForm');
       const resetForm = document.getElementById('resetForm');
-      
+
       const welcomeTitle = document.getElementById('welcomeTitle');
       const welcomeSubtitle = document.getElementById('welcomeSubtitle');
       const headerIcon = document.getElementById('headerIcon');
@@ -506,25 +507,14 @@
       function showToast(message, type = 'success') {
         toastMessage.innerText = message;
         toastPopup.className = `toast-popup ${type} show`;
-
-        if (type === 'success') {
-          toastIcon.className = "fa-solid fa-circle-check";
-          toastIcon.style.color = "var(--btn-green)";
-        } else {
-          toastIcon.className = "fa-solid fa-circle-exclamation";
-          toastIcon.style.color = "var(--error-color)";
-        }
-
-        setTimeout(() => { toastPopup.classList.remove('show'); }, 3500);
+        toastIcon.className = type === 'success'
+          ? 'fa-solid fa-circle-check'
+          : 'fa-solid fa-circle-exclamation';
+        toastIcon.style.color = type === 'success'
+          ? 'var(--btn-green)'
+          : 'var(--error-color)';
+        setTimeout(() => toastPopup.classList.remove('show'), 3500);
       }
-
-      btnGoogle.addEventListener('click', () => {
-        showToast("Abrindo autenticação do Google...", "success");
-        const width = 500, height = 600;
-        const left = (window.innerWidth - width) / 2;
-        const top = (window.innerHeight - height) / 2;
-        window.open('https://accounts.google.com/signin', 'GoogleLogin', `width=${width},height=${height},top=${top},left=${left}`);
-      });
 
       function switchView(view) {
         loginForm.classList.remove('active');
@@ -533,46 +523,45 @@
 
         if (view === 'login') {
           loginForm.classList.add('active');
-          welcomeTitle.innerText = "Bem-vindo!";
-          welcomeSubtitle.innerText = "Entre na sua conta";
-          headerIcon.className = "fa-solid fa-user";
+          welcomeTitle.innerText = 'Bem-vindo!';
+          welcomeSubtitle.innerText = 'Entre na sua conta';
+          headerIcon.className = 'fa-solid fa-user';
           linkBackBtn.style.display = 'flex';
-          linkBackBtn.innerHTML = `<i class="fa-solid fa-arrow-left"></i> Voltar`;
+          linkBackBtn.innerHTML = '<i class="fa-solid fa-arrow-left"></i> Voltar';
           linkBackBtn.onclick = () => { window.location.href = 'index.html'; };
         } else if (view === 'forgot') {
           forgotForm.classList.add('active');
-          welcomeTitle.innerText = "Recuperação";
-          welcomeSubtitle.innerText = "Informe seu e-mail cadastrado";
-          headerIcon.className = "fa-solid fa-key";
+          welcomeTitle.innerText = 'Recuperação';
+          welcomeSubtitle.innerText = 'Informe seu e-mail cadastrado';
+          headerIcon.className = 'fa-solid fa-key';
           linkBackBtn.style.display = 'flex';
-          linkBackBtn.innerHTML = `<i class="fa-solid fa-arrow-left"></i> Voltar ao Login`;
+          linkBackBtn.innerHTML = '<i class="fa-solid fa-arrow-left"></i> Voltar ao Login';
           linkBackBtn.onclick = () => switchView('login');
-        } else if (view === 'reset') {
+        } else {
           resetForm.classList.add('active');
-          welcomeTitle.innerText = "Código & Senha";
-          welcomeSubtitle.innerText = "Insira o código enviado e sua nova senha";
-          headerIcon.className = "fa-solid fa-lock-open";
+          welcomeTitle.innerText = 'Código & Senha';
+          welcomeSubtitle.innerText = 'Insira o código enviado e sua nova senha';
+          headerIcon.className = 'fa-solid fa-lock-open';
           linkBackBtn.style.display = 'flex';
-          linkBackBtn.innerHTML = `<i class="fa-solid fa-arrow-left"></i> Voltar ao Login`;
+          linkBackBtn.innerHTML = '<i class="fa-solid fa-arrow-left"></i> Voltar ao Login';
           linkBackBtn.onclick = () => switchView('login');
         }
       }
 
-      linkBackBtn.onclick = () => { window.location.href = 'index.html'; };
+      switchView('login');
       forgotPasswordBtn.addEventListener('click', () => switchView('forgot'));
 
       function setupTogglePassword(inputId, btnId, iconId) {
         const input = document.getElementById(inputId);
-        const btn = document.getElementById(btnId);
+        const button = document.getElementById(btnId);
         const icon = document.getElementById(iconId);
-        if (btn && input && icon) {
-          btn.addEventListener('click', () => {
-            const isPassword = input.getAttribute('type') === 'password';
-            input.setAttribute('type', isPassword ? 'text' : 'password');
-            icon.classList.toggle('fa-eye-slash', !isPassword);
-            icon.classList.toggle('fa-eye', isPassword);
-          });
-        }
+        if (!input || !button || !icon) return;
+        button.addEventListener('click', () => {
+          const showing = input.type === 'text';
+          input.type = showing ? 'password' : 'text';
+          icon.classList.toggle('fa-eye', showing);
+          icon.classList.toggle('fa-eye-slash', !showing);
+        });
       }
 
       setupTogglePassword('passwordInput', 'togglePassword', 'toggleIcon');
@@ -583,179 +572,172 @@
         return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
       }
 
-      // Login
+      btnGoogle.addEventListener('click', () => {
+        showToast('O login com Google ainda não está integrado ao ID HUB.', 'error');
+      });
+
       loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const emailVal = emailInput.value.trim();
-        const passVal = passwordInput.value.trim();
-        let isValid = true;
+        const email = emailInput.value.trim().toLowerCase();
+        const senha = passwordInput.value;
+        let valid = true;
 
-        if (!emailVal || !isValidEmail(emailVal)) {
+        if (!isValidEmail(email)) {
           emailGroup.classList.add('error');
-          isValid = false;
+          valid = false;
         } else {
           emailGroup.classList.remove('error');
         }
-
-        if (!passVal || passVal.length < 6) {
+        if (senha.length < 6) {
           passwordGroup.classList.add('error');
-          isValid = false;
+          valid = false;
         } else {
           passwordGroup.classList.remove('error');
         }
-
-        if (!isValid) return;
+        if (!valid) return;
 
         btnSubmit.disabled = true;
-        btnSubmit.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>ENTRANDO...</span>`;
+        btnSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i><span>ENTRANDO...</span>';
 
         try {
-          const response = await fetch(`${API_URL}/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: emailVal, senha: passVal, password: passVal })
-          });
+          const data = await apiRequest('/login', 'POST', { email, senha });
+          const usuario = data.usuario;
 
-          const data = await response.json();
-          if (!response.ok) throw new Error(data.error || data.message || 'E-mail ou senha incorretos.');
-
-          localStorage.setItem('perfil', data.perfil);
-          localStorage.setItem('email', data.email);
-          if (data.token) localStorage.setItem('token', data.token);
-
-          if (data.user) {
-            localStorage.setItem('idhub_docente', JSON.stringify({
-              nome: data.user.name || '',
-              email: data.user.email || '',
-              telefone: data.user.phone || '',
-              especialidade: data.user.especialidade || '',
-              foto: data.user.foto || null
-            }));
+          if (!data.token || !usuario) {
+            throw new Error('Resposta de login inválida.');
           }
 
-          showToast("Login realizado com sucesso! Redirecionando...", "success");
+          // O cache de turmas pertence ao usuário que estava autenticado.
+          // Ao entrar com outra conta, ele precisa ser descartado antes de
+          // o painel docente consultar o banco, evitando herança de turmas.
+          const previousOwnerId = localStorage.getItem('idhub_database_owner_id');
+          if (!previousOwnerId || String(previousOwnerId) !== String(usuario.id)) {
+            localStorage.removeItem('idhub_database');
+            localStorage.removeItem('idhub_database_owner_id');
+          }
+
+          localStorage.setItem('token', data.token);
+          localStorage.setItem('perfil', usuario.tipo || 'docente');
+          localStorage.setItem('email', usuario.email || email);
+
+          // O docente.html carrega o perfil por usuário. Não copiamos os
+          // dados cadastrais da conta para o perfil personalizado.
+          localStorage.removeItem('idhub_docente');
+
+          showToast('Login realizado com sucesso!', 'success');
 
           setTimeout(() => {
-            if (data.perfil === 'docente') {
+            if ((usuario.tipo || '').toLowerCase() === 'docente') {
               window.location.href = 'docente.html';
             } else {
-              window.location.href = 'dashboard.html';
+              window.location.href = 'index.html';
             }
-          }, 1500);
-
+          }, 900);
         } catch (error) {
-          showToast(error.message || "Erro ao conectar com o servidor.", "error");
+          console.error('[IDHUB] Login:', error);
+          showToast(error.message || 'E-mail ou senha incorretos.', 'error');
         } finally {
           btnSubmit.disabled = false;
-          btnSubmit.innerHTML = `<i class="fa-solid fa-right-to-bracket"></i> <span>ENTRAR</span>`;
+          btnSubmit.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i><span>ENTRAR</span>';
         }
       });
 
-      // Esqueceu Senha (Envia o código)
       forgotForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const emailVal = forgotEmailInput.value.trim();
-
-        if (!emailVal || !isValidEmail(emailVal)) {
+        const email = forgotEmailInput.value.trim().toLowerCase();
+        if (!isValidEmail(email)) {
           forgotEmailGroup.classList.add('error');
           return;
         }
         forgotEmailGroup.classList.remove('error');
 
         btnForgotSubmit.disabled = true;
-        btnForgotSubmit.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>ENVIANDO...</span>`;
+        btnForgotSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i><span>ENVIANDO...</span>';
 
         try {
-          const response = await fetch(`${API_URL}/forgot-password`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: emailVal })
-          });
-
-          const data = await response.json();
-          if (!response.ok) throw new Error(data.message || 'Erro ao enviar o código de recuperação.');
-
-          showToast(data.message || "Código de recuperação enviado para seu e-mail!", "success");
-          setTimeout(() => { switchView('reset'); }, 1800);
-
+          const data = await apiRequest('/forgot-password', 'POST', { email });
+          showToast(data.mensagem || 'Código enviado para seu e-mail!', 'success');
+          setTimeout(() => switchView('reset'), 1200);
         } catch (error) {
-          showToast(error.message || "Erro ao conectar com o servidor.", "error");
+          showToast(error.message || 'Não foi possível enviar o código.', 'error');
         } finally {
           btnForgotSubmit.disabled = false;
-          btnForgotSubmit.innerHTML = `<i class="fa-solid fa-paper-plane"></i> <span>ENVIAR CÓDIGO DE RECUPERAÇÃO</span>`;
+          btnForgotSubmit.innerHTML = '<i class="fa-solid fa-paper-plane"></i><span>ENVIAR CÓDIGO DE RECUPERAÇÃO</span>';
         }
       });
 
-      // Redefinir Senha (Valida código e atualiza)
       resetForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        let isValid = true;
-        const codeVal = codeInput.value.trim();
-        const newPass = newPasswordInput.value.trim();
-        const confirmPass = confirmPasswordInput.value.trim();
-        const emailVal = forgotEmailInput.value.trim();
+        const email = forgotEmailInput.value.trim().toLowerCase();
+        const codigo = codeInput.value.trim();
+        const novaSenha = newPasswordInput.value;
+        const confirmarSenha = confirmPasswordInput.value;
+        let valid = true;
 
-        if (!codeVal || codeVal.length !== 6) {
+        if (!isValidEmail(email)) {
+          forgotEmailGroup.classList.add('error');
+          valid = false;
+        }
+        if (!/^\d{6}$/.test(codigo)) {
           codeGroup.classList.add('error');
-          isValid = false;
+          valid = false;
         } else {
           codeGroup.classList.remove('error');
         }
-
-        if (!newPass || newPass.length < 6) {
+        if (novaSenha.length < 6) {
           newPasswordGroup.classList.add('error');
-          isValid = false;
+          valid = false;
         } else {
           newPasswordGroup.classList.remove('error');
         }
-
-        if (newPass !== confirmPass) {
+        if (novaSenha !== confirmarSenha) {
           confirmPasswordGroup.classList.add('error');
-          isValid = false;
+          valid = false;
         } else {
           confirmPasswordGroup.classList.remove('error');
         }
-
-        if (!isValid) return;
+        if (!valid) return;
 
         btnResetSubmit.disabled = true;
-        btnResetSubmit.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>REDEFININDO...</span>`;
+        btnResetSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i><span>REDEFININDO...</span>';
 
         try {
-          const response = await fetch(`${API_URL}/reset-password`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: emailVal, code: codeVal, password: newPass })
+          const data = await apiRequest('/reset-password', 'POST', {
+            email,
+            codigo,
+            novaSenha
           });
 
-          const data = await response.json();
-          if (!response.ok) throw new Error(data.message || 'Erro ao redefinir a senha.');
-
-          showToast("Senha redefinida com sucesso!", "success");
-
+          showToast(data.mensagem || 'Senha redefinida com sucesso!', 'success');
           setTimeout(() => {
-            switchView('login');
             codeInput.value = '';
             newPasswordInput.value = '';
             confirmPasswordInput.value = '';
-            forgotEmailInput.value = '';
-          }, 1800);
-
+            switchView('login');
+          }, 1200);
         } catch (error) {
-          showToast(error.message || "Erro ao conectar com o servidor.", "error");
+          showToast(error.message || 'Não foi possível redefinir a senha.', 'error');
         } finally {
           btnResetSubmit.disabled = false;
-          btnResetSubmit.innerHTML = `<i class="fa-solid fa-check"></i> <span>REDEFINIR SENHA</span>`;
+          btnResetSubmit.innerHTML = '<i class="fa-solid fa-check"></i><span>REDEFINIR SENHA</span>';
         }
       });
 
-      emailInput.addEventListener('input', () => emailGroup.classList.remove('error'));
-      passwordInput.addEventListener('input', () => passwordGroup.classList.remove('error'));
-      forgotEmailInput.addEventListener('input', () => forgotEmailGroup.classList.remove('error'));
-      codeInput.addEventListener('input', () => codeGroup.classList.remove('error'));
-      newPasswordInput.addEventListener('input', () => newPasswordGroup.classList.remove('error'));
-      confirmPasswordInput.addEventListener('input', () => confirmPasswordGroup.classList.remove('error'));
+      [emailInput, passwordInput, forgotEmailInput, codeInput, newPasswordInput, confirmPasswordInput]
+        .forEach((input) => input.addEventListener('input', () => {
+          const map = {
+            emailInput: emailGroup,
+            passwordInput: passwordGroup,
+            forgotEmailInput: forgotEmailGroup,
+            codeInput: codeGroup,
+            newPasswordInput: newPasswordGroup,
+            confirmPasswordInput: confirmPasswordGroup
+          };
+          map[input.id]?.classList.remove('error');
+        }));
     });
-  </script>
+
+</script>
+
 </body>
 </html>

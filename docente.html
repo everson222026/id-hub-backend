@@ -529,26 +529,26 @@
     <input type="file" id="profilePhotoInput" accept="image/*" style="display: none;">
     
     <div class="profile-info-header">
-      <h1 id="displayProfileName">Insira seu Nome</h1>
-      <p id="displayProfileSpec">Especialidade / Cargo</p>
+      <h1 id="displayProfileName"></h1>
+      <p id="displayProfileSpec"></p>
     </div>
 
     <div class="info-grid" id="infoGrid">
       <div class="info-item">
         <div class="info-label">Nome Completo</div>
-        <input type="text" class="info-value profile-info-value" id="inputProfileName" placeholder="Seu Nome Completo" disabled>
+        <input type="text" class="info-value profile-info-value" id="inputProfileName" placeholder="" disabled>
       </div>
       <div class="info-item">
         <div class="info-label">E-mail Institucional</div>
-        <input type="email" class="info-value profile-info-value" id="inputProfileEmail" placeholder="seu.email@escola.com" disabled>
+        <input type="email" class="info-value profile-info-value" id="inputProfileEmail" placeholder="" disabled>
       </div>
       <div class="info-item">
         <div class="info-label">Telefone / WhatsApp</div>
-        <input type="tel" class="info-value profile-info-value" id="inputProfilePhone" placeholder="(00) 00000-0000" oninput="handlePhoneMask(event)" maxlength="15" disabled>
+        <input type="tel" class="info-value profile-info-value" id="inputProfilePhone" placeholder="" oninput="handlePhoneMask(event)" maxlength="15" disabled>
       </div>
       <div class="info-item">
         <div class="info-label">Especialidade</div>
-        <input type="text" class="info-value profile-info-value" id="inputProfileSpec" placeholder="Sua Especialidade" disabled>
+        <input type="text" class="info-value profile-info-value" id="inputProfileSpec" placeholder="" disabled>
       </div>
     </div>
 
@@ -583,9 +583,9 @@
           <div class="input-wrapper">
             <i class="fa-solid fa-list-ol input-icon"></i>
             <select id="classPeriodTypeInput" class="custom-select">
-              <option value="4_bimestres">4 Bimestres</option>
-              <option value="2_semestres">2 Semestres</option>
-              <option value="3_trimestres">3 Trimestres</option>
+              <option value="bimestre">Bimestre</option>
+              <option value="semestre">Semestre</option>
+              <option value="trimestre">Trimestre</option>
             </select>
           </div>
         </div>
@@ -665,7 +665,7 @@
           <label class="field-label"><i class="fa-solid fa-phone"></i> Telefone</label>
           <div class="input-wrapper">
             <i class="fa-solid fa-phone input-icon"></i>
-            <input type="tel" id="studentPhoneInput" class="custom-input" placeholder="(00) 00000-0000" oninput="handlePhoneMask(event)" maxlength="15">
+            <input type="tel" id="studentPhoneInput" class="custom-input" placeholder="" oninput="handlePhoneMask(event)" maxlength="15">
           </div>
         </div>
         <div class="input-group" id="student-emailGroup">
@@ -731,7 +731,7 @@
           <label class="field-label">Telefone</label>
           <div class="input-wrapper">
             <i class="fa-solid fa-phone input-icon"></i>
-            <input type="tel" id="editPhone" class="custom-input" placeholder="(00) 00000-0000" oninput="handlePhoneMask(event)" maxlength="15">
+            <input type="tel" id="editPhone" class="custom-input" placeholder="" oninput="handlePhoneMask(event)" maxlength="15">
           </div>
         </div>
         <div class="input-group" id="edit-emailGroup">
@@ -767,81 +767,89 @@
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script src="https://npmcdn.com/flatpickr/dist/l10n/pt.js"></script>
   <script>
+
     // BASE DE DADOS GLOBAL
     let database = JSON.parse(localStorage.getItem('idhub_database')) || [];
+    let activeTurmaIndex = 0;
+    let activeAlunoIndex = 0;
+    let currentAddPhotoBase64 = null;
+    let currentEditPhotoBase64 = null;
 
     function ensureIds() {
       database.forEach((t, ti) => {
-        if (!t.id) t.id = 'turma_' + (Date.now() + ti);
-        if (t.alunos) {
-          t.alunos.forEach((a, ai) => {
-            if (!a.id) a.id = 'aluno_' + (Date.now() + (ti * 100) + ai);
-          });
-        }
+        if (!t.id) t.id = `turma_${Date.now()}_${ti}`;
+        // O arquivo de notas recebe os IDs pela URL como texto.
+        // Mantemos os IDs como string também no localStorage para evitar
+        // a comparação estrita (number !== string) ao abrir Notas & Ativ.
+        t.id = String(t.id);
+
+        if (!Array.isArray(t.alunos)) t.alunos = [];
+        t.alunos.forEach((a, ai) => {
+          if (!a.id) a.id = `aluno_${Date.now()}_${ti}_${ai}`;
+          a.id = String(a.id);
+        });
       });
-    }
-
-    async function apiRequest(endpoint, method = 'GET', body = null) {
-      const token = localStorage.getItem('token');
-      if (!token && endpoint !== '/health') {
-        throw new Error('Sessão expirada. Faça login novamente.');
-      }
-
-      const headers = { 'Content-Type': 'application/json' };
-      if (token) headers.Authorization = `Bearer ${token}`;
-
-      const options = { method, headers };
-      if (body !== null && body !== undefined && !['GET', 'HEAD'].includes(method.toUpperCase())) {
-        options.body = JSON.stringify(body);
-      }
-
-      const res = await fetch(`${API_URL}${endpoint}`, options);
-      const contentType = res.headers.get('content-type') || '';
-      const data = contentType.includes('application/json') ? await res.json() : { message: await res.text() };
-
-      if (!res.ok) {
-        if (res.status === 401) {
-          localStorage.removeItem('token');
-          localStorage.removeItem('perfil');
-          localStorage.removeItem('email');
-          localStorage.removeItem('idhub_docente');
-        }
-        throw new Error(data.error || data.message || `Erro HTTP ${res.status}`);
-      }
-
-      return data;
     }
 
     async function loadTurmas() {
       try {
-        const apiTurmas = await apiRequest('/turmas');
-        if (Array.isArray(apiTurmas)) {
-          // Migra automaticamente as turmas antigas que ainda estavam somente no navegador.
-          if (apiTurmas.length === 0 && database.length > 0) {
-            ensureIds();
-            const migrated = await apiRequest('/turmas', 'POST', { turmas: database, replaceAll: true });
-            database = Array.isArray(migrated.turmas) ? migrated.turmas : [];
-          } else {
-            database = apiTurmas;
-          }
-          localStorage.setItem('idhub_database', JSON.stringify(database));
+        const me = JSON.parse(localStorage.getItem('idhub_docente') || '{}');
+        const ownerId = localStorage.getItem('idhub_database_owner_id');
+
+        // Evita misturar os dados locais de outra conta.
+        if (ownerId && me.id && String(ownerId) !== String(me.id)) {
+          database = [];
+          localStorage.removeItem('idhub_database');
         }
+
+        let response = await apiRequest('/turmas');
+        let apiTurmas = Array.isArray(response) ? response : (response?.turmas || []);
+        apiTurmas = Array.isArray(apiTurmas) ? apiTurmas : [];
+
+        // Normaliza IDs vindos do PostgreSQL antes de salvar no localStorage.
+        apiTurmas.forEach((turma) => {
+          if (turma && turma.id != null) turma.id = String(turma.id);
+          if (turma && Array.isArray(turma.alunos)) {
+            turma.alunos.forEach((aluno) => {
+              if (aluno && aluno.id != null) aluno.id = String(aluno.id);
+            });
+          }
+        });
+
+        // Migração única de turmas antigas que existiam somente no navegador.
+        if (apiTurmas.length === 0 && database.length > 0) {
+          ensureIds();
+          const migrated = await apiRequest('/turmas', 'POST', {
+            turmas: database,
+            replaceAll: true
+          });
+          apiTurmas = Array.isArray(migrated?.turmas) ? migrated.turmas : [];
+          apiTurmas.forEach((turma) => {
+            if (turma && turma.id != null) turma.id = String(turma.id);
+            if (turma && Array.isArray(turma.alunos)) {
+              turma.alunos.forEach((aluno) => {
+                if (aluno && aluno.id != null) aluno.id = String(aluno.id);
+              });
+            }
+          });
+        }
+
+        database = apiTurmas;
+        ensureIds();
+        localStorage.setItem('idhub_database', JSON.stringify(database));
+        if (me.id) localStorage.setItem('idhub_database_owner_id', String(me.id));
       } catch (err) {
         console.error('Erro ao carregar turmas:', err);
         showToast(err.message || 'Não foi possível conectar ao banco de dados.');
       }
 
-      ensureIds();
       if (activeTurmaIndex >= database.length) activeTurmaIndex = 0;
-      if (database[activeTurmaIndex] && activeAlunoIndex >= (database[activeTurmaIndex].alunos || []).length) activeAlunoIndex = 0;
+      if (database[activeTurmaIndex] && activeAlunoIndex >= (database[activeTurmaIndex].alunos || []).length) {
+        activeAlunoIndex = 0;
+      }
       renderTurmas();
       renderAlunos();
     }
-
-    let activeTurmaIndex = 0;
-    let activeAlunoIndex = 0;
-    let currentAddPhotoBase64 = null;
-    let currentEditPhotoBase64 = null;
 
     const classesListContainer = document.getElementById('classesList');
     const studentsListContainer = document.getElementById('studentsList');
@@ -858,6 +866,24 @@
     const btnAdicionarAlunoLista = document.getElementById('btnAdicionarAlunoLista');
     const btnOpenNotes = document.getElementById('btnOpenNotes');
     const btnOpenAttendance = document.getElementById('btnOpenAttendance');
+
+    btnOpenNotes.addEventListener('click', (event) => {
+      const turma = database[activeTurmaIndex];
+      const aluno = turma && Array.isArray(turma.alunos) ? turma.alunos[activeAlunoIndex] : null;
+
+      if (!turma || !aluno || turma.id == null || aluno.id == null) {
+        event.preventDefault();
+        showToast('Selecione um aluno antes de abrir Notas & Ativ.');
+        return;
+      }
+
+      // Garante que a página seguinte encontre exatamente a turma e o aluno.
+      ensureIds();
+      localStorage.setItem('idhub_database', JSON.stringify(database));
+
+      btnOpenNotes.href =
+        `./notas-atividades-docente.html?turmaId=${encodeURIComponent(String(turma.id))}&alunoId=${encodeURIComponent(String(aluno.id))}`;
+    });
 
     function showToast(message) {
       const toast = document.getElementById('toastMsgGeneral');
@@ -905,25 +931,80 @@
       localStorage.removeItem('email');
       localStorage.removeItem('idhub_docente');
       localStorage.removeItem('idhub_database');
+      localStorage.removeItem('idhub_database_owner_id');
       window.location.href = 'index.html';
     }
 
     let isEditingProfile = false;
     let profilePhotoBase64 = null;
 
-    function openProfileView() {
-      const docente = JSON.parse(localStorage.getItem('idhub_docente')) || {};
-      
-      document.getElementById('inputProfileName').value = docente.nome || '';
-      document.getElementById('inputProfileEmail').value = docente.email || '';
-      document.getElementById('inputProfilePhone').value = docente.telefone || '';
-      document.getElementById('inputProfileSpec').value = docente.especialidade || '';
+    function getCurrentUserId() {
+      const storedId = localStorage.getItem('idhub_database_owner_id');
+      return storedId ? String(storedId) : '';
+    }
 
-      document.getElementById('displayProfileName').textContent = docente.nome || 'Nome do Docente';
-      document.getElementById('displayProfileSpec').textContent = docente.especialidade || 'Especialidade / Cargo';
+    function getProfileStorageKey() {
+      const userId = getCurrentUserId();
+      return userId ? `idhub_docente_profile_${userId}` : null;
+    }
+
+    function getEmptyProfile() {
+      return {
+        id: getCurrentUserId() || null,
+        nome: '',
+        email: '',
+        telefone: '',
+        especialidade: '',
+        foto: null
+      };
+    }
+
+    function getCurrentProfile() {
+      const key = getProfileStorageKey();
+      if (!key) return getEmptyProfile();
+
+      try {
+        const stored = JSON.parse(localStorage.getItem(key) || 'null');
+        if (!stored || typeof stored !== 'object') return getEmptyProfile();
+
+        return {
+          id: getCurrentUserId() || stored.id || null,
+          nome: typeof stored.nome === 'string' ? stored.nome : '',
+          email: typeof stored.email === 'string' ? stored.email : '',
+          telefone: typeof stored.telefone === 'string' ? stored.telefone : '',
+          especialidade: typeof stored.especialidade === 'string' ? stored.especialidade : '',
+          foto: stored.foto || null
+        };
+      } catch {
+        return getEmptyProfile();
+      }
+    }
+
+    function saveCurrentProfile(profile) {
+      const key = getProfileStorageKey();
+      if (!key) return;
+
+      localStorage.setItem(key, JSON.stringify(profile));
+      // Mantém esta cópia apenas para compatibilidade com funções antigas da página.
+      localStorage.setItem('idhub_docente', JSON.stringify(profile));
+    }
+
+    function openProfileView() {
+      // O perfil é independente dos dados usados no cadastro/login.
+      // Uma conta nova não herda informações de outra conta.
+      const docente = getCurrentProfile();
+
+      document.getElementById('inputProfileName').value = docente.nome;
+      document.getElementById('inputProfileEmail').value = docente.email;
+      document.getElementById('inputProfilePhone').value = docente.telefone;
+      document.getElementById('inputProfileSpec').value = docente.especialidade;
+
+      document.getElementById('displayProfileName').textContent = docente.nome;
+      document.getElementById('displayProfileSpec').textContent = docente.especialidade;
+
+      profilePhotoBase64 = docente.foto || null;
 
       if (docente.foto) {
-        profilePhotoBase64 = docente.foto;
         document.getElementById('profileAvatarContent').innerHTML = `<img src="${docente.foto}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" alt="Foto Perfil">`;
       } else {
         document.getElementById('profileAvatarContent').innerHTML = `<i class="fa-solid fa-chalkboard-user"></i>`;
@@ -955,11 +1036,13 @@
       }
     });
 
-    function toggleEditProfile() {
+    async function toggleEditProfile() {
       if (isEditingProfile) {
-        saveDocenteProfile();
+        await saveDocenteProfile();
+        isEditingProfile = false;
+      } else {
+        isEditingProfile = true;
       }
-      isEditingProfile = !isEditingProfile;
       updateProfileEditState();
     }
 
@@ -981,68 +1064,36 @@
     }
 
     async function saveDocenteProfile() {
-      const docente = {
+      const perfilAtual = {
+        id: getCurrentUserId() || null,
         nome: document.getElementById('inputProfileName').value.trim(),
-        email: document.getElementById('inputProfileEmail').value.trim(),
+        email: document.getElementById('inputProfileEmail').value.trim().toLowerCase(),
         telefone: document.getElementById('inputProfilePhone').value.trim(),
         especialidade: document.getElementById('inputProfileSpec').value.trim(),
-        foto: profilePhotoBase64
+        foto: profilePhotoBase64 || null
       };
 
-      const result = await apiRequest('/me', 'PATCH', {
-        name: docente.nome,
-        email: docente.email,
-        phone: docente.telefone,
-        especialidade: docente.especialidade,
-        foto: docente.foto
-      });
-
-      if (result.token) localStorage.setItem('token', result.token);
-      if (result.user) {
-        localStorage.setItem('idhub_docente', JSON.stringify({
-          nome: result.user.name,
-          email: result.user.email,
-          telefone: result.user.phone,
-          especialidade: result.user.especialidade,
-          foto: result.user.foto
-        }));
-      } else {
-        localStorage.setItem('idhub_docente', JSON.stringify(docente));
-      }
-
-      const docenteAtual = result.user || {
-        name: docente.nome, email: docente.email, phone: docente.telefone,
-        especialidade: docente.especialidade, foto: docente.foto
-      };
+      // O perfil é salvo por ID de usuário.
+      // Assim os dados de uma conta nunca são reutilizados por outra.
+      saveCurrentProfile(perfilAtual);
 
       database.forEach(turma => {
-        turma.professorNome = docenteAtual.name || 'Professor não informado';
-        turma.professorFoto = docenteAtual.foto || null;
+        turma.professorNome = perfilAtual.nome;
+        turma.professorFoto = perfilAtual.foto;
       });
-      await saveDatabase();
 
-      document.getElementById('displayProfileName').textContent = docenteAtual.name || 'Nome do Docente';
-      document.getElementById('displayProfileSpec').textContent = docenteAtual.especialidade || 'Especialidade / Cargo';
+      // O perfil é salvo por usuário e não depende do salvamento pesado
+      // de toda a árvore de turmas/alunos.
+      localStorage.setItem('idhub_database', JSON.stringify(database));
+
+      document.getElementById('displayProfileName').textContent = perfilAtual.nome;
+      document.getElementById('displayProfileSpec').textContent = perfilAtual.especialidade;
       loadDocenteHeader();
       renderTurmas();
       if (database.length > 0) renderAlunos();
       showToast('Alterações do perfil salvas!');
     }
 
-    async function saveDatabase() {
-      ensureIds();
-      const result = await apiRequest('/turmas', 'POST', {
-        turmas: database,
-        replaceAll: true
-      });
-
-      if (Array.isArray(result.turmas)) {
-        database = result.turmas;
-      }
-      localStorage.setItem('idhub_database', JSON.stringify(database));
-      return result;
-    }
-    
     function handlePhoneMask(event) { event.target.value = phoneMask(event.target.value); }
     function phoneMask(value) { if (!value) return ""; value = value.replace(/\D/g, ''); if (value.length > 11) value = value.slice(0, 11); value = value.replace(/(\d{2})(\d)/, "($1) $2"); value = value.replace(/(\d)(\d{4})$/, "$1-$2"); return value; }
     function isValidEmail(email) { if (!email) return true; return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email); }
@@ -1062,19 +1113,54 @@
       const turma = database[activeTurmaIndex];
       if (!turma || !turma.alunos || turma.alunos.length === 0) return;
       const aluno = turma.alunos[activeAlunoIndex];
+      if (!aluno) return;
+
       showConfirmModal("Excluir Aluno", `Deseja realmente excluir o(a) aluno(a) "${aluno.nome}"?`, async () => {
-        turma.alunos.splice(activeAlunoIndex, 1);
-        if (activeAlunoIndex >= turma.alunos.length) activeAlunoIndex = Math.max(0, turma.alunos.length - 1);
-        await saveDatabase(); renderAlunos(); renderTurmas();
+        try {
+          const alunoId = aluno.id;
+          await apiRequest(`/alunos/${encodeURIComponent(alunoId)}`, 'DELETE');
+
+          const turmasResponse = await apiRequest('/turmas');
+          database = Array.isArray(turmasResponse)
+            ? turmasResponse
+            : (Array.isArray(turmasResponse?.turmas) ? turmasResponse.turmas : []);
+          ensureIds();
+
+          const turmaIndex = database.findIndex(
+            (item) => String(item.id) === String(turma.id)
+          );
+          activeTurmaIndex = turmaIndex >= 0 ? turmaIndex : 0;
+          const alunos = database[activeTurmaIndex]?.alunos || [];
+          activeAlunoIndex = Math.max(0, Math.min(activeAlunoIndex, alunos.length - 1));
+
+          localStorage.setItem('idhub_database', JSON.stringify(database));
+          renderAlunos();
+          renderTurmas();
+          showToast('Aluno excluído com sucesso!');
+        } catch (error) {
+          showToast(error.message || 'Não foi possível excluir o aluno.', true);
+        }
       });
     }
 
     function confirmDeleteClass() {
       const turma = database[activeTurmaIndex];
       if (!turma) return;
+
       showConfirmModal("Excluir Turma", `Deseja realmente excluir a turma "${turma.nome}" e todos os alunos nela?`, async () => {
-        database.splice(activeTurmaIndex, 1); activeTurmaIndex = 0; activeAlunoIndex = 0;
-        await saveDatabase(); renderTurmas(); renderAlunos();
+        try {
+          const response = await apiRequest(`/turmas/${encodeURIComponent(turma.id)}`, 'DELETE');
+          database = Array.isArray(response.turmas) ? response.turmas : database.filter((item) => String(item.id) !== String(turma.id));
+          activeTurmaIndex = 0;
+          activeAlunoIndex = 0;
+
+          localStorage.setItem('idhub_database', JSON.stringify(database));
+          renderTurmas();
+          renderAlunos();
+          showToast('Turma excluída com sucesso!');
+        } catch (error) {
+          showToast(error.message || 'Não foi possível excluir a turma.', true);
+        }
       });
     }
 
@@ -1103,7 +1189,16 @@
     function switchView(viewId) {
       document.querySelectorAll('main').forEach(el => el.classList.add('d-none'));
       document.getElementById(viewId).classList.remove('d-none');
-      if (viewId === 'view-add-student' && database.length > 0) document.getElementById('lblTurmaDestino').innerText = database[activeTurmaIndex].nome;
+      if (viewId === 'view-add-student') {
+        const turmaDestino = database[activeTurmaIndex];
+        if (!turmaDestino) {
+          showToast('Selecione uma turma antes de adicionar um aluno.', true);
+          document.querySelectorAll('main').forEach(el => el.classList.add('d-none'));
+          document.getElementById('view-dashboard').classList.remove('d-none');
+          return;
+        }
+        document.getElementById('lblTurmaDestino').innerText = turmaDestino.nome;
+      }
     }
 
     function renderTurmas() {
@@ -1183,7 +1278,13 @@
       document.getElementById('studentAddress').innerText = aluno.endereco;
       document.getElementById('studentObs').innerText = aluno.observacoes;
       
-      btnOpenNotes.href = `notas-atividades-docente.html?turmaId=${turma.id}&alunoId=${aluno.id}`;
+      // A tela de notas usa os dados do localStorage e compara os IDs como texto.
+      // Garantimos que o contexto atual esteja salvo antes de abrir a página.
+      turma.id = String(turma.id);
+      aluno.id = String(aluno.id);
+      localStorage.setItem('idhub_database', JSON.stringify(database));
+
+      btnOpenNotes.href = `./notas-atividades-docente.html?turmaId=${encodeURIComponent(turma.id)}&alunoId=${encodeURIComponent(aluno.id)}`;
 
       btnOpenNotes.style.display = 'flex'; 
       btnOpenAttendance.style.display = 'flex'; 
@@ -1209,103 +1310,214 @@
 
     document.getElementById('formAddClass').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const nomeInput = document.getElementById('classNameInput'); 
-      const descInput = document.getElementById('classDescInput'); 
+
+      const form = e.currentTarget;
+      const submitButton = form.querySelector('button[type="submit"]');
+      const nomeInput = document.getElementById('classNameInput');
+      const descInput = document.getElementById('classDescInput');
       const shiftOption = document.querySelector('input[name="classShift"]:checked');
       const periodType = document.getElementById('classPeriodTypeInput').value;
-      const passingGrade = parseFloat(document.getElementById('classPassingGradeInput').value) || 6.0;
+      const passingGradeValue = document.getElementById('classPassingGradeInput').value;
+      const passingGrade = Number.isFinite(Number.parseFloat(passingGradeValue))
+        ? Number.parseFloat(passingGradeValue)
+        : 6;
       const box = document.getElementById('alertClassBox');
 
       let isValid = true;
-      if (!nomeInput.value.trim()) { 
-        document.getElementById('class-nameGroup').classList.add('error'); 
-        isValid = false; 
+      if (!nomeInput.value.trim()) {
+        document.getElementById('class-nameGroup').classList.add('error');
+        isValid = false;
       }
-      if (!shiftOption) { 
-        document.getElementById('class-shiftGroup').classList.add('error'); 
-        isValid = false; 
+      if (!shiftOption) {
+        document.getElementById('class-shiftGroup').classList.add('error');
+        isValid = false;
       }
       if (!isValid) return;
 
-      const docenteInfo = JSON.parse(localStorage.getItem('idhub_docente')) || {};
+      const docenteInfo = getCurrentProfile();
 
-      database.unshift({ 
-        id: 'turma_' + Date.now(), 
-        nome: nomeInput.value.trim().toUpperCase(), 
-        turno: shiftOption.value, 
-        badgeClass: shiftOption.value.toLowerCase(), 
+      const novaTurma = {
+        id: `turma_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        nome: nomeInput.value.trim().toUpperCase(),
+        turno: shiftOption.value,
+        badgeClass: shiftOption.value.toLowerCase(),
         descricao: descInput.value.trim(),
         tipoPeriodo: periodType,
+        qtdPeriodo: periodType === 'semestre' ? 2 : (periodType === 'trimestre' ? 3 : 4),
         mediaAprovacao: passingGrade,
-        professorNome: docenteInfo.nome || "Professor não informado",
+        materias: ["MATEMÁTICA", "PORTUGUÊS", "CIÊNCIAS", "HISTÓRIA"],
+        professorNome: docenteInfo.nome || '',
         professorFoto: docenteInfo.foto || null,
-        alunos: [] 
-      });
+        alunos: []
+      };
 
-      activeTurmaIndex = 0; 
-      activeAlunoIndex = 0; 
-      await saveDatabase();
-      
-      box.className = "alert-box success"; 
-      box.innerText = "Turma criada com sucesso!";
-      
-      setTimeout(() => { 
-        document.getElementById('formAddClass').reset(); 
-        box.style.display = 'none'; 
-        renderTurmas(); 
-        renderAlunos(); 
-        switchView('view-dashboard'); 
-      }, 1000);
+      const originalText = submitButton.innerHTML;
+      submitButton.disabled = true;
+      submitButton.style.opacity = '0.7';
+      submitButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> SALVANDO...';
+      box.className = 'alert-box';
+      box.style.display = 'none';
+
+      try {
+        const response = await apiRequest('/turmas', 'POST', {
+          turmas: [novaTurma],
+          replaceAll: false
+        });
+        if (!response || !Array.isArray(response.turmas)) {
+          throw new Error('O servidor não retornou a turma criada.');
+        }
+
+        database = response.turmas;
+        ensureIds();
+        activeTurmaIndex = Math.max(0, database.findIndex((item) => String(item.id) === String(response.turma?.id)));
+        if (activeTurmaIndex < 0) activeTurmaIndex = 0;
+        activeAlunoIndex = 0;
+
+        localStorage.setItem('idhub_database', JSON.stringify(database));
+        renderTurmas();
+        renderAlunos();
+
+        box.className = 'alert-box success';
+        box.innerText = 'Turma criada com sucesso!';
+        box.style.display = 'block';
+
+        setTimeout(() => {
+          form.reset();
+          box.style.display = 'none';
+          switchView('view-dashboard');
+        }, 500);
+      } catch (error) {
+        console.error('[IDHUB] Erro ao criar turma:', error);
+        box.className = 'alert-box error';
+        box.innerText = error.message || 'Não foi possível criar a turma.';
+        box.style.display = 'block';
+      } finally {
+        submitButton.disabled = false;
+        submitButton.style.opacity = '';
+        submitButton.innerHTML = originalText;
+      }
     });
 
     document.getElementById('formAddStudent').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const nomeInput = document.getElementById('studentNameInput'); 
-      const matriculaInput = document.getElementById('studentMatriculaInput'); 
+
+      const form = e.currentTarget;
+      const submitButton = form.querySelector('button[type="submit"]');
+      const turma = database[activeTurmaIndex];
+
+      const nomeInput = document.getElementById('studentNameInput');
+      const matriculaInput = document.getElementById('studentMatriculaInput');
       const birthInput = document.getElementById('addBirthDate');
-      const phoneInput = document.getElementById('studentPhoneInput'); 
-      const emailInput = document.getElementById('studentEmailInput'); 
+      const phoneInput = document.getElementById('studentPhoneInput');
+      const emailInput = document.getElementById('studentEmailInput');
       const box = document.getElementById('alertStudentBox');
-      
+
       let isValid = true;
-      if (!nomeInput.value.trim()) { document.getElementById('student-nameGroup').classList.add('error'); isValid = false; }
-      if (!matriculaInput.value.trim()) { document.getElementById('student-matriculaGroup').classList.add('error'); isValid = false; }
-      if (emailInput.value.trim() && !isValidEmail(emailInput.value.trim())) { document.getElementById('student-emailGroup').classList.add('error'); isValid = false; }
-      if(database.length === 0) { box.className="alert-box error"; box.innerText = "Crie uma turma primeiro."; return; }
+      if (!nomeInput.value.trim()) {
+        document.getElementById('student-nameGroup').classList.add('error');
+        isValid = false;
+      }
+      if (!matriculaInput.value.trim()) {
+        document.getElementById('student-matriculaGroup').classList.add('error');
+        isValid = false;
+      }
+      if (emailInput.value.trim() && !isValidEmail(emailInput.value.trim())) {
+        document.getElementById('student-emailGroup').classList.add('error');
+        isValid = false;
+      }
+      if (!turma) {
+        box.className = 'alert-box error';
+        box.innerText = 'Selecione ou crie uma turma primeiro.';
+        box.style.display = 'block';
+        return;
+      }
       if (!isValid) return;
 
       const novoAluno = {
-        id: 'aluno_' + Date.now(),
+        id: `aluno_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
         nome: nomeInput.value.trim().toUpperCase(),
         matricula: matriculaInput.value.trim(),
-        nascimento: birthInput.value.trim() || "Não informado", 
-        telefone: phoneInput.value.trim() || "Não informado", 
-        email: emailInput.value.trim() || "Não informado",
-        endereco: "Não informado", 
-        observacoes: "",
-        foto: currentAddPhotoBase64 || "https://via.placeholder.com/150",
+        nascimento: birthInput.value.trim() || '',
+        telefone: phoneInput.value.trim() || '',
+        email: emailInput.value.trim() || '',
+        endereco: '',
+        observacoes: '',
+        foto: currentAddPhotoBase64 || null,
         faltas: 0,
         historicoFrequencia: {},
         notas: {},
         atividades: []
       };
 
-      if (!database[activeTurmaIndex].alunos) database[activeTurmaIndex].alunos = [];
-      database[activeTurmaIndex].alunos.push(novoAluno); 
-      activeAlunoIndex = database[activeTurmaIndex].alunos.length - 1; 
-      await saveDatabase();
-      
-      box.className = "alert-box success"; 
-      box.innerText = "Aluno adicionado com sucesso!";
-      
-      setTimeout(() => { 
-        document.getElementById('formAddStudent').reset(); 
-        currentAddPhotoBase64 = null; 
-        box.style.display = 'none'; 
-        renderAlunos(); 
-        renderTurmas(); 
-        switchView('view-dashboard'); 
-      }, 1000);
+      const originalText = submitButton.innerHTML;
+      submitButton.disabled = true;
+      submitButton.style.opacity = '0.7';
+      submitButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> ADICIONANDO...';
+      box.className = 'alert-box';
+      box.style.display = 'none';
+
+      try {
+        // Para alunos usamos a rota específica do backend.
+        // Assim a inclusão é atômica e não depende da sincronização
+        // da turma inteira. O Neon devolve o aluno com o client_id
+        // definitivo, e em seguida recarregamos a turma do servidor.
+        const response = await apiRequest(
+          `/turmas/${encodeURIComponent(turma.id)}/alunos`,
+          'POST',
+          novoAluno
+        );
+
+        if (!response?.aluno) {
+          throw new Error('O servidor não confirmou o cadastro do aluno.');
+        }
+
+        const turmasResponse = await apiRequest('/turmas');
+        database = Array.isArray(turmasResponse)
+          ? turmasResponse
+          : (Array.isArray(turmasResponse?.turmas) ? turmasResponse.turmas : []);
+
+        ensureIds();
+        const turmaIndex = database.findIndex(
+          (item) => String(item.id) === String(turma.id)
+        );
+        if (turmaIndex === -1) {
+          throw new Error('A turma não foi encontrada após salvar o aluno.');
+        }
+
+        activeTurmaIndex = turmaIndex;
+        const alunoIndex = database[turmaIndex].alunos.findIndex(
+          (item) => String(item.id) === String(response.aluno.id)
+        );
+        if (alunoIndex === -1) {
+          throw new Error('O aluno foi salvo, mas não apareceu na turma retornada pelo servidor.');
+        }
+
+        activeAlunoIndex = alunoIndex;
+        localStorage.setItem('idhub_database', JSON.stringify(database));
+
+        renderAlunos();
+        renderTurmas();
+
+        box.className = 'alert-box success';
+        box.innerText = 'Aluno adicionado com sucesso!';
+        box.style.display = 'block';
+
+        setTimeout(() => {
+          form.reset();
+          currentAddPhotoBase64 = null;
+          box.style.display = 'none';
+          switchView('view-dashboard');
+        }, 500);
+      } catch (error) {
+        console.error('[IDHUB] Erro ao adicionar aluno:', error);
+        box.className = 'alert-box error';
+        box.innerText = error.message || 'Não foi possível adicionar o aluno.';
+        box.style.display = 'block';
+      } finally {
+        submitButton.disabled = false;
+        submitButton.style.opacity = '';
+        submitButton.innerHTML = originalText;
+      }
     });
 
     function openEditStudent() {
@@ -1349,7 +1561,50 @@
       aluno.observacoes = document.getElementById('editObs').value.trim() || "";
       if (currentEditPhotoBase64) aluno.foto = currentEditPhotoBase64;
       
-      await saveDatabase(); 
+      try {
+        const response = await apiRequest(
+          `/alunos/${encodeURIComponent(aluno.id)}`,
+          'PATCH',
+          {
+            nome: aluno.nome,
+            matricula: aluno.matricula,
+            nascimento: aluno.nascimento,
+            telefone: aluno.telefone,
+            email: aluno.email,
+            endereco: aluno.endereco,
+            observacoes: aluno.observacoes,
+            foto: aluno.foto || null
+          }
+        );
+
+        if (!response?.aluno) {
+          throw new Error('O servidor não confirmou a atualização do aluno.');
+        }
+
+        const turmasResponse = await apiRequest('/turmas');
+        database = Array.isArray(turmasResponse)
+          ? turmasResponse
+          : (Array.isArray(turmasResponse?.turmas) ? turmasResponse.turmas : []);
+        ensureIds();
+
+        const turmaIndex = database.findIndex(
+          (item) => String(item.id) === String(turma.id)
+        );
+        if (turmaIndex === -1) throw new Error('A turma não foi encontrada após atualizar o aluno.');
+        activeTurmaIndex = turmaIndex;
+
+        const novoIndice = database[turmaIndex].alunos.findIndex(
+          (item) => String(item.id) === String(response.aluno.id)
+        );
+        if (novoIndice === -1) throw new Error('O aluno atualizado não apareceu na turma.');
+        activeAlunoIndex = novoIndice;
+
+        localStorage.setItem('idhub_database', JSON.stringify(database));
+      } catch (error) {
+        showToast(error.message || 'Não foi possível atualizar o aluno.', true);
+        return;
+      }
+
       const box = document.getElementById('alertEditBox'); 
       box.innerText = "Informações atualizadas com sucesso!"; 
       box.style.display = 'block';
@@ -1442,30 +1697,74 @@
     document.getElementById('btnLaunch').addEventListener('click', async () => {
       const turma = database[activeTurmaIndex];
       const dataSel = document.getElementById('attendanceDate').value;
-      if (!turma || !turma.alunos) return;
+      const button = document.getElementById('btnLaunch');
 
-      const checkboxes = document.querySelectorAll('#listFreqContainer .presence-checkbox');
-      checkboxes.forEach(chk => {
-        const aId = chk.getAttribute('data-alunoid');
-        const aluno = turma.alunos.find(a => a.id === aId);
-        if (aluno) {
+      if (!turma || !Array.isArray(turma.alunos) || !turma.alunos.length) return;
+      if (!dataSel) {
+        showToast('Selecione uma data para lançar a frequência.', true);
+        return;
+      }
+
+      const checkboxes = Array.from(document.querySelectorAll('#listFreqContainer .presence-checkbox'));
+      const registros = checkboxes.map((chk) => ({
+        alunoId: chk.getAttribute('data-alunoid'),
+        presente: chk.checked
+      }));
+
+      const originalText = button.innerHTML;
+      button.disabled = true;
+      button.style.opacity = '0.7';
+      button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i><span>SALVANDO...</span>';
+
+      try {
+        // Atualiza imediatamente o estado local para a interface não perder o lançamento.
+        registros.forEach((registro) => {
+          const aluno = turma.alunos.find(
+            (item) => String(item.id) === String(registro.alunoId)
+          );
+          if (!aluno) return;
           if (!aluno.historicoFrequencia) aluno.historicoFrequencia = {};
-          const eraPresente = aluno.historicoFrequencia[dataSel];
-          const estaChecked = chk.checked;
+          aluno.historicoFrequencia[dataSel] = Boolean(registro.presente);
+        });
+        localStorage.setItem('idhub_database', JSON.stringify(database));
 
-          aluno.historicoFrequencia[dataSel] = estaChecked;
+        const response = await apiRequest(
+          `/turmas/${encodeURIComponent(turma.id)}/frequencia`,
+          'POST',
+          { data: dataSel, registros }
+        );
 
-          // Ajusta contagem total de faltas no perfil do aluno
-          if (eraPresente === false && estaChecked) {
-            aluno.faltas = Math.max(0, (aluno.faltas || 0) - 1);
-          } else if ((eraPresente === true || eraPresente === undefined) && !estaChecked) {
-            aluno.faltas = (aluno.faltas || 0) + 1;
-          }
+        if (!Array.isArray(response?.registros)) {
+          throw new Error('O servidor não confirmou o lançamento da frequência.');
         }
-      });
 
-      await saveDatabase();
-      showToast("Frequência lançada com sucesso!");
+        // O backend devolve o total atualizado de faltas de cada aluno.
+        response.registros.forEach((item) => {
+          const aluno = turma.alunos.find(
+            (a) => String(a.id) === String(item.alunoId)
+          );
+          if (!aluno) return;
+          if (!aluno.historicoFrequencia) aluno.historicoFrequencia = {};
+          aluno.historicoFrequencia[dataSel] = Boolean(item.presente);
+          aluno.faltas = Number(item.faltas || 0);
+        });
+
+        localStorage.setItem('idhub_database', JSON.stringify(database));
+        renderFreqList();
+        showToast('Frequência lançada com sucesso!');
+      } catch (error) {
+        // O lançamento local permanece disponível, mas deixamos claro que o
+        // servidor não confirmou o salvamento.
+        localStorage.setItem('idhub_database', JSON.stringify(database));
+        showToast(
+          `${error.message || 'Não foi possível salvar a frequência.'} Os dados ficaram salvos localmente.`,
+          true
+        );
+      } finally {
+        button.disabled = false;
+        button.style.opacity = '';
+        button.innerHTML = originalText;
+      }
     });
 
     function renderFaltasContainer() {
@@ -1518,8 +1817,30 @@
           const aluno = turma.alunos.find(a => a.id === aId);
           if (aluno) aluno.faltas = parseInt(inp.value) || 0;
         });
-        await saveDatabase();
-        showToast("Faltas atualizadas com sucesso!");
+        try {
+          const registros = Array.from(document.querySelectorAll('#listFaltasContainer .absence-input')).map((inp) => ({
+            alunoId: inp.getAttribute('data-alunoid'),
+            faltas: Math.max(0, parseInt(inp.value, 10) || 0)
+          }));
+
+          const response = await apiRequest(
+            `/turmas/${encodeURIComponent(turma.id)}/faltas`,
+            'PATCH',
+            { faltas: registros }
+          );
+
+          if (Array.isArray(response.faltas)) {
+            response.faltas.forEach((item) => {
+              const aluno = turma.alunos.find((a) => String(a.id) === String(item.alunoId));
+              if (aluno) aluno.faltas = Number(item.faltas || 0);
+            });
+          }
+
+          localStorage.setItem('idhub_database', JSON.stringify(database));
+          showToast("Faltas atualizadas com sucesso!");
+        } catch (error) {
+          showToast(error.message || "Não foi possível atualizar as faltas.", true);
+        }
       }
     });
 
@@ -1644,20 +1965,60 @@
       }
 
       try {
-        const me = await apiRequest('/me');
-        if (me.user) {
+        const meResponse = await apiRequest('/me');
+        const me = meResponse.usuario;
+        if (!me) throw new Error('Sessão inválida.');
+
+        const previousOwner = localStorage.getItem('idhub_database_owner_id');
+        if (previousOwner && String(previousOwner) !== String(me.id)) {
+          database = [];
+          localStorage.removeItem('idhub_database');
+        }
+
+        // O ID da conta serve para separar os dados de cada usuário.
+        // Não copiamos nome, e-mail ou outros dados cadastrais para o perfil.
+        localStorage.setItem('idhub_database_owner_id', String(me.id));
+        localStorage.setItem('perfil', me.tipo || 'docente');
+        localStorage.setItem('email', me.email || '');
+
+        const profileKey = `idhub_docente_profile_${me.id}`;
+        const existingProfile = localStorage.getItem(profileKey);
+
+        if (existingProfile) {
+          try {
+            const parsedProfile = JSON.parse(existingProfile);
+            localStorage.setItem('idhub_docente', JSON.stringify({
+              id: me.id,
+              nome: typeof parsedProfile.nome === 'string' ? parsedProfile.nome : '',
+              email: typeof parsedProfile.email === 'string' ? parsedProfile.email : '',
+              telefone: typeof parsedProfile.telefone === 'string' ? parsedProfile.telefone : '',
+              especialidade: typeof parsedProfile.especialidade === 'string' ? parsedProfile.especialidade : '',
+              foto: parsedProfile.foto || null
+            }));
+          } catch {
+            localStorage.setItem('idhub_docente', JSON.stringify({
+              id: me.id,
+              nome: '',
+              email: '',
+              telefone: '',
+              especialidade: '',
+              foto: null
+            }));
+          }
+        } else {
+          // Conta nova: perfil completamente vazio.
           localStorage.setItem('idhub_docente', JSON.stringify({
-            nome: me.user.name,
-            email: me.user.email,
-            telefone: me.user.phone,
-            especialidade: me.user.especialidade,
-            foto: me.user.foto
+            id: me.id,
+            nome: '',
+            email: '',
+            telefone: '',
+            especialidade: '',
+            foto: null
           }));
-          localStorage.setItem('perfil', me.user.role);
-          localStorage.setItem('email', me.user.email);
         }
       } catch (error) {
         console.error('Sessão inválida:', error);
+        localStorage.removeItem('token');
         window.location.href = 'login.html';
         return;
       }
@@ -1665,6 +2026,8 @@
       loadDocenteHeader();
       await loadTurmas();
     });
-  </script>
+
+</script>
+
 </body>
 </html>
