@@ -9,7 +9,7 @@
     "db:init": "node init-db.js"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=20"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",
