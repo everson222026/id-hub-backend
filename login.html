@@ -607,19 +607,22 @@
             throw new Error('Resposta de login inválida.');
           }
 
+          // O cache de turmas pertence ao usuário que estava autenticado.
+          // Ao entrar com outra conta, ele precisa ser descartado antes de
+          // o painel docente consultar o banco, evitando herança de turmas.
+          const previousOwnerId = localStorage.getItem('idhub_database_owner_id');
+          if (!previousOwnerId || String(previousOwnerId) !== String(usuario.id)) {
+            localStorage.removeItem('idhub_database');
+            localStorage.removeItem('idhub_database_owner_id');
+          }
+
           localStorage.setItem('token', data.token);
           localStorage.setItem('perfil', usuario.tipo || 'docente');
           localStorage.setItem('email', usuario.email || email);
-          localStorage.setItem('idhub_database_owner_id', String(usuario.id));
 
-          localStorage.setItem('idhub_docente', JSON.stringify({
-            id: usuario.id,
-            nome: usuario.nome || '',
-            email: usuario.email || '',
-            telefone: usuario.telefone || '',
-            especialidade: usuario.especialidade || '',
-            foto: usuario.foto || null
-          }));
+          // O docente.html carrega o perfil por usuário. Não copiamos os
+          // dados cadastrais da conta para o perfil personalizado.
+          localStorage.removeItem('idhub_docente');
 
           showToast('Login realizado com sucesso!', 'success');
 

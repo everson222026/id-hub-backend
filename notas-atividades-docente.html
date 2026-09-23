@@ -312,8 +312,52 @@
 
       async function persistDatabase(message = null) {
         try {
+          if (!turma || !aluno) throw new Error('Turma ou aluno não carregado.');
+
+          const turmaPromise = apiRequest(`/turmas/${encodeURIComponent(turma.id)}`, 'PATCH', {
+            mediaAprovacao: Number.parseFloat(classPassingGradeInput.value) || 6,
+            tipoPeriodo: classPeriodTypeSelect.value,
+            qtdPeriodo: Math.max(1, parseInt(classPeriodCountInput.value, 10) || 4),
+            materias: Array.isArray(turma.materias) ? turma.materias : []
+          });
+
+          const notasPromise = apiRequest(`/alunos/${encodeURIComponent(aluno.id)}/notas`, 'PUT', {
+            notas: aluno.notas
+          });
+
+          const atividadesPromise = apiRequest(`/alunos/${encodeURIComponent(aluno.id)}`, 'PATCH', {
+            atividades: Array.isArray(aluno.atividades) ? aluno.atividades : []
+          });
+
+          const [turmaResponse, notasResponse, alunoResponse] = await Promise.all([
+            turmaPromise,
+            notasPromise,
+            atividadesPromise
+          ]);
+
+          if (turmaResponse?.turma) {
+            Object.assign(turma, turmaResponse.turma);
+          }
+
+          if (Array.isArray(notasResponse?.notas)) {
+            // Mantém o formato que a interface já utiliza.
+            aluno.notas = {};
+            notasResponse.notas.forEach((row) => {
+              const materia = row.materia || row.disciplina;
+              const periodo = row.bimestre || 'B1';
+              if (!materia) return;
+              if (!aluno.notas[materia]) aluno.notas[materia] = {};
+              aluno.notas[materia][periodo] = String(row.valor ?? row.nota ?? '');
+            });
+          }
+
+          if (alunoResponse?.aluno) {
+            aluno.atividades = Array.isArray(alunoResponse.aluno.atividades)
+              ? alunoResponse.aluno.atividades
+              : [];
+          }
+
           localStorage.setItem('idhub_database', JSON.stringify(database));
-          await apiRequest('/turmas', 'POST', { turmas: database, replaceAll: true });
           if (message) showToast(message);
           return true;
         } catch (error) {

@@ -261,6 +261,60 @@ async function getTurmasDoDocente(docenteId) {
   }));
 }
 
+
+async function obterTurmaDoDocente(client, docenteId, identificador) {
+  const valor = normalizarTexto(identificador);
+  const numericId = /^\d+$/.test(valor) ? Number(valor) : null;
+
+  const result = await client.query(
+    `
+      SELECT id, client_id, docente_id
+      FROM turmas
+      WHERE docente_id = $1
+        AND (client_id = $2 OR ($3::int IS NOT NULL AND id = $3))
+      LIMIT 1
+    `,
+    [docenteId, valor, numericId]
+  );
+
+  return result.rows[0] || null;
+}
+
+function serializarAluno(row, extras = {}) {
+  return {
+    id: row.client_id,
+    nome: row.nome,
+    matricula: row.matricula || 'Não informado',
+    nascimento: row.nascimento || 'Não informado',
+    telefone: row.telefone || 'Não informado',
+    email: row.email || 'Não informado',
+    endereco: row.endereco || 'Não informado',
+    observacoes: row.observacoes || '',
+    foto: row.foto || 'https://via.placeholder.com/150',
+    faltas: Number(row.faltas || 0),
+    historicoFrequencia: extras.historicoFrequencia || {},
+    notas: extras.notas || {},
+    atividades: Array.isArray(row.atividades) ? row.atividades : []
+  };
+}
+
+function serializarTurma(row) {
+  return {
+    id: row.client_id,
+    nome: row.nome,
+    turno: row.turno || 'Matutino',
+    badgeClass: row.badge_class || String(row.turno || 'matutino').toLowerCase(),
+    descricao: row.descricao || '',
+    tipoPeriodo: row.tipo_periodo || 'bimestre',
+    qtdPeriodo: Number(row.qtd_periodo || 4),
+    mediaAprovacao: Number(row.media_aprovacao || 6),
+    materias: Array.isArray(row.materias) ? row.materias : [],
+    professorNome: row.professor_nome || '',
+    professorFoto: row.professor_foto || null,
+    alunos: []
+  };
+}
+
 async function obterAlunoDoDocente(client, docenteId, identificador) {
   const valor = normalizarTexto(identificador);
   const numericId = /^\d+$/.test(valor) ? Number(valor) : null;
@@ -692,43 +746,447 @@ app.get('/api/turmas', auth, async (req, res) => {
 
 app.post('/api/turmas', auth, async (req, res) => {
   try {
+    // Mantém o endpoint de sincronização em lote para compatibilidade com
+    // versões antigas do frontend, mas a criação atual usa somente uma turma.
     if (Array.isArray(req.body.turmas)) {
       const turmas = await salvarTurmasDoDocente(req.usuario.id, req.body.turmas);
       return res.status(200).json({ mensagem: 'Dados sincronizados com sucesso.', turmas });
     }
 
-    const atual = await getTurmasDoDocente(req.usuario.id);
-    const novaTurma = {
-      id: clientIdOrNew(null, 'turma'),
-      nome: req.body.nome,
-      turno: req.body.turno || 'Matutino',
-      badgeClass: req.body.badgeClass || String(req.body.turno || 'matutino').toLowerCase(),
-      descricao: req.body.descricao || '',
-      tipoPeriodo: req.body.tipoPeriodo || 'bimestre',
-      qtdPeriodo: req.body.qtdPeriodo || 4,
-      mediaAprovacao: req.body.mediaAprovacao || 6,
-      materias: Array.isArray(req.body.materias) ? req.body.materias : [],
-      professorNome: req.body.professorNome || '',
-      professorFoto: req.body.professorFoto || null,
-      alunos: Array.isArray(req.body.alunos) ? req.body.alunos : []
-    };
-    atual.unshift(novaTurma);
-    const turmas = await salvarTurmasDoDocente(req.usuario.id, atual);
-    return res.status(201).json({ mensagem: 'Turma criada com sucesso.', turma: turmas.find((t) => t.id === novaTurma.id), turmas });
+    const nome = normalizarTexto(req.body.nome);
+    if (!nome) return enviarErro(res, 400, 'Nome da turma é obrigatório.');
+
+    const clientId = clientIdOrNew(req.body.id || req.body.client_id, 'turma');
+    const turno = normalizarTexto(req.body.turno) || 'Matutino';
+    const badgeClass = normalizarTexto(req.body.badgeClass || req.body.badge_class) || turno.toLowerCase();
+    const descricao = normalizarTexto(req.body.descricao) || null;
+    const tipoPeriodo = normalizarTexto(req.body.tipoPeriodo || req.body.tipo_periodo) || 'bimestre';
+    const qtdPeriodo = Math.max(1, Math.trunc(num(req.body.qtdPeriodo ?? req.body.qtd_periodo, 4)) || 4);
+    const mediaAprovacao = num(req.body.mediaAprovacao ?? req.body.media_aprovacao, 6);
+    const materias = Array.isArray(req.body.materias)
+      ? req.body.materias.map(normalizarTexto).filter(Boolean)
+      : [];
+    const professorNome = normalizarTexto(req.body.professorNome || req.body.professor_nome) || null;
+    const professorFoto = req.body.professorFoto || req.body.professor_foto || null;
+
+    const existing = await db.query(
+      `SELECT id, docente_id FROM turmas WHERE client_id = $1 LIMIT 1`,
+      [clientId]
+    );
+
+    let result;
+    if (existing.rows.length) {
+      if (Number(existing.rows[0].docente_id) !== Number(req.usuario.id)) {
+        return enviarErro(res, 409, 'Esta turma pertence a outro docente.');
+      }
+
+      result = await db.query(
+        `
+          UPDATE turmas
+          SET
+            nome = $1,
+            turno = $2,
+            badge_class = $3,
+            descricao = $4,
+            tipo_periodo = $5,
+            qtd_periodo = $6,
+            media_aprovacao = $7,
+            materias = $8::jsonb,
+            professor_nome = $9,
+            professor_foto = $10,
+            professor_id = $11
+          WHERE id = $12
+          RETURNING id, client_id, nome, turno, badge_class, descricao,
+                    tipo_periodo, qtd_periodo, media_aprovacao, materias,
+                    professor_nome, professor_foto, docente_id, created_at
+        `,
+        [
+          nome, turno, badgeClass, descricao, tipoPeriodo, qtdPeriodo,
+          mediaAprovacao, JSON.stringify(materias), professorNome,
+          professorFoto, req.usuario.id, existing.rows[0].id
+        ]
+      );
+    } else {
+      result = await db.query(
+        `
+          INSERT INTO turmas
+            (
+              client_id, nome, turno, badge_class, descricao, tipo_periodo,
+              qtd_periodo, media_aprovacao, materias, professor_nome,
+              professor_foto, docente_id, professor_id
+            )
+          VALUES
+            ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10, $11, $12, $12)
+          RETURNING id, client_id, nome, turno, badge_class, descricao,
+                    tipo_periodo, qtd_periodo, media_aprovacao, materias,
+                    professor_nome, professor_foto, docente_id, created_at
+        `,
+        [
+          clientId, nome, turno, badgeClass, descricao, tipoPeriodo, qtdPeriodo,
+          mediaAprovacao, JSON.stringify(materias), professorNome,
+          professorFoto, req.usuario.id
+        ]
+      );
+    }
+
+    return res.status(existing.rows.length ? 200 : 201).json({
+      mensagem: existing.rows.length ? 'Turma atualizada com sucesso.' : 'Turma criada com sucesso.',
+      turma: serializarTurma(result.rows[0]),
+      turmas: await getTurmasDoDocente(req.usuario.id)
+    });
   } catch (error) {
     console.error('[TURMAS POST]', error);
-    return enviarErro(res, error.status || 500, error.status ? error.message : 'Erro ao salvar turmas.');
+    return enviarErro(res, error.status || 500, error.status ? error.message : 'Erro ao salvar turma.');
+  }
+});
+
+app.patch('/api/turmas/:id', auth, async (req, res) => {
+  try {
+    const turma = await obterTurmaDoDocente(db, req.usuario.id, req.params.id);
+    if (!turma) return enviarErro(res, 404, 'Turma não encontrada.');
+
+    const fields = [];
+    const values = [];
+    let n = 1;
+
+    const map = {
+      nome: 'nome',
+      turno: 'turno',
+      descricao: 'descricao',
+      tipoPeriodo: 'tipo_periodo',
+      qtdPeriodo: 'qtd_periodo',
+      mediaAprovacao: 'media_aprovacao',
+      professorNome: 'professor_nome',
+      professorFoto: 'professor_foto'
+    };
+
+    for (const [bodyKey, column] of Object.entries(map)) {
+      if (Object.prototype.hasOwnProperty.call(req.body, bodyKey)) {
+        let value = req.body[bodyKey];
+        if (['nome', 'turno', 'descricao', 'tipoPeriodo', 'professorNome'].includes(bodyKey)) {
+          value = normalizarTexto(value) || null;
+        } else if (bodyKey === 'qtdPeriodo') {
+          value = Math.max(1, Math.trunc(num(value, 4)) || 4);
+        } else if (bodyKey === 'mediaAprovacao') {
+          value = num(value, 6);
+        }
+        fields.push(`${column} = $${n++}`);
+        values.push(value);
+      }
+    }
+
+    if (Object.prototype.hasOwnProperty.call(req.body, 'badgeClass')) {
+      fields.push(`badge_class = $${n++}`);
+      values.push(normalizarTexto(req.body.badgeClass) || null);
+    }
+
+    if (Object.prototype.hasOwnProperty.call(req.body, 'materias')) {
+      fields.push(`materias = $${n++}::jsonb`);
+      values.push(JSON.stringify(Array.isArray(req.body.materias) ? req.body.materias.map(normalizarTexto).filter(Boolean) : []));
+    }
+
+    if (!fields.length) {
+      return res.json({ turma: (await getTurmasDoDocente(req.usuario.id)).find(t => String(t.id) === String(req.params.id)) || null });
+    }
+
+    values.push(turma.id);
+    const result = await db.query(
+      `
+        UPDATE turmas
+        SET ${fields.join(', ')}
+        WHERE id = $${n}
+        RETURNING id, client_id, nome, turno, badge_class, descricao,
+                  tipo_periodo, qtd_periodo, media_aprovacao, materias,
+                  professor_nome, professor_foto, docente_id, created_at
+      `,
+      values
+    );
+
+    return res.json({
+      mensagem: 'Turma atualizada com sucesso.',
+      turma: serializarTurma(result.rows[0])
+    });
+  } catch (error) {
+    console.error('[TURMAS PATCH]', error);
+    return enviarErro(res, 500, 'Erro ao atualizar turma.');
+  }
+});
+
+app.post('/api/turmas/:id/alunos', auth, async (req, res) => {
+  try {
+    const turma = await obterTurmaDoDocente(db, req.usuario.id, req.params.id);
+    if (!turma) return enviarErro(res, 404, 'Turma não encontrada.');
+
+    const nome = normalizarTexto(req.body.nome);
+    if (!nome) return enviarErro(res, 400, 'Nome do aluno é obrigatório.');
+
+    const clientId = clientIdOrNew(req.body.id || req.body.client_id, 'aluno');
+    const matricula = normalizarTexto(req.body.matricula) || null;
+    const nascimento = normalizarTexto(req.body.nascimento) || null;
+    const telefone = normalizarTexto(req.body.telefone) || null;
+    const email = normalizarTexto(req.body.email) || null;
+    const endereco = normalizarTexto(req.body.endereco) || null;
+    const observacoes = normalizarTexto(req.body.observacoes);
+    const foto = req.body.foto || null;
+    const atividades = Array.isArray(req.body.atividades) ? req.body.atividades : [];
+
+    const existing = await db.query(
+      `
+        SELECT a.id, t.docente_id, a.turma_id
+        FROM alunos a
+        INNER JOIN turmas t ON t.id = a.turma_id
+        WHERE a.client_id = $1
+        LIMIT 1
+      `,
+      [clientId]
+    );
+
+    if (existing.rows.length && Number(existing.rows[0].docente_id) !== Number(req.usuario.id)) {
+      return enviarErro(res, 409, 'Este aluno pertence a outro docente.');
+    }
+
+    let result;
+    if (existing.rows.length) {
+      result = await db.query(
+        `
+          UPDATE alunos
+          SET turma_id = $1, nome = $2, matricula = $3, nascimento = $4,
+              telefone = $5, email = $6, endereco = $7, observacoes = $8,
+              foto = $9, atividades = $10::jsonb
+          WHERE id = $11
+          RETURNING id, client_id, turma_id, nome, matricula, nascimento,
+                    telefone, email, endereco, observacoes, foto, faltas,
+                    atividades, created_at
+        `,
+        [
+          turma.id, nome, matricula, nascimento, telefone, email, endereco,
+          observacoes || null, foto, JSON.stringify(atividades), existing.rows[0].id
+        ]
+      );
+    } else {
+      result = await db.query(
+        `
+          INSERT INTO alunos
+            (
+              client_id, turma_id, nome, matricula, nascimento, telefone, email,
+              endereco, observacoes, foto, faltas, atividades
+            )
+          VALUES
+            ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 0, $11::jsonb)
+          RETURNING id, client_id, turma_id, nome, matricula, nascimento,
+                    telefone, email, endereco, observacoes, foto, faltas,
+                    atividades, created_at
+        `,
+        [
+          clientId, turma.id, nome, matricula, nascimento, telefone, email,
+          endereco, observacoes || null, foto, JSON.stringify(atividades)
+        ]
+      );
+    }
+
+    return res.status(existing.rows.length ? 200 : 201).json({
+      mensagem: existing.rows.length ? 'Aluno atualizado com sucesso.' : 'Aluno adicionado com sucesso.',
+      aluno: serializarAluno(result.rows[0])
+    });
+  } catch (error) {
+    console.error('[ALUNOS POST]', error);
+    return enviarErro(res, 500, 'Erro ao adicionar aluno.');
+  }
+});
+
+app.patch('/api/alunos/:id', auth, async (req, res) => {
+  try {
+    const aluno = await obterAlunoDoDocente(db, req.usuario.id, req.params.id);
+    if (!aluno) return enviarErro(res, 404, 'Aluno não encontrado.');
+
+    const fields = [];
+    const values = [];
+    let n = 1;
+
+    const textFields = ['nome', 'matricula', 'nascimento', 'telefone', 'email', 'endereco', 'observacoes', 'foto'];
+    for (const field of textFields) {
+      if (Object.prototype.hasOwnProperty.call(req.body, field)) {
+        let value = normalizarTexto(req.body[field]);
+        if (field === 'foto') value = req.body[field] || null;
+        fields.push(`${field} = $${n++}`);
+        values.push(value || null);
+      }
+    }
+
+    if (Object.prototype.hasOwnProperty.call(req.body, 'faltas')) {
+      fields.push(`faltas = $${n++}`);
+      values.push(Math.max(0, Math.trunc(num(req.body.faltas, 0)) || 0));
+    }
+
+    if (Object.prototype.hasOwnProperty.call(req.body, 'atividades')) {
+      fields.push(`atividades = $${n++}::jsonb`);
+      values.push(JSON.stringify(Array.isArray(req.body.atividades) ? req.body.atividades : []));
+    }
+
+    if (!fields.length) {
+      const current = await db.query(
+        `SELECT id, client_id, turma_id, nome, matricula, nascimento, telefone, email, endereco, observacoes, foto, faltas, atividades FROM alunos WHERE id = $1`,
+        [aluno.id]
+      );
+      return res.json({ aluno: serializarAluno(current.rows[0]) });
+    }
+
+    values.push(aluno.id);
+    const result = await db.query(
+      `
+        UPDATE alunos
+        SET ${fields.join(', ')}
+        WHERE id = $${n}
+        RETURNING id, client_id, turma_id, nome, matricula, nascimento,
+                  telefone, email, endereco, observacoes, foto, faltas,
+                  atividades, created_at
+      `,
+      values
+    );
+
+    return res.json({
+      mensagem: 'Aluno atualizado com sucesso.',
+      aluno: serializarAluno(result.rows[0])
+    });
+  } catch (error) {
+    console.error('[ALUNO PATCH]', error);
+    return enviarErro(res, 500, 'Erro ao atualizar aluno.');
+  }
+});
+
+app.delete('/api/alunos/:id', auth, async (req, res) => {
+  try {
+    const aluno = await obterAlunoDoDocente(db, req.usuario.id, req.params.id);
+    if (!aluno) return enviarErro(res, 404, 'Aluno não encontrado.');
+
+    await db.query('DELETE FROM alunos WHERE id = $1', [aluno.id]);
+    return res.json({ mensagem: 'Aluno excluído com sucesso.' });
+  } catch (error) {
+    console.error('[ALUNO DELETE]', error);
+    return enviarErro(res, 500, 'Erro ao excluir aluno.');
+  }
+});
+
+app.post('/api/turmas/:id/frequencia', auth, async (req, res) => {
+  const client = await db.pool.connect();
+  try {
+    const turma = await obterTurmaDoDocente(client, req.usuario.id, req.params.id);
+    if (!turma) return enviarErro(res, 404, 'Turma não encontrada.');
+
+    const data = normalizarTexto(req.body.data);
+    const registros = Array.isArray(req.body.registros) ? req.body.registros : [];
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) return enviarErro(res, 400, 'Data inválida.');
+    if (!registros.length) return enviarErro(res, 400, 'Nenhum aluno foi informado.');
+
+    await client.query('BEGIN');
+
+    const atualizados = [];
+    for (const registro of registros) {
+      const aluno = await client.query(
+        `
+          SELECT id, client_id
+          FROM alunos
+          WHERE turma_id = $1
+            AND client_id = $2
+          LIMIT 1
+        `,
+        [turma.id, normalizarTexto(registro.alunoId)]
+      );
+      if (!aluno.rows.length) continue;
+
+      const presente = bool(registro.presente);
+      await client.query(
+        `
+          INSERT INTO frequencias (aluno_id, data, presente)
+          VALUES ($1, $2, $3)
+          ON CONFLICT (aluno_id, data)
+          DO UPDATE SET presente = EXCLUDED.presente
+        `,
+        [aluno.rows[0].id, data, presente]
+      );
+
+      const faltasResult = await client.query(
+        `
+          SELECT COUNT(*)::int AS faltas
+          FROM frequencias
+          WHERE aluno_id = $1 AND presente = FALSE
+        `,
+        [aluno.rows[0].id]
+      );
+      const faltas = Number(faltasResult.rows[0].faltas || 0);
+
+      await client.query(
+        `UPDATE alunos SET faltas = $1 WHERE id = $2`,
+        [faltas, aluno.rows[0].id]
+      );
+
+      atualizados.push({
+        alunoId: aluno.rows[0].client_id,
+        presente,
+        faltas
+      });
+    }
+
+    await client.query('COMMIT');
+    return res.json({ mensagem: 'Frequência lançada com sucesso.', data, registros: atualizados });
+  } catch (error) {
+    try { await client.query('ROLLBACK'); } catch (_) {}
+    console.error('[TURMA FREQUENCIA POST]', error);
+    return enviarErro(res, 500, 'Erro ao lançar frequência.');
+  } finally {
+    client.release();
+  }
+});
+
+app.patch('/api/turmas/:id/faltas', auth, async (req, res) => {
+  const client = await db.pool.connect();
+  try {
+    const turma = await obterTurmaDoDocente(client, req.usuario.id, req.params.id);
+    if (!turma) return enviarErro(res, 404, 'Turma não encontrada.');
+
+    const faltas = Array.isArray(req.body.faltas) ? req.body.faltas : [];
+    await client.query('BEGIN');
+
+    const atualizados = [];
+    for (const item of faltas) {
+      const aluno = await client.query(
+        `
+          SELECT id, client_id
+          FROM alunos
+          WHERE turma_id = $1
+            AND client_id = $2
+          LIMIT 1
+        `,
+        [turma.id, normalizarTexto(item.alunoId)]
+      );
+      if (!aluno.rows.length) continue;
+
+      const valor = Math.max(0, Math.trunc(num(item.faltas, 0)) || 0);
+      await client.query(`UPDATE alunos SET faltas = $1 WHERE id = $2`, [valor, aluno.rows[0].id]);
+      atualizados.push({ alunoId: aluno.rows[0].client_id, faltas: valor });
+    }
+
+    await client.query('COMMIT');
+    return res.json({ mensagem: 'Faltas atualizadas com sucesso.', faltas: atualizados });
+  } catch (error) {
+    try { await client.query('ROLLBACK'); } catch (_) {}
+    console.error('[TURMA FALTAS PATCH]', error);
+    return enviarErro(res, 500, 'Erro ao atualizar faltas.');
+  } finally {
+    client.release();
   }
 });
 
 app.delete('/api/turmas/:id', auth, async (req, res) => {
   try {
-    const turmas = await getTurmasDoDocente(req.usuario.id);
-    const idx = turmas.findIndex((t) => t.id === req.params.id || String(t.id) === String(req.params.id));
-    if (idx === -1) return enviarErro(res, 404, 'Turma não encontrada.');
-    turmas.splice(idx, 1);
-    await salvarTurmasDoDocente(req.usuario.id, turmas);
-    return res.json({ mensagem: 'Turma excluída com sucesso.' });
+    const turma = await obterTurmaDoDocente(db, req.usuario.id, req.params.id);
+    if (!turma) return enviarErro(res, 404, 'Turma não encontrada.');
+
+    await db.query('DELETE FROM turmas WHERE id = $1', [turma.id]);
+    return res.json({
+      mensagem: 'Turma excluída com sucesso.',
+      turmas: await getTurmasDoDocente(req.usuario.id)
+    });
   } catch (error) {
     console.error('[TURMAS DELETE]', error);
     return enviarErro(res, 500, 'Erro ao excluir turma.');
@@ -747,6 +1205,65 @@ app.get('/api/alunos/:id/notas', auth, async (req, res) => {
   } catch (error) {
     console.error('[NOTAS GET]', error);
     return enviarErro(res, 500, 'Erro ao buscar notas.');
+  }
+});
+
+app.put('/api/alunos/:id/notas', auth, async (req, res) => {
+  const client = await db.pool.connect();
+  try {
+    const aluno = await obterAlunoDoDocente(client, req.usuario.id, req.params.id);
+    if (!aluno) return enviarErro(res, 404, 'Aluno não encontrado.');
+
+    const notas = req.body.notas && typeof req.body.notas === 'object'
+      ? req.body.notas
+      : {};
+
+    await client.query('BEGIN');
+    await client.query('DELETE FROM notas WHERE aluno_id = $1', [aluno.id]);
+
+    for (const [materiaRaw, periodos] of Object.entries(notas)) {
+      const materia = normalizarTexto(materiaRaw);
+      if (!materia || !periodos || typeof periodos !== 'object') continue;
+
+      for (const [bimestreRaw, valorRaw] of Object.entries(periodos)) {
+        const valor = num(valorRaw, null);
+        if (valor === null) continue;
+
+        const bimestre = normalizarTexto(bimestreRaw) || null;
+        await client.query(
+          `
+            INSERT INTO notas
+              (aluno_id, materia, valor, bimestre, atividade, disciplina, nota, descricao)
+            VALUES
+              ($1, $2, $3, $4, NULL, $2, $3, NULL)
+          `,
+          [aluno.id, materia, valor, bimestre]
+        );
+      }
+    }
+
+    await client.query('COMMIT');
+
+    const result = await client.query(
+      `
+        SELECT id, aluno_id, materia, valor, bimestre, atividade, created_at
+        FROM notas
+        WHERE aluno_id = $1
+        ORDER BY id ASC
+      `,
+      [aluno.id]
+    );
+
+    return res.json({
+      mensagem: 'Notas salvas com sucesso.',
+      notas: result.rows
+    });
+  } catch (error) {
+    try { await client.query('ROLLBACK'); } catch (_) {}
+    console.error('[NOTAS PUT]', error);
+    return enviarErro(res, 500, 'Erro ao salvar notas.');
+  } finally {
+    client.release();
   }
 });
 
