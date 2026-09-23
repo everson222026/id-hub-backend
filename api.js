@@ -1,28 +1,21 @@
 // API do ID HUB
-// Pode ser configurada com window.IDHUB_API_URL.
-// - Render unificado: usa a mesma origem.
-// - Frontend hospedado separadamente: usa o backend Render conhecido.
-// - Localhost: usa o backend local.
+// Compatível com:
+// 1) Frontend + backend juntos no Render: usa /api.
+// 2) Frontend hospedado separadamente (ex.: Netlify): usa o backend Render.
+// 3) Desenvolvimento local: usa localhost:3000.
 (function () {
   const configuredUrl = String(window.IDHUB_API_URL || '').trim();
+  const renderBackend = 'https://id-hub-backend-wkul.onrender.com/api';
 
   let defaultUrl;
   if (configuredUrl) {
     defaultUrl = configuredUrl;
-  } else if (
-    window.location.hostname === 'localhost' ||
-    window.location.hostname === '127.0.0.1'
-  ) {
+  } else if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
     defaultUrl = 'http://localhost:3000/api';
   } else if (window.location.hostname.endsWith('.onrender.com')) {
     defaultUrl = `${window.location.origin}/api`;
-  } else if (window.location.protocol === 'http:' || window.location.protocol === 'https:') {
-    // Quando o próprio Express serve o frontend (Render ou localhost),
-    // a API está na mesma origem. Isso evita apontar para um backend antigo.
-    defaultUrl = `${window.location.origin}/api`;
   } else {
-    // HTML aberto diretamente pelo arquivo: o modo suportado é o servidor local.
-    defaultUrl = 'http://localhost:3000/api';
+    defaultUrl = renderBackend;
   }
 
   const API_URL = defaultUrl.replace(/\/$/, '');
@@ -31,17 +24,10 @@
     const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
     const headers = { 'Content-Type': 'application/json' };
     const token = localStorage.getItem('token');
+    if (token) headers.Authorization = `Bearer ${token}`;
 
-    if (token) {
-      headers.Authorization = `Bearer ${token}`;
-    }
-
-    const config = {
-      method: method.toUpperCase(),
-      headers
-    };
-
-    if (data !== null && config.method !== 'GET' && config.method !== 'HEAD') {
+    const config = { method: method.toUpperCase(), headers };
+    if (data !== null && data !== undefined && !['GET', 'HEAD'].includes(config.method)) {
       config.body = JSON.stringify(data);
     }
 
@@ -49,40 +35,26 @@
     try {
       response = await fetch(`${API_URL}${normalizedEndpoint}`, config);
     } catch (networkError) {
-      throw new Error(
-        `Não foi possível conectar à API (${API_URL}). Verifique se o backend está online.`
-      );
+      console.error(`[API NETWORK] ${config.method} ${normalizedEndpoint}`, networkError);
+      throw new Error(`Não foi possível conectar à API em ${API_URL}. Verifique se o backend está online.`);
     }
 
-    if (response.status === 204) {
-      return { success: true };
-    }
-
-    const contentType = response.headers.get('content-type') || '';
-    let payload = {};
-
-    if (contentType.includes('application/json')) {
-      payload = await response.json().catch(() => ({}));
-    } else {
-      const responseText = await response.text().catch(() => '');
-      payload = responseText ? { message: responseText } : {};
+    const rawText = await response.text().catch(() => '');
+    let payload = null;
+    if (rawText) {
+      try { payload = JSON.parse(rawText); } catch (_) { payload = { message: rawText }; }
     }
 
     if (!response.ok) {
       if (response.status === 401) {
         localStorage.removeItem('token');
       }
-
-      const message =
-        payload?.erro ||
-        payload?.error ||
-        payload?.message ||
-        `Erro HTTP ${response.status}`;
-
+      const message = payload?.erro || payload?.error || payload?.message || `Erro HTTP ${response.status}`;
+      console.error(`[API ${response.status}] ${config.method} ${normalizedEndpoint}`, payload);
       throw new Error(message);
     }
 
-    return payload;
+    return payload ?? { success: true };
   }
 
   async function testarAPI() {
