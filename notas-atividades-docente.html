@@ -580,26 +580,96 @@
         });
       }
 
+      async function salvarAtividadesDoAluno(student) {
+        if (!student || student.id == null) {
+          throw new Error('Aluno sem ID válido para salvar a atividade.');
+        }
+
+        const response = await apiRequest(`/alunos/${encodeURIComponent(student.id)}`, 'PATCH', {
+          atividades: Array.isArray(student.atividades) ? student.atividades : []
+        });
+
+        if (!response?.aluno) {
+          throw new Error(`O servidor não confirmou o salvamento das atividades de ${student.nome || 'um aluno'}.`);
+        }
+
+        // Mantém o retorno do servidor sincronizado com o cache local.
+        student.atividades = Array.isArray(response.aluno.atividades)
+          ? response.aluno.atividades
+          : [];
+
+        return response.aluno;
+      }
+
       async function addNewActivity() {
         const title = newActivityInput.value.trim();
         if (!title) return;
-        const scope = document.querySelector('input[name="activityScope"]:checked')?.value || 'aluno';
-        const newAct = { id: `act_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`, titulo: title, concluida: false };
 
-        if (scope === 'turma') {
-          turma.alunos.forEach((student) => {
-            if (!Array.isArray(student.atividades)) student.atividades = [];
-            student.atividades.push(JSON.parse(JSON.stringify(newAct)));
-          });
-          showToast('Atividade enviada para a TURMA!');
-        } else {
-          aluno.atividades.push(newAct);
-          showToast('Atividade INDIVIDUAL adicionada!');
+        const scope = document.querySelector('input[name="activityScope"]:checked')?.value || 'individual';
+        const newAct = {
+          id: `act_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+          titulo: title,
+          concluida: false
+        };
+
+        const originalButtonHtml = btnAddActivity.innerHTML;
+        btnAddActivity.style.pointerEvents = 'none';
+        btnAddActivity.style.opacity = '0.7';
+        newActivityInput.disabled = true;
+
+        try {
+          if (scope === 'turma') {
+            if (!turma || !Array.isArray(turma.alunos) || turma.alunos.length === 0) {
+              throw new Error('A turma não possui alunos para receber a atividade.');
+            }
+
+            // Adiciona a mesma atividade a TODOS os alunos da turma
+            // e salva cada registro no banco. Antes, apenas o aluno aberto
+            // nesta tela era enviado ao servidor.
+            turma.alunos.forEach((student) => {
+              if (!Array.isArray(student.atividades)) student.atividades = [];
+              student.atividades.push({ ...newAct });
+            });
+
+            const resultados = await Promise.all(
+              turma.alunos.map((student) => salvarAtividadesDoAluno(student))
+            );
+
+            if (resultados.length !== turma.alunos.length) {
+              throw new Error('Nem todos os alunos receberam a atividade.');
+            }
+
+            localStorage.setItem('idhub_database', JSON.stringify(database));
+            newActivityInput.value = '';
+            renderActivities();
+            showToast(`Atividade enviada para os ${turma.alunos.length} alunos da TURMA!`);
+          } else {
+            if (!Array.isArray(aluno.atividades)) aluno.atividades = [];
+            aluno.atividades.push(newAct);
+
+            await salvarAtividadesDoAluno(aluno);
+
+            localStorage.setItem('idhub_database', JSON.stringify(database));
+            newActivityInput.value = '';
+            renderActivities();
+            showToast('Atividade INDIVIDUAL adicionada!');
+          }
+        } catch (error) {
+          console.error('[IDHUB] Erro ao adicionar atividade:', error);
+
+          // Recarrega o cache do aluno/turma a partir dos dados locais
+          // que estavam disponíveis antes de uma falha parcial.
+          try {
+            localStorage.setItem('idhub_database', JSON.stringify(database));
+          } catch (_) {}
+
+          showToast(error.message || 'Não foi possível salvar a atividade.', true);
+        } finally {
+          btnAddActivity.innerHTML = originalButtonHtml;
+          btnAddActivity.style.pointerEvents = '';
+          btnAddActivity.style.opacity = '';
+          newActivityInput.disabled = false;
         }
-
-        newActivityInput.value = '';
-        renderActivities();
-        await persistDatabase();
       }
 
       newActivityInput.addEventListener('keypress', (event) => {
@@ -617,13 +687,26 @@
           const id = removeBtn.dataset.id;
           aluno.atividades = aluno.atividades.filter((activity) => String(activity.id) !== String(id));
           renderActivities();
-          await persistDatabase('Atividade removida!');
+          try {
+            await salvarAtividadesDoAluno(aluno);
+            localStorage.setItem('idhub_database', JSON.stringify(database));
+            showToast('Atividade removida!');
+          } catch (error) {
+            console.error('[IDHUB] Erro ao remover atividade:', error);
+            showToast(error.message || 'Não foi possível remover a atividade.', true);
+          }
         } else if (checkbox) {
           const activity = aluno.atividades.find((item) => String(item.id) === String(checkbox.dataset.id));
           if (activity) {
             activity.concluida = checkbox.checked;
             renderActivities();
-            await persistDatabase();
+            try {
+              await salvarAtividadesDoAluno(aluno);
+              localStorage.setItem('idhub_database', JSON.stringify(database));
+            } catch (error) {
+              console.error('[IDHUB] Erro ao atualizar atividade:', error);
+              showToast(error.message || 'Não foi possível atualizar a atividade.', true);
+            }
           }
         }
       });
