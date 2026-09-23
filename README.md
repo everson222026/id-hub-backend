@@ -1,151 +1,138 @@
-# ID HUB — PostgreSQL/Neon + Render
+# ID HUB — versão corrigida para Neon + Render Free
 
-Esta versão usa **Express + PostgreSQL (`pg`) + Neon**. Prisma não é usado pelo servidor e não é necessário para o deploy.
+## O que foi corrigido
 
-## Correções incluídas
-
-- Frontend e backend usam `/api` e não dependem de `localhost:3000` em produção.
-- O Express serve as páginas HTML que estão na raiz do projeto.
-- Cadastro usa os mesmos campos aceitos pelo backend (`nome`, `email`, `telefone`, `senha`, `tipo`).
-- Login salva JWT e os dados reais retornados pelo backend (`usuario`).
-- Perfil docente usa os mesmos campos em frontend e backend.
-- Cada turma pertence ao docente autenticado.
-- Turmas, alunos, matérias, notas, frequências e atividades são sincronizados com o PostgreSQL/Neon.
-- Cadastro/edição/exclusão de alunos usam rotas específicas, evitando regravar a turma inteira.
-- Atividade geral usa uma transação própria no backend para atualizar todos os alunos da turma de uma vez.
-- A estrutura antiga do `localStorage` continua sendo aceita para uma migração inicial.
-- IDs do navegador ficam em `client_id`, enquanto o PostgreSQL continua usando seus IDs internos.
-- Notas são armazenadas na tabela `notas` e reconstruídas no formato usado pela tela docente.
-- Frequências são armazenadas na tabela `frequencias` e reconstruídas no histórico usado pela tela docente.
-- Recuperação de senha usa Nodemailer + Brevo SMTP, com código de 6 dígitos válido por 15 minutos.
-- Tokens de recuperação são armazenados como hash SHA-256 no banco.
-- Dados de um docente não podem ser carregados ou sobrescritos por outro docente usando os mesmos IDs do navegador.
+- Removido o uso de `localhost:3000` do frontend.
+- Login agora gera e salva JWT.
+- Rotas de dados exigem autenticação.
+- Cada turma pertence ao docente que a criou.
+- Alunos ficam ligados à turma no PostgreSQL.
+- Notas ficam na tabela `notas`.
+- Frequências ficam na tabela `frequencias`.
+- O backend inicializa/migra a estrutura do banco automaticamente ao iniciar.
+- Turmas antigas que estavam somente no `localStorage` podem ser migradas automaticamente quando o banco do docente estiver vazio e o `localStorage` ainda existir no mesmo domínio.
+- O painel continua usando o mesmo formato visual e o mesmo modelo de dados da interface.
 
 ## Arquivos principais
 
-- `server.js` — API Express, autenticação, turmas, alunos, notas, frequências e recuperação de senha.
-- `schema.js` — criação e migração das tabelas PostgreSQL.
+- `server.js` — API Express e inicialização do sistema.
+- `schema.js` — criação/migração das tabelas do PostgreSQL.
 - `db.js` — conexão com o Neon.
-- `api.js` — cliente JavaScript da API e envio do JWT.
-- `login.html` — login e recuperação de senha.
-- `cadastro.html` — cadastro de usuário.
-- `docente.html` — painel docente, turmas, alunos e frequência.
-- `notas-atividades-docente.html` — notas, matérias e atividades.
-- `render.yaml` — configuração do Render.
+- `api.js` — comunicação do frontend com `/api` e envio do JWT.
+- `login.html` — login corrigido para produção.
+- `cadastro.html` — cadastro usando a API de produção.
+- `docente.html` — painel gravando dados no Neon.
+- `package.json` — dependências e comando de inicialização.
+- `render.yaml` — configuração opcional do Render.
 
 ## Banco de dados
 
 A estrutura principal é:
 
-```text
-USUÁRIO/DOCENTE
-      │
-      └── TURMAS
-            │
-            └── ALUNOS
-                  ├── NOTAS
-                  └── FREQUÊNCIAS
-```
+`usuarios` → `turmas` → `alunos` → `notas`
+                               ↘ `frequencias`
 
-As tabelas utilizadas são:
+A turma possui `professor_id`, evitando que um docente veja ou sobrescreva turmas de outro.
 
-```text
-usuarios
-turmas
-alunos
-notas
-frequencias
-password_reset_tokens
-```
+## 1. Neon
 
-O `schema.js` foi preparado para adicionar e migrar colunas de versões anteriores sem exigir que o banco seja apagado.
+Crie ou use seu projeto PostgreSQL no Neon e copie a **connection string** da opção de conexão.
 
-## Configuração local
-
-Crie um `.env` local e não envie esse arquivo para o GitHub:
+Crie um arquivo `.env` local (não envie esse arquivo para o GitHub):
 
 ```env
-DATABASE_URL=SUA_CONNECTION_STRING_DO_NEON
-JWT_SECRET=UMA_CHAVE_GRANDE_E_ALEATORIA
+DATABASE_URL=COLE_AQUI_A_CONNECTION_STRING_DO_NEON
+JWT_SECRET=COLE_AQUI_UMA_CHAVE_GRANDE_E_ALEATORIA
 NODE_ENV=development
-
-SMTP_HOST=smtp-relay.brevo.com
-SMTP_PORT=587
-SMTP_USER=SEU_USUARIO_SMTP
-SMTP_PASS=SUA_SENHA_SMTP
-EMAIL_FROM=SEU_EMAIL_VERIFICADO
 ```
 
-Instale e execute:
+O `server.js` já executa a criação/migração da estrutura quando sobe, então não é obrigatório rodar `init-db.js` manualmente.
+
+Para conferir manualmente:
+
+```bash
+node init-db.js
+```
+
+## 2. Testar localmente
+
+Instale as dependências:
 
 ```bash
 npm install
+```
+
+Inicie:
+
+```bash
 npm start
 ```
 
 Abra:
 
-```text
-http://localhost:3000
-```
+`http://localhost:3000`
 
-Teste a API:
+E teste:
 
-```text
-http://localhost:3000/api/health
-```
+`http://localhost:3000/api/health`
 
-## Render
+A resposta esperada é um JSON com `ok: true` e `database: "connected"`.
+
+## 3. GitHub
+
+Envie todos os arquivos do projeto para um repositório GitHub.
+
+**Não envie `.env`.** O `.gitignore` já está preparado para impedir isso.
+
+## 4. Render
+
+No Render, crie um **Web Service** apontando para esse repositório.
 
 Use:
 
 - Build Command: `npm install`
 - Start Command: `npm start`
+- Plan: `Free`
 - Health Check Path: `/api/health`
 
-Configure as variáveis de ambiente:
+Adicione as variáveis de ambiente:
 
 ```text
-DATABASE_URL
-JWT_SECRET
-NODE_ENV=production
-SMTP_HOST=smtp-relay.brevo.com
-SMTP_PORT=587
-SMTP_USER
-SMTP_PASS
-EMAIL_FROM
+DATABASE_URL = sua connection string do Neon
+JWT_SECRET   = sua chave aleatória grande
+NODE_ENV     = production
 ```
 
-O `DATABASE_URL` deve ser a connection string do Neon.
+Depois do deploy, o próprio Render dará uma URL como:
 
-O `EMAIL_FROM` deve ser um endereço permitido/verificado pelo seu provedor de e-mail.
+`https://seu-app.onrender.com`
 
-## Fluxo para conferir o sistema
+Como o frontend é servido pelo mesmo Express, o sistema chama `/api` e não precisa de `localhost` nem de uma URL fixa do backend.
 
-1. Abra o endereço do Render.
+## 5. Conferência final
+
+1. Abra a URL do Render.
 2. Cadastre um docente.
 3. Faça login.
 4. Crie uma turma.
 5. Atualize a página.
-6. Confira se a turma continua aparecendo.
+6. A turma deve continuar aparecendo.
 7. Adicione um aluno.
-8. Atualize a página novamente.
-9. Abra notas e atividades do aluno.
-10. Lance uma frequência.
-11. Confira no Neon as tabelas `turmas`, `alunos`, `notas` e `frequencias`.
+8. Lance uma frequência.
+9. Veja no Neon as tabelas `turmas`, `alunos` e `frequencias`.
 
-## Arquitetura do banco
+## Recuperação de senha
 
-Esta versão usa exclusivamente `pg` + PostgreSQL/Neon. Prisma não faz parte do runtime nem do deploy deste projeto.
+A recuperação de senha usa a API HTTPS do Resend, evitando dependência de SMTP no Render. Configure `RESEND_API_KEY` e `EMAIL_FROM` no Render. O endereço de `EMAIL_FROM` deve pertencer a um domínio verificado no Resend. O plano gratuito atual do Resend inclui até 3.000 e-mails por mês, com limite de 100 por dia.
 
-Arquivos de console/exportação e arquivos antigos do Prisma não fazem parte do deploy final. O runtime usa somente `pg` + PostgreSQL/Neon.
+O código de recuperação fica salvo no PostgreSQL com validade de 10 minutos, então ele não é perdido quando o Web Service do Render reinicia ou sai do modo de suspensão.
+
+## Importante sobre os dados antigos
+
+Se uma turma existia somente no `localStorage`, ela não estava realmente no Neon. A versão nova tenta migrar essas turmas automaticamente na primeira carga quando o banco ainda está vazio e o `localStorage` estiver disponível no mesmo domínio.
+
+Se os dados antigos estavam em outro domínio/local, eles podem não estar mais disponíveis no navegador novo. Nesse caso, será necessário exportá-los do ambiente antigo antes da migração.
 
 ## Segurança
 
-Nunca publique `.env` ou credenciais de banco/e-mail no GitHub. Como credenciais reais já apareceram no material anterior do projeto, é recomendado gerar novas credenciais antes do próximo deploy.
-
-## Versão final revisada em 23/09/2026
-
-Nesta revisão, o cadastro/edição/exclusão de alunos usa as rotas específicas de alunos; o painel recarrega as turmas do servidor após operações de escrita; e o envio de atividade para a turma inteira usa a rota transacional `/api/turmas/:id/atividades-gerais`.
-
-Os arquivos HTML e JavaScript foram verificados com `node --check` para o JavaScript embutido e os arquivos `.js`. Não foi feita conexão ao banco Neon durante a revisão porque as credenciais de produção não devem ser colocadas no pacote.
+O arquivo `.env` recebido no projeto continha credenciais reais. Por segurança, considere essas credenciais expostas e gere uma nova senha/connection string do Neon e uma nova senha de aplicativo do e-mail antes de publicar.
