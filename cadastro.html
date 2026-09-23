@@ -1,968 +1,1110 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <title>ID HUB | Cadastro</title>
-  
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  
+
+  <link
+    rel="preconnect"
+    href="https://fonts.googleapis.com"
+  >
+
+  <link
+    rel="preconnect"
+    href="https://fonts.gstatic.com"
+    crossorigin
+  >
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap"
+    rel="stylesheet"
+  >
+
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+  >
+
   <style>
     :root {
-      --bg-gradient: linear-gradient(135deg, #0d2b24 0%, #164e41 50%, #2d6a4f 100%);
-      --card-bg: rgba(255, 255, 255, 0.08);
-      --card-border: rgba(255, 255, 255, 0.15);
-      --input-bg: rgba(255, 255, 255, 0.12);
-      --text-primary: #ffffff;
-      --text-secondary: #d8f3dc;
-      --accent-color: #2ec4b6;
-      --btn-purple: #5e548e;
-      --btn-purple-hover: #4a407e;
-      --error-color: #ff4d4d;
-      --shadow-lg: 0 20px 40px rgba(0, 0, 0, 0.35);
-      --font-main: 'Inter', sans-serif;
-      --font-title: 'Poppins', sans-serif;
+      --bg-gradient:
+        linear-gradient(
+          135deg,
+          #0d2b24 0%,
+          #164e41 50%,
+          #2d6a4f 100%
+        );
+
+      --card-bg:
+        rgba(255, 255, 255, 0.08);
+
+      --card-border:
+        rgba(255, 255, 255, 0.15);
+
+      --input-bg:
+        rgba(255, 255, 255, 0.12);
+
+      --text-primary:
+        #ffffff;
+
+      --text-secondary:
+        #d8f3dc;
+
+      --accent-color:
+        #2ec4b6;
+
+      --btn-purple:
+        #5e548e;
+
+      --btn-purple-hover:
+        #4a407e;
+
+      --error-color:
+        #ff4d4d;
+
+      --shadow-lg:
+        0 20px 40px rgba(0, 0, 0, 0.35);
+
+      --font-main:
+        'Inter', sans-serif;
+
+      --font-title:
+        'Poppins', sans-serif;
     }
 
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
     body {
       font-family: var(--font-main);
       background: var(--bg-gradient);
       color: var(--text-primary);
       min-height: 100vh;
+
       display: flex;
       align-items: center;
       justify-content: center;
+
       padding: 28px 20px;
+
       overflow-x: hidden;
     }
 
     .app-container {
       position: relative;
+
       width: 100%;
       max-width: 520px;
+
       background: var(--card-bg);
+
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
+
       border: 1px solid var(--card-border);
       border-radius: 28px;
+
       box-shadow: var(--shadow-lg);
-      padding: 36px 36px;
+
+      padding: 36px;
+
       overflow: hidden;
+
       animation: fadeIn 0.8s ease-out;
     }
 
     .wave-bg {
       position: absolute;
+
       bottom: 0;
       left: 0;
+
       width: 100%;
       height: 180px;
+
       z-index: 0;
+
       pointer-events: none;
     }
 
-    .wave-bg svg { width: 100%; height: 100%; }
+    .wave-bg svg {
+      width: 100%;
+      height: 100%;
+    }
 
     .app-header {
       position: relative;
       z-index: 2;
+
       display: flex;
       justify-content: space-between;
       align-items: center;
+
       margin-bottom: 20px;
     }
 
     .back-link {
       color: var(--text-secondary);
+
       text-decoration: none;
+
       font-size: 0.9rem;
+
       display: flex;
       align-items: center;
+
       gap: 6px;
+
       transition: color 0.3s ease;
     }
 
-    .back-link:hover { color: var(--text-primary); }
-    .logo-text { font-family: var(--font-title); font-size: 1.2rem; letter-spacing: 1px; }
+    .back-link:hover {
+      color: var(--text-primary);
+    }
+
+    .logo-text {
+      font-family: var(--font-title);
+
+      font-size: 1.2rem;
+
+      letter-spacing: 1px;
+    }
 
     .user-welcome-header {
       position: relative;
       z-index: 2;
+
       display: flex;
       align-items: center;
+
       gap: 16px;
+
       margin-bottom: 22px;
     }
 
     .avatar-circle {
       width: 58px;
       height: 58px;
-      background: rgba(255, 255, 255, 0.15);
+
+      background:
+        rgba(255, 255, 255, 0.15);
+
       border: 2px solid var(--card-border);
+
       border-radius: 50%;
+
       display: flex;
       align-items: center;
       justify-content: center;
+
       font-size: 1.6rem;
+
       color: var(--text-secondary);
+
       flex-shrink: 0;
+
       position: relative;
     }
 
     .avatar-circle i.fa-plus-badge {
       position: absolute;
+
       top: -2px;
       right: -2px;
+
       font-size: 0.8rem;
+
       background: var(--accent-color);
+
       color: #0d2b24;
+
       padding: 3px;
+
       border-radius: 50%;
     }
 
     .welcome-text h1 {
       font-family: var(--font-title);
+
       font-size: 1.7rem;
+
       font-weight: 700;
+
       line-height: 1.1;
+
       text-transform: uppercase;
+
       letter-spacing: 0.5px;
     }
 
     .welcome-text p {
       font-size: 0.85rem;
+
       color: var(--text-secondary);
+
       text-transform: uppercase;
+
       letter-spacing: 1px;
     }
 
     .signup-form {
       position: relative;
       z-index: 2;
+
       display: flex;
       flex-direction: column;
+
       gap: 14px;
     }
 
-    .input-group { display: flex; flex-direction: column; gap: 4px; }
-    .input-wrapper { position: relative; display: flex; align-items: center; }
+    .input-group {
+      display: flex;
+
+      flex-direction: column;
+
+      gap: 4px;
+    }
+
+    .input-wrapper {
+      position: relative;
+
+      display: flex;
+      align-items: center;
+    }
 
     .input-icon {
       position: absolute;
+
       left: 16px;
+
       color: var(--text-secondary);
+
       font-size: 1rem;
+
       pointer-events: none;
     }
 
     .custom-input {
       width: 100%;
+
       background: var(--input-bg);
+
       border: 1px solid var(--card-border);
+
       padding: 12px 16px 12px 46px;
+
       border-radius: 50px;
+
       color: var(--text-primary);
+
       font-family: var(--font-main);
+
       font-size: 0.9rem;
+
       outline: none;
+
       transition: all 0.3s ease;
     }
 
-    .custom-input::placeholder { color: rgba(255, 255, 255, 0.5); }
+    .custom-input::placeholder {
+      color: rgba(255, 255, 255, 0.5);
+    }
+
     .custom-input:focus {
       border-color: var(--accent-color);
-      box-shadow: 0 0 10px rgba(46, 196, 182, 0.3);
-      background: rgba(255, 255, 255, 0.18);
+
+      box-shadow:
+        0 0 10px rgba(46, 196, 182, 0.3);
+
+      background:
+        rgba(255, 255, 255, 0.18);
     }
 
     .input-group.error .custom-input {
       border-color: var(--error-color);
-      box-shadow: 0 0 8px rgba(255, 77, 77, 0.3);
+
+      box-shadow:
+        0 0 8px rgba(255, 77, 77, 0.3);
     }
 
     .error-message {
       font-size: 0.72rem;
+
       color: var(--error-color);
+
       padding-left: 16px;
+
       display: none;
     }
 
-    .input-group.error .error-message { display: block; }
+    .input-group.error .error-message {
+      display: block;
+    }
 
     .toggle-password {
       position: absolute;
+
       right: 16px;
+
       background: none;
+
       border: none;
+
       color: var(--text-secondary);
+
       cursor: pointer;
+
       font-size: 1rem;
+
       padding: 4px;
     }
 
     .role-selection-wrapper {
       margin: 6px 0;
+
       display: flex;
+
       flex-direction: column;
+
       gap: 6px;
     }
 
     .role-selection {
       display: flex;
+
       justify-content: space-around;
       align-items: center;
-      background: rgba(0, 0, 0, 0.15);
+
+      background:
+        rgba(0, 0, 0, 0.15);
+
       border: 1px solid var(--card-border);
+
       padding: 8px 12px;
+
       border-radius: 50px;
     }
 
     .role-option {
       display: flex;
+
       align-items: center;
+
       gap: 8px;
+
       cursor: pointer;
+
       font-size: 0.85rem;
+
       font-weight: 600;
+
       letter-spacing: 0.5px;
+
       user-select: none;
     }
 
     .role-option input[type="radio"] {
       appearance: none;
+
       width: 16px;
       height: 16px;
+
       border: 2px solid var(--text-secondary);
+
       border-radius: 4px;
+
       outline: none;
+
       cursor: pointer;
+
       position: relative;
+
       transition: all 0.2s ease;
     }
 
     .role-option input[type="radio"]:checked {
       background-color: var(--accent-color);
+
       border-color: var(--accent-color);
     }
 
     .role-option input[type="radio"]:checked::after {
       content: '✓';
+
       position: absolute;
+
       color: #0d2b24;
+
       font-size: 11px;
+
       font-weight: bold;
+
       top: 50%;
       left: 50%;
-      transform: translate(-50%, -50%);
+
+      transform:
+        translate(-50%, -50%);
     }
 
     .btn-submit {
       width: 100%;
+
       max-width: 240px;
+
       margin: 4px auto 0;
+
       background: var(--btn-purple);
+
       color: #ffffff;
+
       border: none;
+
       padding: 12px;
+
       border-radius: 50px;
+
       font-family: var(--font-title);
+
       font-size: 0.95rem;
+
       font-weight: 700;
+
       letter-spacing: 1px;
+
       cursor: pointer;
+
       display: flex;
+
       align-items: center;
       justify-content: center;
+
       gap: 10px;
-      box-shadow: 0 6px 20px rgba(94, 84, 142, 0.4);
+
+      box-shadow:
+        0 6px 20px rgba(94, 84, 142, 0.4);
+
       transition: all 0.3s ease;
     }
 
     .btn-submit:hover {
       background: var(--btn-purple-hover);
+
       transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(94, 84, 142, 0.55);
+
+      box-shadow:
+        0 8px 25px rgba(94, 84, 142, 0.55);
+    }
+
+    .btn-submit:disabled {
+      opacity: 0.7;
+
+      cursor: not-allowed;
+
+      transform: none;
     }
 
     .social-buttons-grid {
       display: grid;
+
       grid-template-columns: 1fr 1fr;
+
       gap: 10px;
+
       margin-top: 6px;
     }
 
     .btn-secondary {
       background: var(--input-bg);
+
       border: 1px solid var(--card-border);
+
       color: var(--text-primary);
+
       padding: 10px 8px;
+
       border-radius: 50px;
+
       font-family: var(--font-main);
+
       font-size: 0.78rem;
+
       font-weight: 500;
+
       cursor: pointer;
+
       text-decoration: none;
+
       display: flex;
+
       align-items: center;
       justify-content: center;
+
       gap: 6px;
+
       transition: all 0.3s ease;
     }
 
-    .btn-secondary:hover { background: rgba(255, 255, 255, 0.2); }
-    .google-icon { color: #ea4335; }
+    .btn-secondary:hover {
+      background:
+        rgba(255, 255, 255, 0.2);
+    }
+
+    .google-icon {
+      color: #ea4335;
+    }
 
     .alert-box {
       display: none;
+
       padding: 10px 14px;
+
       border-radius: 12px;
+
       font-size: 0.8rem;
+
       text-align: center;
+
       margin-top: 6px;
     }
 
     .alert-box.success {
       display: block;
-      background: rgba(32, 191, 85, 0.2);
+
+      background:
+        rgba(32, 191, 85, 0.2);
+
       border: 1px solid #20bf55;
+
       color: #d8f3dc;
     }
 
     .alert-box.error {
       display: block;
-      background: rgba(255, 77, 77, 0.2);
+
+      background:
+        rgba(255, 77, 77, 0.2);
+
       border: 1px solid var(--error-color);
+
       color: #ffd8d8;
     }
 
     @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(15px); }
-      to { opacity: 1; transform: translateY(0); }
+      from {
+        opacity: 0;
+        transform: translateY(15px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
     @media (max-width: 480px) {
-      .app-container { padding: 28px 20px; }
-      .social-buttons-grid { grid-template-columns: 1fr; }
+      .app-container {
+        padding: 28px 20px;
+      }
+
+      .social-buttons-grid {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
+
 <body>
 
   <main class="app-container">
+
     <div class="wave-bg">
-      <svg viewBox="0 0 1440 320" preserveAspectRatio="none">
-        <path fill="rgba(255, 255, 255, 0.05)" d="M0,192L48,197.3C96,203,192,213,288,192C384,171,480,117,576,117.3C672,117,768,171,864,197.3C960,224,1056,224,1152,197.3C1248,171,1344,117,1392,90.7L1440,64L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path>
-        <path fill="rgba(15, 62, 51, 0.4)" d="M0,224L60,213.3C120,203,240,181,360,186.7C480,192,600,224,720,218.7C840,213,960,171,1080,165.3C1200,160,1320,192,1380,208L1440,224L1440,320L1380,320C1320,320,1200,320,1080,320C960,320,840,320,720,320C600,320,480,320,360,320C240,320,120,320,60,320L0,320Z"></path>
+      <svg
+        viewBox="0 0 1440 320"
+        preserveAspectRatio="none"
+      >
+
+        <path
+          fill="rgba(255, 255, 255, 0.05)"
+          d="M0,192L48,197.3C96,203,192,213,288,192C384,171,480,117,576,117.3C672,117,768,171,864,197.3C960,224,1056,224,1152,197.3C1248,171,1344,117,1392,90.7L1440,64L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"
+        ></path>
+
+        <path
+          fill="rgba(15, 62, 51, 0.4)"
+          d="M0,224L60,213.3C120,203,240,181,360,186.7C480,192,600,224,720,218.7C840,213,960,171,1080,165.3C1200,160,1320,192,1380,208L1440,224L1440,320L1380,320C1320,320,1200,320,1080,320C960,320,840,320,720,320C600,320,480,320,360,320C240,320,120,320,60,320L0,320Z"
+        ></path>
+
       </svg>
     </div>
 
     <header class="app-header">
-      <a href="index.html" class="back-link">
-        <i class="fa-solid fa-arrow-left"></i> Voltar
+
+      <a
+        href="index.html"
+        class="back-link"
+      >
+        <i class="fa-solid fa-arrow-left"></i>
+        Voltar
       </a>
-      <span class="logo-text">ID<strong>HUB</strong></span>
+
+      <span class="logo-text">
+        ID<strong>HUB</strong>
+      </span>
+
     </header>
 
     <div class="user-welcome-header">
+
       <div class="avatar-circle">
         <i class="fa-solid fa-user"></i>
-        <i class="fa-solid fa-plus fa-plus-badge"></i>
+
+        <i
+          class="fa-solid fa-plus fa-plus-badge"
+        ></i>
       </div>
+
       <div class="welcome-text">
         <h1>Cadastro</h1>
         <p>Crie sua conta</p>
       </div>
+
     </div>
 
-    <form id="signupForm" class="signup-form" novalidate>
-      <div class="input-group" id="nameGroup">
+    <form
+      id="signupForm"
+      class="signup-form"
+      novalidate
+    >
+
+      <div
+        class="input-group"
+        id="nameGroup"
+      >
+
         <div class="input-wrapper">
-          <i class="fa-solid fa-user input-icon"></i>
-          <input type="text" id="nameInput" class="custom-input" placeholder="Nome completo" required>
+
+          <i
+            class="fa-solid fa-user input-icon"
+          ></i>
+
+          <input
+            type="text"
+            id="nameInput"
+            class="custom-input"
+            placeholder="Nome completo"
+            required
+          >
+
         </div>
-        <span class="error-message" id="nameError">Por favor, insira seu nome completo.</span>
+
+        <span
+          class="error-message"
+          id="nameError"
+        >
+          Por favor, insira seu nome completo.
+        </span>
+
       </div>
 
-      <div class="input-group" id="emailGroup">
+      <div
+        class="input-group"
+        id="emailGroup"
+      >
+
         <div class="input-wrapper">
-          <i class="fa-solid fa-envelope input-icon"></i>
-          <input type="email" id="emailInput" class="custom-input" placeholder="E-mail" autocomplete="email" required>
+
+          <i
+            class="fa-solid fa-envelope input-icon"
+          ></i>
+
+          <input
+            type="email"
+            id="emailInput"
+            class="custom-input"
+            placeholder="E-mail"
+            autocomplete="email"
+            required
+          >
+
         </div>
-        <span class="error-message" id="emailError">Insira um endereço de e-mail válido.</span>
+
+        <span
+          class="error-message"
+          id="emailError"
+        >
+          Insira um endereço de e-mail válido.
+        </span>
+
       </div>
 
-      <div class="input-group" id="phoneGroup">
+      <div
+        class="input-group"
+        id="phoneGroup"
+      >
+
         <div class="input-wrapper">
-          <i class="fa-solid fa-phone input-icon"></i>
-          <input type="tel" id="phoneInput" class="custom-input" placeholder="Telefone (DDD + Número)" maxlength="15" required>
+
+          <i
+            class="fa-solid fa-phone input-icon"
+          ></i>
+
+          <input
+            type="tel"
+            id="phoneInput"
+            class="custom-input"
+            placeholder="Telefone (DDD + Número)"
+            maxlength="15"
+            required
+          >
+
         </div>
-        <span class="error-message" id="phoneError">Insira um telefone válido com DDD.</span>
+
+        <span
+          class="error-message"
+          id="phoneError"
+        >
+          Insira um telefone válido com DDD.
+        </span>
+
       </div>
 
-      <div class="input-group" id="passwordGroup">
+      <div
+        class="input-group"
+        id="passwordGroup"
+      >
+
         <div class="input-wrapper">
-          <i class="fa-solid fa-lock input-icon"></i>
-          <input type="password" id="passwordInput" class="custom-input" placeholder="Senha" required>
-          <button type="button" class="toggle-password" id="togglePassword">
-            <i class="fa-solid fa-eye-slash" id="toggleIcon"></i>
+
+          <i
+            class="fa-solid fa-lock input-icon"
+          ></i>
+
+          <input
+            type="password"
+            id="passwordInput"
+            class="custom-input"
+            placeholder="Senha"
+            required
+          >
+
+          <button
+            type="button"
+            class="toggle-password"
+            id="togglePassword"
+          >
+            <i
+              class="fa-solid fa-eye-slash"
+              id="toggleIcon"
+            ></i>
           </button>
+
         </div>
-        <span class="error-message" id="passwordError">A senha deve ter no mínimo 6 caracteres.</span>
+
+        <span
+          class="error-message"
+          id="passwordError"
+        >
+          A senha deve ter no mínimo 6 caracteres.
+        </span>
+
       </div>
 
-      <div class="input-group" id="confirmPasswordGroup">
+      <div
+        class="input-group"
+        id="confirmPasswordGroup"
+      >
+
         <div class="input-wrapper">
-          <i class="fa-solid fa-lock input-icon"></i>
-          <input type="password" id="confirmPasswordInput" class="custom-input" placeholder="Confirmar Senha" required>
+
+          <i
+            class="fa-solid fa-lock input-icon"
+          ></i>
+
+          <input
+            type="password"
+            id="confirmPasswordInput"
+            class="custom-input"
+            placeholder="Confirmar Senha"
+            required
+          >
+
         </div>
-        <span class="error-message" id="confirmPasswordError">As senhas não coincidem.</span>
+
+        <span
+          class="error-message"
+          id="confirmPasswordError"
+        >
+          As senhas não coincidem.
+        </span>
+
       </div>
 
-      <div class="role-selection-wrapper" id="roleGroup">
+      <div
+        class="role-selection-wrapper"
+        id="roleGroup"
+      >
+
         <div class="role-selection">
+
           <label class="role-option">
+
             DISCENTE
-            <input type="radio" name="userRole" value="discente">
+
+            <input
+              type="radio"
+              name="userRole"
+              value="discente"
+            >
+
           </label>
+
           <label class="role-option">
+
             DOCENTE
-            <input type="radio" name="userRole" value="docente">
+
+            <input
+              type="radio"
+              name="userRole"
+              value="docente"
+            >
+
           </label>
+
         </div>
-        <span class="error-message" id="roleError" style="text-align: center; padding-left:0;">Selecione Discente ou Docente.</span>
+
+        <span
+          class="error-message"
+          id="roleError"
+          style="text-align: center; padding-left: 0;"
+        >
+          Selecione Discente ou Docente.
+        </span>
+
       </div>
 
-      <button type="submit" class="btn-submit" id="btnSubmit">
+      <button
+        type="submit"
+        class="btn-submit"
+        id="btnSubmit"
+      >
+
         <i class="fa-solid fa-user-plus"></i>
+
         <span>CRIAR</span>
+
       </button>
 
       <div class="social-buttons-grid">
-        <button type="button" class="btn-secondary" id="btnGoogle">
-          <span>Continuar com google</span>
-          <i class="fa-brands fa-google google-icon"></i>
+
+        <button
+          type="button"
+          class="btn-secondary"
+          id="btnGoogle"
+        >
+
+          <span>
+            Continuar com google
+          </span>
+
+          <i
+            class="fa-brands fa-google google-icon"
+          ></i>
+
         </button>
-        <a href="login.html" class="btn-secondary">
-          <span>Já tem conta? Entrar</span>
+
+        <a
+          href="login.html"
+          class="btn-secondary"
+        >
+
+          <span>
+            Já tem conta? Entrar
+          </span>
+
           <i class="fa-solid fa-envelope"></i>
+
         </a>
+
       </div>
 
-      <div class="alert-box" id="alertBox"></div>
+      <div
+        class="alert-box"
+        id="alertBox"
+      ></div>
+
     </form>
+
   </main>
 
+  <!--
+    O api.js define a API_URL.
 
+    Como o frontend e o backend estão no mesmo
+    Web Service do Render, o padrão é:
 
- 
-   <script src="api.js"></script>
+    /api
+  -->
+  <script src="api.js"></script>
 
-<script>
-document.addEventListener('DOMContentLoaded', () => {
+  <script>
 
-  const signupForm =
-    document.getElementById('signupForm');
+    document.addEventListener('DOMContentLoaded', () => {
+      const signupForm = document.getElementById('signupForm');
+      const nameInput = document.getElementById('nameInput');
+      const emailInput = document.getElementById('emailInput');
+      const phoneInput = document.getElementById('phoneInput');
+      const passwordInput = document.getElementById('passwordInput');
+      const confirmPasswordInput = document.getElementById('confirmPasswordInput');
 
-  const nameInput =
-    document.getElementById('nameInput');
+      const nameGroup = document.getElementById('nameGroup');
+      const emailGroup = document.getElementById('emailGroup');
+      const phoneGroup = document.getElementById('phoneGroup');
+      const passwordGroup = document.getElementById('passwordGroup');
+      const confirmPasswordGroup = document.getElementById('confirmPasswordGroup');
+      const roleGroup = document.getElementById('roleGroup');
 
-  const emailInput =
-    document.getElementById('emailInput');
+      const togglePasswordBtn = document.getElementById('togglePassword');
+      const toggleIcon = document.getElementById('toggleIcon');
+      const btnSubmit = document.getElementById('btnSubmit');
+      const btnGoogle = document.getElementById('btnGoogle');
+      const alertBox = document.getElementById('alertBox');
 
-  const phoneInput =
-    document.getElementById('phoneInput');
+      function showAlert(message, type = 'error') {
+        alertBox.className = `alert-box ${type}`;
+        alertBox.style.display = 'block';
+        alertBox.innerText = message;
+      }
 
-  const passwordInput =
-    document.getElementById('passwordInput');
+      function isValidEmail(email) {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+      }
 
-  const confirmPasswordInput =
-    document.getElementById('confirmPasswordInput');
-
-
-  const nameGroup =
-    document.getElementById('nameGroup');
-
-  const emailGroup =
-    document.getElementById('emailGroup');
-
-  const phoneGroup =
-    document.getElementById('phoneGroup');
-
-  const passwordGroup =
-    document.getElementById('passwordGroup');
-
-  const confirmPasswordGroup =
-    document.getElementById('confirmPasswordGroup');
-
-  const roleGroup =
-    document.getElementById('roleGroup');
-
-
-  const togglePasswordBtn =
-    document.getElementById('togglePassword');
-
-  const toggleIcon =
-    document.getElementById('toggleIcon');
-
-  const btnSubmit =
-    document.getElementById('btnSubmit');
-
-  const btnGoogle =
-    document.getElementById('btnGoogle');
-
-  const alertBox =
-    document.getElementById('alertBox');
-
-
-  // ==================================================
-  // MÁSCARA DE TELEFONE
-  // ==================================================
-
-  phoneInput.addEventListener('input', (e) => {
-
-    let value =
-      e.target.value.replace(/\D/g, '');
-
-    if (value.length > 11) {
-      value = value.substring(0, 11);
-    }
-
-    if (value.length > 6) {
-
-      value =
-        `(${value.substring(0, 2)}) ` +
-        `${value.substring(2, 7)}-` +
-        `${value.substring(7)}`;
-
-    } else if (value.length > 2) {
-
-      value =
-        `(${value.substring(0, 2)}) ` +
-        value.substring(2);
-
-    } else if (value.length > 0) {
-
-      value =
-        `(${value}`;
-    }
-
-    e.target.value = value;
-  });
-
-
-  // ==================================================
-  // MOSTRAR / OCULTAR SENHA
-  // ==================================================
-
-  togglePasswordBtn.addEventListener(
-    'click',
-    () => {
-
-      const passwordVisible =
-        passwordInput.type === 'text';
-
-      passwordInput.type =
-        passwordVisible
-          ? 'password'
-          : 'text';
-
-      confirmPasswordInput.type =
-        passwordVisible
-          ? 'password'
-          : 'text';
-
-      toggleIcon.classList.toggle(
-        'fa-eye-slash',
-        passwordVisible
-      );
-
-      toggleIcon.classList.toggle(
-        'fa-eye',
-        !passwordVisible
-      );
-    }
-  );
-
-
-  // ==================================================
-  // LIMPAR ERROS AO DIGITAR
-  // ==================================================
-
-  const inputs = [
-    nameInput,
-    emailInput,
-    phoneInput,
-    passwordInput,
-    confirmPasswordInput
-  ];
-
-  const groups = [
-    nameGroup,
-    emailGroup,
-    phoneGroup,
-    passwordGroup,
-    confirmPasswordGroup
-  ];
-
-  inputs.forEach((input, index) => {
-
-    input.addEventListener('input', () => {
-
-      groups[index]
-        .classList.remove('error');
-
-    });
-  });
-
-
-  document
-    .querySelectorAll('input[name="userRole"]')
-    .forEach(radio => {
-
-      radio.addEventListener('change', () => {
-
-        roleGroup.classList.remove('error');
-
+      phoneInput.addEventListener('input', (e) => {
+        let value = e.target.value.replace(/\D/g, '').slice(0, 11);
+        if (value.length > 6) {
+          value = `(${value.slice(0, 2)}) ${value.slice(2, 7)}-${value.slice(7)}`;
+        } else if (value.length > 2) {
+          value = `(${value.slice(0, 2)}) ${value.slice(2)}`;
+        } else if (value.length > 0) {
+          value = `(${value}`;
+        }
+        e.target.value = value;
       });
 
+      togglePasswordBtn.addEventListener('click', () => {
+        const show = passwordInput.type === 'password';
+        passwordInput.type = show ? 'text' : 'password';
+        confirmPasswordInput.type = show ? 'text' : 'password';
+        toggleIcon.classList.toggle('fa-eye', !show);
+        toggleIcon.classList.toggle('fa-eye-slash', show);
+      });
+
+      [
+        [nameInput, nameGroup],
+        [emailInput, emailGroup],
+        [phoneInput, phoneGroup],
+        [passwordInput, passwordGroup],
+        [confirmPasswordInput, confirmPasswordGroup]
+      ].forEach(([input, group]) => {
+        input.addEventListener('input', () => group.classList.remove('error'));
+      });
+
+      document.querySelectorAll('input[name="userRole"]').forEach((radio) => {
+        radio.addEventListener('change', () => roleGroup.classList.remove('error'));
+      });
+
+      btnGoogle.addEventListener('click', () => {
+        showAlert('O login com Google ainda não está integrado ao ID HUB.', 'error');
+      });
+
+      signupForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        alertBox.style.display = 'none';
+
+        const nome = nameInput.value.trim();
+        const email = emailInput.value.trim().toLowerCase();
+        const telefone = phoneInput.value.trim();
+        const senha = passwordInput.value;
+        const confirmarSenha = confirmPasswordInput.value;
+        const selectedRole = document.querySelector('input[name="userRole"]:checked');
+
+        let valid = true;
+
+        if (nome.length < 3) {
+          nameGroup.classList.add('error');
+          valid = false;
+        }
+        if (!isValidEmail(email)) {
+          emailGroup.classList.add('error');
+          valid = false;
+        }
+        if (telefone.replace(/\D/g, '').length < 10) {
+          phoneGroup.classList.add('error');
+          valid = false;
+        }
+        if (senha.length < 6) {
+          passwordGroup.classList.add('error');
+          valid = false;
+        }
+        if (senha !== confirmarSenha) {
+          confirmPasswordGroup.classList.add('error');
+          valid = false;
+        }
+        if (!selectedRole) {
+          roleGroup.classList.add('error');
+          valid = false;
+        }
+
+        if (!valid) {
+          showAlert('Confira os campos destacados antes de continuar.');
+          return;
+        }
+
+        btnSubmit.disabled = true;
+        btnSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i><span>CRIANDO...</span>';
+
+        try {
+          const data = await apiRequest('/cadastro', 'POST', {
+            nome,
+            email,
+            telefone,
+            senha,
+            tipo: selectedRole.value
+          });
+
+          // O cadastro não precisa iniciar uma sessão automaticamente.
+          // Limpamos possíveis dados de outra conta antes do login.
+          localStorage.removeItem('token');
+          localStorage.removeItem('perfil');
+          localStorage.removeItem('email');
+          localStorage.removeItem('idhub_docente');
+          localStorage.removeItem('idhub_database');
+          localStorage.removeItem('idhub_database_owner_id');
+
+          showAlert(data.mensagem || 'Conta criada com sucesso! Redirecionando para o login...', 'success');
+          passwordInput.value = '';
+          confirmPasswordInput.value = '';
+
+          setTimeout(() => {
+            window.location.href = 'login.html';
+          }, 1200);
+        } catch (error) {
+          console.error('[IDHUB] Cadastro:', error);
+          showAlert(error.message || 'Não foi possível realizar o cadastro.');
+        } finally {
+          btnSubmit.disabled = false;
+          btnSubmit.innerHTML = '<i class="fa-solid fa-user-plus"></i><span>CRIAR</span>';
+        }
+      });
     });
 
-
-  // ==================================================
-  // VALIDAÇÃO DE EMAIL
-  // ==================================================
-
-  function isValidEmail(email) {
-
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-      .test(email);
-  }
-
-
-  // ==================================================
-  // GOOGLE
-  // ==================================================
-
-  btnGoogle.addEventListener('click', () => {
-
-    window.open(
-      'https://accounts.google.com',
-      '_blank'
-    );
-
-    alertBox.className =
-      'alert-box success';
-
-    alertBox.style.display =
-      'block';
-
-    alertBox.innerText =
-      'Endereçado ao Google com sucesso! Abrindo aba de autenticação...';
-
-    setTimeout(() => {
-
-      alertBox.style.display =
-        'none';
-
-    }, 5000);
-
-  });
-
-
-  // ==================================================
-  // CADASTRO
-  // ==================================================
-
-  signupForm.addEventListener(
-    'submit',
-    async (e) => {
-
-      e.preventDefault();
-
-
-      let isValid = true;
-
-
-      const selectedRole =
-        document.querySelector(
-          'input[name="userRole"]:checked'
-        );
-
-
-      // ----------------------------------------------
-      // NOME
-      // ----------------------------------------------
-
-      const name =
-        nameInput.value.trim();
-
-      if (
-        !name ||
-        name.length < 3
-      ) {
-
-        nameGroup.classList.add('error');
-
-        isValid = false;
-      }
-
-
-      // ----------------------------------------------
-      // EMAIL
-      // ----------------------------------------------
-
-      const email =
-        emailInput.value
-          .trim()
-          .toLowerCase();
-
-      if (
-        !email ||
-        !isValidEmail(email)
-      ) {
-
-        emailGroup.classList.add('error');
-
-        isValid = false;
-      }
-
-
-      // ----------------------------------------------
-      // TELEFONE
-      // ----------------------------------------------
-
-      const phone =
-        phoneInput.value.trim();
-
-      const digitsOnlyPhone =
-        phone.replace(/\D/g, '');
-
-      if (
-        digitsOnlyPhone.length < 10
-      ) {
-
-        phoneGroup.classList.add('error');
-
-        isValid = false;
-      }
-
-
-      // ----------------------------------------------
-      // SENHA
-      // ----------------------------------------------
-
-      const password =
-        passwordInput.value.trim();
-
-      if (
-        !password ||
-        password.length < 6
-      ) {
-
-        passwordGroup.classList.add('error');
-
-        isValid = false;
-      }
-
-
-      // ----------------------------------------------
-      // CONFIRMAÇÃO
-      // ----------------------------------------------
-
-      const confirmPassword =
-        confirmPasswordInput.value.trim();
-
-      if (
-        password !== confirmPassword
-      ) {
-
-        confirmPasswordGroup
-          .classList.add('error');
-
-        isValid = false;
-      }
-
-
-      // ----------------------------------------------
-      // TIPO DE USUÁRIO
-      // ----------------------------------------------
-
-      if (!selectedRole) {
-
-        roleGroup.classList.add('error');
-
-        isValid = false;
-      }
-
-
-      if (!isValid) {
-        return;
-      }
-
-
-      // ==================================================
-      // BOTÃO
-      // ==================================================
-
-      btnSubmit.disabled = true;
-
-      btnSubmit.innerHTML =
-        '<i class="fa-solid fa-spinner fa-spin"></i>' +
-        '<span>CRIANDO...</span>';
-
-
-      // ==================================================
-      // ENVIO PARA O RENDER
-      // ==================================================
-
-      try {
-
-        console.log(
-          '[IDHUB] Enviando cadastro para:',
-          `${API_URL}/cadastro`
-        );
-
-
-        const response =
-          await fetch(
-            `${API_URL}/cadastro`,
-            {
-              method: 'POST',
-
-              headers: {
-                'Content-Type':
-                  'application/json'
-              },
-
-              body: JSON.stringify({
-
-                name: name,
-
-                email: email,
-
-                phone: phone,
-
-                password: password,
-
-                role: selectedRole.value
-
-              })
-            }
-          );
-
-
-        // ----------------------------------------------
-        // RESPOSTA
-        // ----------------------------------------------
-
-        let data = {};
-
-        const contentType =
-          response.headers
-            .get('content-type') || '';
-
-
-        if (
-          contentType.includes(
-            'application/json'
-          )
-        ) {
-
-          data =
-            await response.json();
-
-        } else {
-
-          const text =
-            await response.text();
-
-          data = {
-            message: text
-          };
-        }
-
-
-        // ----------------------------------------------
-        // ERRO
-        // ----------------------------------------------
-
-        if (!response.ok) {
-
-          throw new Error(
-            data.message ||
-            data.error ||
-            `Erro HTTP ${response.status}`
-          );
-        }
-
-
-        // ----------------------------------------------
-        // SUCESSO
-        // ----------------------------------------------
-
-        alertBox.className =
-          'alert-box success';
-
-        alertBox.style.display =
-          'block';
-
-        alertBox.innerText =
-          data.message ||
-          'Conta criada com sucesso! Redirecionando para o login...';
-
-
-        // Limpa senha
-        passwordInput.value = '';
-        confirmPasswordInput.value = '';
-
-
-        setTimeout(() => {
-
-          window.location.href =
-            'login.html';
-
-        }, 1500);
-
-
-      } catch (error) {
-
-        console.error(
-          '[IDHUB] Erro no cadastro:',
-          error
-        );
-
-
-        alertBox.className =
-          'alert-box error';
-
-        alertBox.style.display =
-          'block';
-
-
-        alertBox.innerText =
-          error.message ||
-          'Não foi possível conectar ao servidor.';
-
-
-      } finally {
-
-        btnSubmit.disabled = false;
-
-        btnSubmit.innerHTML =
-          '<i class="fa-solid fa-user-plus"></i>' +
-          '<span>CRIAR</span>';
-      }
-
-    }
-  );
-
-});
 </script>
- 
+
 </body>
+
 </html>

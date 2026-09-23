@@ -767,81 +767,65 @@
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script src="https://npmcdn.com/flatpickr/dist/l10n/pt.js"></script>
   <script>
+
     // BASE DE DADOS GLOBAL
     let database = JSON.parse(localStorage.getItem('idhub_database')) || [];
+    let activeTurmaIndex = 0;
+    let activeAlunoIndex = 0;
+    let currentAddPhotoBase64 = null;
+    let currentEditPhotoBase64 = null;
 
     function ensureIds() {
       database.forEach((t, ti) => {
-        if (!t.id) t.id = 'turma_' + (Date.now() + ti);
-        if (t.alunos) {
-          t.alunos.forEach((a, ai) => {
-            if (!a.id) a.id = 'aluno_' + (Date.now() + (ti * 100) + ai);
-          });
-        }
+        if (!t.id) t.id = `turma_${Date.now()}_${ti}`;
+        if (!Array.isArray(t.alunos)) t.alunos = [];
+        t.alunos.forEach((a, ai) => {
+          if (!a.id) a.id = `aluno_${Date.now()}_${ti}_${ai}`;
+        });
       });
-    }
-
-    async function apiRequest(endpoint, method = 'GET', body = null) {
-      const token = localStorage.getItem('token');
-      if (!token && endpoint !== '/health') {
-        throw new Error('Sessão expirada. Faça login novamente.');
-      }
-
-      const headers = { 'Content-Type': 'application/json' };
-      if (token) headers.Authorization = `Bearer ${token}`;
-
-      const options = { method, headers };
-      if (body !== null && body !== undefined && !['GET', 'HEAD'].includes(method.toUpperCase())) {
-        options.body = JSON.stringify(body);
-      }
-
-      const res = await fetch(`${API_URL}${endpoint}`, options);
-      const contentType = res.headers.get('content-type') || '';
-      const data = contentType.includes('application/json') ? await res.json() : { message: await res.text() };
-
-      if (!res.ok) {
-        if (res.status === 401) {
-          localStorage.removeItem('token');
-          localStorage.removeItem('perfil');
-          localStorage.removeItem('email');
-          localStorage.removeItem('idhub_docente');
-        }
-        throw new Error(data.error || data.message || `Erro HTTP ${res.status}`);
-      }
-
-      return data;
     }
 
     async function loadTurmas() {
       try {
-        const apiTurmas = await apiRequest('/turmas');
-        if (Array.isArray(apiTurmas)) {
-          // Migra automaticamente as turmas antigas que ainda estavam somente no navegador.
-          if (apiTurmas.length === 0 && database.length > 0) {
-            ensureIds();
-            const migrated = await apiRequest('/turmas', 'POST', { turmas: database, replaceAll: true });
-            database = Array.isArray(migrated.turmas) ? migrated.turmas : [];
-          } else {
-            database = apiTurmas;
-          }
-          localStorage.setItem('idhub_database', JSON.stringify(database));
+        const me = JSON.parse(localStorage.getItem('idhub_docente') || '{}');
+        const ownerId = localStorage.getItem('idhub_database_owner_id');
+
+        // Evita misturar os dados locais de outra conta.
+        if (ownerId && me.id && String(ownerId) !== String(me.id)) {
+          database = [];
+          localStorage.removeItem('idhub_database');
         }
+
+        let response = await apiRequest('/turmas');
+        let apiTurmas = Array.isArray(response) ? response : response.turmas;
+        apiTurmas = Array.isArray(apiTurmas) ? apiTurmas : [];
+
+        // Migração única de turmas antigas que existiam somente no navegador.
+        if (apiTurmas.length === 0 && database.length > 0) {
+          ensureIds();
+          const migrated = await apiRequest('/turmas', 'POST', {
+            turmas: database,
+            replaceAll: true
+          });
+          apiTurmas = Array.isArray(migrated.turmas) ? migrated.turmas : [];
+        }
+
+        database = apiTurmas;
+        ensureIds();
+        localStorage.setItem('idhub_database', JSON.stringify(database));
+        if (me.id) localStorage.setItem('idhub_database_owner_id', String(me.id));
       } catch (err) {
         console.error('Erro ao carregar turmas:', err);
         showToast(err.message || 'Não foi possível conectar ao banco de dados.');
       }
 
-      ensureIds();
       if (activeTurmaIndex >= database.length) activeTurmaIndex = 0;
-      if (database[activeTurmaIndex] && activeAlunoIndex >= (database[activeTurmaIndex].alunos || []).length) activeAlunoIndex = 0;
+      if (database[activeTurmaIndex] && activeAlunoIndex >= (database[activeTurmaIndex].alunos || []).length) {
+        activeAlunoIndex = 0;
+      }
       renderTurmas();
       renderAlunos();
     }
-
-    let activeTurmaIndex = 0;
-    let activeAlunoIndex = 0;
-    let currentAddPhotoBase64 = null;
-    let currentEditPhotoBase64 = null;
 
     const classesListContainer = document.getElementById('classesList');
     const studentsListContainer = document.getElementById('studentsList');
@@ -905,6 +889,7 @@
       localStorage.removeItem('email');
       localStorage.removeItem('idhub_docente');
       localStorage.removeItem('idhub_database');
+      localStorage.removeItem('idhub_database_owner_id');
       window.location.href = 'index.html';
     }
 
@@ -983,46 +968,37 @@
     async function saveDocenteProfile() {
       const docente = {
         nome: document.getElementById('inputProfileName').value.trim(),
-        email: document.getElementById('inputProfileEmail').value.trim(),
+        email: document.getElementById('inputProfileEmail').value.trim().toLowerCase(),
         telefone: document.getElementById('inputProfilePhone').value.trim(),
         especialidade: document.getElementById('inputProfileSpec').value.trim(),
         foto: profilePhotoBase64
       };
 
-      const result = await apiRequest('/me', 'PATCH', {
-        name: docente.nome,
-        email: docente.email,
-        phone: docente.telefone,
-        especialidade: docente.especialidade,
-        foto: docente.foto
-      });
+      const result = await apiRequest('/me', 'PATCH', docente);
+      const usuario = result.usuario || {};
 
       if (result.token) localStorage.setItem('token', result.token);
-      if (result.user) {
-        localStorage.setItem('idhub_docente', JSON.stringify({
-          nome: result.user.name,
-          email: result.user.email,
-          telefone: result.user.phone,
-          especialidade: result.user.especialidade,
-          foto: result.user.foto
-        }));
-      } else {
-        localStorage.setItem('idhub_docente', JSON.stringify(docente));
-      }
-
-      const docenteAtual = result.user || {
-        name: docente.nome, email: docente.email, phone: docente.telefone,
-        especialidade: docente.especialidade, foto: docente.foto
+      const perfilAtual = {
+        id: usuario.id,
+        nome: usuario.nome ?? docente.nome,
+        email: usuario.email ?? docente.email,
+        telefone: usuario.telefone ?? docente.telefone,
+        especialidade: usuario.especialidade ?? docente.especialidade,
+        foto: usuario.foto ?? docente.foto
       };
+      localStorage.setItem('idhub_docente', JSON.stringify(perfilAtual));
+      localStorage.setItem('email', perfilAtual.email || '');
+      localStorage.setItem('perfil', usuario.tipo || localStorage.getItem('perfil') || 'docente');
+      if (usuario.id) localStorage.setItem('idhub_database_owner_id', String(usuario.id));
 
       database.forEach(turma => {
-        turma.professorNome = docenteAtual.name || 'Professor não informado';
-        turma.professorFoto = docenteAtual.foto || null;
+        turma.professorNome = perfilAtual.nome || 'Professor não informado';
+        turma.professorFoto = perfilAtual.foto || null;
       });
       await saveDatabase();
 
-      document.getElementById('displayProfileName').textContent = docenteAtual.name || 'Nome do Docente';
-      document.getElementById('displayProfileSpec').textContent = docenteAtual.especialidade || 'Especialidade / Cargo';
+      document.getElementById('displayProfileName').textContent = perfilAtual.nome || 'Nome do Docente';
+      document.getElementById('displayProfileSpec').textContent = perfilAtual.especialidade || 'Especialidade / Cargo';
       loadDocenteHeader();
       renderTurmas();
       if (database.length > 0) renderAlunos();
@@ -1042,7 +1018,7 @@
       localStorage.setItem('idhub_database', JSON.stringify(database));
       return result;
     }
-    
+
     function handlePhoneMask(event) { event.target.value = phoneMask(event.target.value); }
     function phoneMask(value) { if (!value) return ""; value = value.replace(/\D/g, ''); if (value.length > 11) value = value.slice(0, 11); value = value.replace(/(\d{2})(\d)/, "($1) $2"); value = value.replace(/(\d)(\d{4})$/, "$1-$2"); return value; }
     function isValidEmail(email) { if (!email) return true; return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email); }
@@ -1236,7 +1212,9 @@
         badgeClass: shiftOption.value.toLowerCase(), 
         descricao: descInput.value.trim(),
         tipoPeriodo: periodType,
+        qtdPeriodo: 4,
         mediaAprovacao: passingGrade,
+        materias: ["MATEMÁTICA", "PORTUGUÊS", "CIÊNCIAS", "HISTÓRIA"],
         professorNome: docenteInfo.nome || "Professor não informado",
         professorFoto: docenteInfo.foto || null,
         alunos: [] 
@@ -1644,20 +1622,30 @@
       }
 
       try {
-        const me = await apiRequest('/me');
-        if (me.user) {
-          localStorage.setItem('idhub_docente', JSON.stringify({
-            nome: me.user.name,
-            email: me.user.email,
-            telefone: me.user.phone,
-            especialidade: me.user.especialidade,
-            foto: me.user.foto
-          }));
-          localStorage.setItem('perfil', me.user.role);
-          localStorage.setItem('email', me.user.email);
+        const meResponse = await apiRequest('/me');
+        const me = meResponse.usuario;
+        if (!me) throw new Error('Sessão inválida.');
+
+        const previousOwner = localStorage.getItem('idhub_database_owner_id');
+        if (previousOwner && String(previousOwner) !== String(me.id)) {
+          database = [];
+          localStorage.removeItem('idhub_database');
         }
+
+        localStorage.setItem('idhub_docente', JSON.stringify({
+          id: me.id,
+          nome: me.nome || '',
+          email: me.email || '',
+          telefone: me.telefone || '',
+          especialidade: me.especialidade || '',
+          foto: me.foto || null
+        }));
+        localStorage.setItem('perfil', me.tipo || 'docente');
+        localStorage.setItem('email', me.email || '');
+        localStorage.setItem('idhub_database_owner_id', String(me.id));
       } catch (error) {
         console.error('Sessão inválida:', error);
+        localStorage.removeItem('token');
         window.location.href = 'login.html';
         return;
       }
@@ -1665,6 +1653,8 @@
       loadDocenteHeader();
       await loadTurmas();
     });
-  </script>
+
+</script>
+
 </body>
 </html>

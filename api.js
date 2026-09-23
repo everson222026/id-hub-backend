@@ -1,32 +1,56 @@
-// API do ID HUB.
-// Como o frontend e o backend podem ficar no mesmo Web Service do Render,
-// usamos /api por padrão e não localhost.
-const API_URL = (window.IDHUB_API_URL || '/api').replace(/\/$/, '');
+// =========================================================
+// API DO ID HUB
+// =========================================================
+// Frontend e backend são publicados pelo mesmo Web Service.
+// A API usa /api e envia automaticamente o JWT salvo no navegador.
+// =========================================================
+
+const API_URL = (
+  window.IDHUB_API_URL || '/api'
+).replace(/\/$/, '');
 
 async function apiRequest(endpoint, method = 'GET', data = null) {
-  const headers = { 'Content-Type': 'application/json' };
+  const normalizedEndpoint = String(endpoint || '').startsWith('/')
+    ? String(endpoint)
+    : `/${endpoint}`;
+
+  const upperMethod = String(method).toUpperCase();
+  const headers = {};
   const token = localStorage.getItem('token');
 
-  if (token) headers.Authorization = `Bearer ${token}`;
+  if (data !== null && data !== undefined && !['GET', 'HEAD'].includes(upperMethod)) {
+    headers['Content-Type'] = 'application/json';
+  }
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
 
   const config = {
-    method: method.toUpperCase(),
+    method: upperMethod,
     headers
   };
 
-  if (data !== null && data !== undefined && !['GET', 'HEAD'].includes(config.method)) {
+  if (data !== null && data !== undefined && !['GET', 'HEAD'].includes(upperMethod)) {
     config.body = JSON.stringify(data);
   }
 
-  const response = await fetch(`${API_URL}${endpoint}`, config);
+  let response;
+  try {
+    response = await fetch(`${API_URL}${normalizedEndpoint}`, config);
+  } catch (error) {
+    throw new Error('Não foi possível conectar ao servidor do ID HUB.');
+  }
 
-  let responseData = {};
   const contentType = response.headers.get('content-type') || '';
+  let responseData = {};
 
   if (contentType.includes('application/json')) {
-    responseData = await response.json();
+    responseData = await response.json().catch(() => ({}));
   } else {
-    responseData = { message: await response.text() };
+    responseData = {
+      mensagem: await response.text().catch(() => '')
+    };
   }
 
   if (!response.ok) {
@@ -35,11 +59,14 @@ async function apiRequest(endpoint, method = 'GET', data = null) {
       localStorage.removeItem('perfil');
       localStorage.removeItem('email');
       localStorage.removeItem('idhub_docente');
+      localStorage.removeItem('idhub_database_owner_id');
     }
 
     throw new Error(
-      responseData.message ||
+      responseData.erro ||
       responseData.error ||
+      responseData.message ||
+      responseData.mensagem ||
       `Erro HTTP ${response.status}`
     );
   }
@@ -49,10 +76,9 @@ async function apiRequest(endpoint, method = 'GET', data = null) {
 
 async function testarAPI() {
   try {
-    await fetch(`${API_URL}/health`);
-    return true;
-  } catch (error) {
-    console.error('[IDHUB API] Backend offline:', error);
+    const response = await fetch(`${API_URL}/health`);
+    return response.ok;
+  } catch (_) {
     return false;
   }
 }

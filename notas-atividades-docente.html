@@ -229,8 +229,10 @@
 
   <div class="toast-msg" id="toastMsg">Alterações salvas com sucesso!</div>
 
+  <script src="api.js"></script>
   <script>
-    document.addEventListener('DOMContentLoaded', () => {
+
+    document.addEventListener('DOMContentLoaded', async () => {
       const btnSaveGrades = document.getElementById('btnSaveGrades');
       const toastMsg = document.getElementById('toastMsg');
       const activitiesList = document.getElementById('activitiesList');
@@ -247,341 +249,328 @@
       const urlParams = new URLSearchParams(window.location.search);
       const turmaId = urlParams.get('turmaId');
       const alunoId = urlParams.get('alunoId');
-      const database = JSON.parse(localStorage.getItem('idhub_database')) || [];
 
-      let turmaIndex = database.findIndex(t => t.id === turmaId);
-      let alunoIndex = turmaIndex !== -1 ? database[turmaIndex].alunos.findIndex(a => a.id === alunoId) : -1;
-      
-      let turma = turmaIndex !== -1 ? database[turmaIndex] : null;
-      let aluno = turma && alunoIndex !== -1 ? turma.alunos[alunoIndex] : null;
+      let database = JSON.parse(localStorage.getItem('idhub_database') || '[]');
+      let turma = null;
+      let aluno = null;
 
-      if (!aluno) {
-        alert("Erro: Aluno não encontrado.");
-        window.history.back();
-        return;
+      function showToast(message, isError = false) {
+        toastMsg.innerText = message;
+        toastMsg.classList.toggle('toast-error', isError);
+        toastMsg.style.display = 'block';
+        clearTimeout(showToast.timer);
+        showToast.timer = setTimeout(() => { toastMsg.style.display = 'none'; }, 2800);
       }
 
-      // Inicializa configurações padrão da turma caso não existam
-      if (!turma.tipoPeriodo) turma.tipoPeriodo = "bimestre";
-      if (!turma.qtdPeriodo) turma.qtdPeriodo = 4;
-      if (!turma.mediaAprovacao) turma.mediaAprovacao = 6.0;
-      if (!turma.materias) turma.materias = ["MATEMÁTICA", "PORTUGUÊS", "CIÊNCIAS", "HISTÓRIA"];
+      async function carregarDados() {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          window.location.href = 'login.html';
+          return false;
+        }
 
-      classPassingGradeInput.value = turma.mediaAprovacao;
-      classPeriodTypeSelect.value = turma.tipoPeriodo;
-      classPeriodCountInput.value = turma.qtdPeriodo;
+        try {
+          const response = await apiRequest('/turmas');
+          const serverTurmas = Array.isArray(response) ? response : response.turmas;
+          if (Array.isArray(serverTurmas)) database = serverTurmas;
+          localStorage.setItem('idhub_database', JSON.stringify(database));
+        } catch (error) {
+          console.error('[IDHUB] Falha ao carregar notas:', error);
+          showToast(error.message || 'Não foi possível carregar os dados.', true);
+          return false;
+        }
 
-      if (!aluno.notas) aluno.notas = {};
+        const turmaEncontrada = database.find((t) => String(t.id) === String(turmaId));
+        turma = turmaEncontrada || null;
+        aluno = turma && Array.isArray(turma.alunos)
+          ? turma.alunos.find((a) => String(a.id) === String(alunoId))
+          : null;
 
-      document.getElementById('studentName').innerText = aluno.nome;
-      document.getElementById('studentClass').innerText = turma.nome;
-      document.getElementById('studentAvatar').src = aluno.foto || "https://via.placeholder.com/150";
+        if (!turma || !aluno) {
+          alert('Erro: aluno ou turma não encontrados.');
+          window.history.back();
+          return false;
+        }
 
-      // MAPEAMENTO DE PERÍODOS
+        if (!Array.isArray(turma.materias)) {
+          turma.materias = ['MATEMÁTICA', 'PORTUGUÊS', 'CIÊNCIAS', 'HISTÓRIA'];
+        }
+        if (!turma.tipoPeriodo) turma.tipoPeriodo = 'bimestre';
+        if (!turma.qtdPeriodo) turma.qtdPeriodo = 4;
+        if (!turma.mediaAprovacao) turma.mediaAprovacao = 6.0;
+        if (!aluno.notas || typeof aluno.notas !== 'object') aluno.notas = {};
+        if (!Array.isArray(aluno.atividades)) aluno.atividades = [];
+
+        classPassingGradeInput.value = turma.mediaAprovacao;
+        classPeriodTypeSelect.value = turma.tipoPeriodo;
+        classPeriodCountInput.value = turma.qtdPeriodo;
+        document.getElementById('studentName').innerText = aluno.nome;
+        document.getElementById('studentClass').innerText = turma.nome;
+        document.getElementById('studentAvatar').src = aluno.foto || 'https://via.placeholder.com/150';
+        return true;
+      }
+
+      async function persistDatabase(message = null) {
+        try {
+          localStorage.setItem('idhub_database', JSON.stringify(database));
+          await apiRequest('/turmas', 'POST', { turmas: database, replaceAll: true });
+          if (message) showToast(message);
+          return true;
+        } catch (error) {
+          console.error('[IDHUB] Sincronização:', error);
+          showToast(error.message || 'Não foi possível salvar no banco de dados.', true);
+          return false;
+        }
+      }
+
       function getPeriodList() {
         const type = classPeriodTypeSelect.value;
-        const count = parseInt(classPeriodCountInput.value) || 1;
+        const count = Math.max(1, parseInt(classPeriodCountInput.value, 10) || 1);
         const prefix = type === 'semestre' ? 'S' : (type === 'trimestre' ? 'T' : 'B');
-        
-        let periods = [];
-        for (let i = 1; i <= count; i++) {
-          periods.push(`${prefix}${i}`);
-        }
-        return periods;
+        return Array.from({ length: count }, (_, index) => `${prefix}${index + 1}`);
       }
 
-      // RENDERIZAR TABELA DE NOTAS
       function renderGradesTable() {
         const periods = getPeriodList();
-        
-        // Renderizar Cabeçalho
-        let headHtml = `<tr><th>MATÉRIAS</th>`;
-        periods.forEach(p => { headHtml += `<th>${p}</th>`; });
-        headHtml += `<th>TOTAL</th><th>MÉDIA</th><th>AÇÕES</th></tr>`;
-        gradesTableHead.innerHTML = headHtml;
-
-        // Renderizar Corpo
+        gradesTableHead.innerHTML = `<tr><th>MATÉRIAS</th>${periods.map((p) => `<th>${p}</th>`).join('')}<th>TOTAL</th><th>MÉDIA</th><th>AÇÕES</th></tr>`;
         gradesTableBody.innerHTML = '';
-        
-        if (turma.materias.length === 0) {
-          gradesTableBody.innerHTML = `<tr><td colspan="${periods.length + 3}" style="padding: 15px; color: #fff;">Nenhuma matéria cadastrada. Adicione uma acima.</td></tr>`;
+
+        if (!turma.materias.length) {
+          gradesTableBody.innerHTML = `<tr><td colspan="${periods.length + 3}" style="padding:15px;color:#fff;">Nenhuma matéria cadastrada. Adicione uma acima.</td></tr>`;
           return;
         }
 
-        turma.materias.forEach(subject => {
+        turma.materias.forEach((subject) => {
           if (!aluno.notas[subject]) aluno.notas[subject] = {};
-
-          let tr = document.createElement('tr');
+          const tr = document.createElement('tr');
           tr.dataset.subject = subject;
 
-          let inputsHtml = `<td class="subject-name">${subject}</td>`;
-          let totalSum = 0;
-          let countFilled = 0;
+          let total = 0;
+          let filled = 0;
+          let html = `<td class="subject-name">${subject}</td>`;
 
-          periods.forEach(p => {
-            const valStr = aluno.notas[subject][p] || '';
-            const valNum = parseFloat(valStr.replace(',', '.'));
-            
-            if (!isNaN(valNum)) {
-              totalSum += valNum;
-              countFilled++;
+          periods.forEach((period) => {
+            const value = aluno.notas[subject][period] ?? '';
+            const numeric = Number.parseFloat(String(value).replace(',', '.'));
+            if (Number.isFinite(numeric)) {
+              total += numeric;
+              filled += 1;
             }
-
-            inputsHtml += `<td><input type="text" class="grade-input" data-period="${p}" value="${valStr}" maxlength="4"></td>`;
+            html += `<td><input type="text" class="grade-input" data-period="${period}" value="${String(value).replace(/"/g, '&quot;')}" maxlength="4"></td>`;
           });
 
-          const media = periods.length > 0 ? (totalSum / periods.length) : 0;
-          const passingGrade = parseFloat(turma.mediaAprovacao) || 6.0;
-          const mediaClass = (countFilled > 0 && media >= passingGrade) ? 'media-aprovado' : (countFilled > 0 ? 'media-reprovado' : '');
+          const media = periods.length ? total / periods.length : 0;
+          const passing = Number.parseFloat(classPassingGradeInput.value) || 6;
+          const mediaClass = filled && media >= passing ? 'media-aprovado' : (filled ? 'media-reprovado' : '');
 
-          inputsHtml += `<td class="total-val">${countFilled > 0 ? totalSum.toFixed(1) : '-'}</td>`;
-          inputsHtml += `<td><span class="media-val ${mediaClass}">${countFilled > 0 ? media.toFixed(1) : '-'}</span></td>`;
-          inputsHtml += `
+          html += `<td class="total-val">${filled ? total.toFixed(1) : '-'}</td>`;
+          html += `<td><span class="media-val ${mediaClass}">${filled ? media.toFixed(1) : '-'}</span></td>`;
+          html += `
             <td>
-              <button class="subject-action-btn btn-edit-sub" title="Editar Matéria" onclick="editarMateria('${subject}')"><i class="fa-solid fa-pen"></i></button>
-              <button class="subject-action-btn btn-del-sub" title="Remover Matéria" onclick="removerMateria('${subject}')"><i class="fa-solid fa-trash"></i></button>
-            </td>
-          `;
+              <button type="button" class="subject-action-btn btn-edit-sub" title="Editar Matéria" data-action="edit" data-subject="${encodeURIComponent(subject)}"><i class="fa-solid fa-pen"></i></button>
+              <button type="button" class="subject-action-btn btn-del-sub" title="Remover Matéria" data-action="delete" data-subject="${encodeURIComponent(subject)}"><i class="fa-solid fa-trash"></i></button>
+            </td>`;
 
-          tr.innerHTML = inputsHtml;
+          tr.innerHTML = html;
           gradesTableBody.appendChild(tr);
         });
 
-        document.querySelectorAll('.grade-input').forEach(input => {
+        document.querySelectorAll('.grade-input').forEach((input) => {
           input.addEventListener('input', calculateDynamicTotals);
         });
       }
 
-      // CÁLCULO EM TEMPO REAL
       function calculateDynamicTotals() {
         const periods = getPeriodList();
-        const passingGrade = parseFloat(classPassingGradeInput.value) || 6.0;
-
-        document.querySelectorAll('#gradesTableBody tr').forEach(tr => {
-          let totalSum = 0;
-          let countFilled = 0;
-
-          tr.querySelectorAll('.grade-input').forEach(input => {
-            const valNum = parseFloat(input.value.replace(',', '.'));
-            if (!isNaN(valNum)) {
-              totalSum += valNum;
-              countFilled++;
+        const passingGrade = Number.parseFloat(classPassingGradeInput.value) || 6;
+        document.querySelectorAll('#gradesTableBody tr').forEach((tr) => {
+          let total = 0;
+          let filled = 0;
+          tr.querySelectorAll('.grade-input').forEach((input) => {
+            const value = Number.parseFloat(input.value.replace(',', '.'));
+            if (Number.isFinite(value)) {
+              total += value;
+              filled += 1;
             }
           });
-
-          const media = periods.length > 0 ? (totalSum / periods.length) : 0;
+          const media = periods.length ? total / periods.length : 0;
           const totalTd = tr.querySelector('.total-val');
           const mediaSpan = tr.querySelector('.media-val');
-
           if (totalTd && mediaSpan) {
-            totalTd.innerText = countFilled > 0 ? totalSum.toFixed(1) : '-';
-            
-            if (countFilled > 0) {
-              mediaSpan.innerText = media.toFixed(1);
-              mediaSpan.className = `media-val ${media >= passingGrade ? 'media-aprovado' : 'media-reprovado'}`;
-            } else {
-              mediaSpan.innerText = '-';
-              mediaSpan.className = 'media-val';
-            }
+            totalTd.innerText = filled ? total.toFixed(1) : '-';
+            mediaSpan.innerText = filled ? media.toFixed(1) : '-';
+            mediaSpan.className = `media-val ${filled ? (media >= passingGrade ? 'media-aprovado' : 'media-reprovado') : ''}`;
           }
         });
       }
 
-      // ADICIONAR NOVA MATÉRIA
-      btnAddSubject.addEventListener('click', () => {
+      btnAddSubject.addEventListener('click', async () => {
         const name = newSubjectInput.value.trim().toUpperCase();
         if (!name) return showToast('Digite o nome da matéria!', true);
-
-        if (turma.materias.includes(name)) {
-          return showToast('Essa matéria já existe!', true);
-        }
-
+        if (turma.materias.includes(name)) return showToast('Essa matéria já existe!', true);
         turma.materias.push(name);
-        localStorage.setItem('idhub_database', JSON.stringify(database));
         newSubjectInput.value = '';
         renderGradesTable();
-        showToast('Matéria adicionada com sucesso!');
+        await persistDatabase('Matéria adicionada com sucesso!');
       });
 
-      // EDITAR MATÉRIA (Global para chamada via onclick)
-      window.editarMateria = function(oldName) {
-        const newName = prompt("Edite o nome da matéria:", oldName);
-        if (newName && newName.trim() !== "" && newName.trim().toUpperCase() !== oldName) {
-          const formattedName = newName.trim().toUpperCase();
-          const idx = turma.materias.indexOf(oldName);
-          if (idx !== -1) {
-            turma.materias[idx] = formattedName;
-            
-            // Transfere as notas para o novo nome de matéria para todos os alunos
-            turma.alunos.forEach(a => {
-              if (a.notas && a.notas[oldName]) {
-                a.notas[formattedName] = a.notas[oldName];
-                delete a.notas[oldName];
-              }
-            });
+      gradesTableBody.addEventListener('click', async (event) => {
+        const button = event.target.closest('.subject-action-btn');
+        if (!button) return;
+        const oldName = decodeURIComponent(button.dataset.subject || '');
+        if (!oldName) return;
 
-            localStorage.setItem('idhub_database', JSON.stringify(database));
-            renderGradesTable();
-            showToast('Matéria renomeada com sucesso!');
-          }
-        }
-      };
+        if (button.dataset.action === 'edit') {
+          const newName = prompt('Edite o nome da matéria:', oldName);
+          const formattedName = String(newName || '').trim().toUpperCase();
+          if (!formattedName || formattedName === oldName) return;
+          if (turma.materias.includes(formattedName)) return showToast('Essa matéria já existe!', true);
 
-      // REMOVER MATÉRIA (Global para chamada via onclick)
-      window.removerMateria = function(subjectName) {
-        if (confirm(`Deseja realmente remover a matéria "${subjectName}"?`)) {
-          turma.materias = turma.materias.filter(m => m !== subjectName);
-          
-          // Remove as notas dessa matéria em todos os alunos
-          turma.alunos.forEach(a => {
-            if (a.notas && a.notas[subjectName]) {
-              delete a.notas[subjectName];
+          const index = turma.materias.indexOf(oldName);
+          if (index === -1) return;
+          turma.materias[index] = formattedName;
+          turma.alunos.forEach((student) => {
+            if (student.notas && student.notas[oldName]) {
+              student.notas[formattedName] = student.notas[oldName];
+              delete student.notas[oldName];
             }
           });
-
-          localStorage.setItem('idhub_database', JSON.stringify(database));
           renderGradesTable();
-          showToast('Matéria removida!', true);
+          await persistDatabase('Matéria renomeada com sucesso!');
         }
-      };
 
-      // ALTERAÇÃO DOS PARÂMETROS DA TURMA (MÉDIA / TIPO / QTD)
-      classPassingGradeInput.addEventListener('change', () => {
-        turma.mediaAprovacao = parseFloat(classPassingGradeInput.value) || 6.0;
-        localStorage.setItem('idhub_database', JSON.stringify(database));
-        calculateDynamicTotals();
-      });
-
-      classPeriodTypeSelect.addEventListener('change', () => {
-        turma.tipoPeriodo = classPeriodTypeSelect.value;
-        localStorage.setItem('idhub_database', JSON.stringify(database));
-        renderGradesTable();
-      });
-
-      classPeriodCountInput.addEventListener('change', () => {
-        let val = parseInt(classPeriodCountInput.value);
-        if (val < 1) val = 1;
-        turma.qtdPeriodo = val;
-        classPeriodCountInput.value = val;
-        localStorage.setItem('idhub_database', JSON.stringify(database));
-        renderGradesTable();
-      });
-
-      // SALVAR NOTAS E CONFIGURAÇÕES
-      btnSaveGrades.addEventListener('click', () => {
-        btnSaveGrades.disabled = true;
-        btnSaveGrades.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>SALVANDO...</span>`;
-
-        // Salva notas do aluno atual
-        document.querySelectorAll('#gradesTableBody tr').forEach(tr => {
-          const subject = tr.dataset.subject;
-          if (subject) {
-            if (!aluno.notas[subject]) aluno.notas[subject] = {};
-            tr.querySelectorAll('.grade-input').forEach(input => {
-              const period = input.dataset.period;
-              aluno.notas[subject][period] = input.value;
-            });
-          }
-        });
-
-        // Salva dados da turma
-        turma.mediaAprovacao = parseFloat(classPassingGradeInput.value) || 6.0;
-        turma.tipoPeriodo = classPeriodTypeSelect.value;
-        turma.qtdPeriodo = parseInt(classPeriodCountInput.value) || 4;
-
-        localStorage.setItem('idhub_database', JSON.stringify(database));
-
-        setTimeout(() => {
-          btnSaveGrades.disabled = false;
-          btnSaveGrades.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> <span>SALVAR NOTAS</span>`;
-          showToast('Notas e Configurações salvas!');
+        if (button.dataset.action === 'delete') {
+          if (!confirm(`Deseja realmente remover a matéria "${oldName}"?`)) return;
+          turma.materias = turma.materias.filter((item) => item !== oldName);
+          turma.alunos.forEach((student) => {
+            if (student.notas) delete student.notas[oldName];
+          });
           renderGradesTable();
-        }, 500);
+          await persistDatabase('Matéria removida!');
+        }
       });
 
-      // RENDERIZAR ATIVIDADES
+      classPassingGradeInput.addEventListener('change', async () => {
+        turma.mediaAprovacao = Number.parseFloat(classPassingGradeInput.value) || 6;
+        calculateDynamicTotals();
+        await persistDatabase('Média de aprovação atualizada!');
+      });
+
+      classPeriodTypeSelect.addEventListener('change', async () => {
+        turma.tipoPeriodo = classPeriodTypeSelect.value;
+        renderGradesTable();
+        await persistDatabase('Tipo de período atualizado!');
+      });
+
+      classPeriodCountInput.addEventListener('change', async () => {
+        let value = parseInt(classPeriodCountInput.value, 10) || 4;
+        value = Math.max(1, Math.min(10, value));
+        classPeriodCountInput.value = value;
+        turma.qtdPeriodo = value;
+        renderGradesTable();
+        await persistDatabase('Quantidade de períodos atualizada!');
+      });
+
+      btnSaveGrades.addEventListener('click', async () => {
+        btnSaveGrades.disabled = true;
+        btnSaveGrades.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span>SALVANDO...</span>';
+
+        try {
+          document.querySelectorAll('#gradesTableBody tr').forEach((tr) => {
+            const subject = tr.dataset.subject;
+            if (!subject) return;
+            if (!aluno.notas[subject]) aluno.notas[subject] = {};
+            tr.querySelectorAll('.grade-input').forEach((input) => {
+              aluno.notas[subject][input.dataset.period] = input.value.trim();
+            });
+          });
+
+          turma.mediaAprovacao = Number.parseFloat(classPassingGradeInput.value) || 6;
+          turma.tipoPeriodo = classPeriodTypeSelect.value;
+          turma.qtdPeriodo = Math.max(1, parseInt(classPeriodCountInput.value, 10) || 4);
+
+          const saved = await persistDatabase('Notas e configurações salvas!');
+          if (saved) renderGradesTable();
+        } finally {
+          btnSaveGrades.disabled = false;
+          btnSaveGrades.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> <span>SALVAR NOTAS</span>';
+        }
+      });
+
       function renderActivities() {
         activitiesList.innerHTML = '';
-        if (!aluno.atividades || aluno.atividades.length === 0) {
-          activitiesList.innerHTML = `<p style="font-size:0.85rem; color: #fff; text-align:center; padding: 20px 0;">Nenhuma atividade cadastrada.</p>`;
+        if (!aluno.atividades.length) {
+          activitiesList.innerHTML = '<p style="font-size:0.85rem;color:#fff;text-align:center;padding:20px 0;">Nenhuma atividade cadastrada.</p>';
           return;
         }
-
-        aluno.atividades.forEach((act) => {
-          const activityDiv = document.createElement('div');
-          activityDiv.className = 'activity-item';
-          activityDiv.innerHTML = `
-            <span style="${act.concluida ? 'text-decoration: line-through; opacity: 0.5;' : ''}">${act.titulo.toUpperCase()}</span>
+        aluno.atividades.forEach((activity) => {
+          const div = document.createElement('div');
+          div.className = 'activity-item';
+          div.innerHTML = `
+            <span style="${activity.concluida ? 'text-decoration:line-through;opacity:0.5;' : ''}">${String(activity.titulo || '').toUpperCase()}</span>
             <div class="activity-actions">
-              <button class="btn-remove" data-id="${act.id}" title="Remover Atividade">
-                <i class="fa-solid fa-trash"></i>
-              </button>
-              <input type="checkbox" class="activity-checkbox" data-id="${act.id}" ${act.concluida ? 'checked' : ''}>
-            </div>
-          `;
-          activitiesList.appendChild(activityDiv);
+              <button type="button" class="btn-remove" data-id="${activity.id}" title="Remover Atividade"><i class="fa-solid fa-trash"></i></button>
+              <input type="checkbox" class="activity-checkbox" data-id="${activity.id}" ${activity.concluida ? 'checked' : ''}>
+            </div>`;
+          activitiesList.appendChild(div);
         });
       }
 
-      function addNewActivity() {
+      async function addNewActivity() {
         const title = newActivityInput.value.trim();
         if (!title) return;
-
-        const scope = document.querySelector('input[name="activityScope"]:checked').value;
-        const newAct = { id: 'act_' + Date.now(), titulo: title, concluida: false };
+        const scope = document.querySelector('input[name="activityScope"]:checked')?.value || 'aluno';
+        const newAct = { id: `act_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`, titulo: title, concluida: false };
 
         if (scope === 'turma') {
-          turma.alunos.forEach(a => {
-            if (!a.atividades) a.atividades = [];
-            a.atividades.push(JSON.parse(JSON.stringify(newAct)));
+          turma.alunos.forEach((student) => {
+            if (!Array.isArray(student.atividades)) student.atividades = [];
+            student.atividades.push(JSON.parse(JSON.stringify(newAct)));
           });
           showToast('Atividade enviada para a TURMA!');
         } else {
-          if (!aluno.atividades) aluno.atividades = [];
           aluno.atividades.push(newAct);
           showToast('Atividade INDIVIDUAL adicionada!');
         }
 
-        localStorage.setItem('idhub_database', JSON.stringify(database));
         newActivityInput.value = '';
         renderActivities();
+        await persistDatabase();
       }
 
-      newActivityInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') addNewActivity(); });
+      newActivityInput.addEventListener('keypress', (event) => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          addNewActivity();
+        }
+      });
       btnAddActivity.addEventListener('click', addNewActivity);
 
-      activitiesList.addEventListener('click', (e) => {
-        const removeBtn = e.target.closest('.btn-remove');
-        const checkbox = e.target.closest('.activity-checkbox');
-
+      activitiesList.addEventListener('click', async (event) => {
+        const removeBtn = event.target.closest('.btn-remove');
+        const checkbox = event.target.closest('.activity-checkbox');
         if (removeBtn) {
           const id = removeBtn.dataset.id;
-          aluno.atividades = aluno.atividades.filter(act => act.id !== id);
-          localStorage.setItem('idhub_database', JSON.stringify(database));
-          renderActivities(); showToast('Atividade removida!', true);
-        }
-
-        if (checkbox) {
-          const id = checkbox.dataset.id;
-          const act = aluno.atividades.find(a => a.id === id);
-          if (act) {
-            act.concluida = checkbox.checked;
-            localStorage.setItem('idhub_database', JSON.stringify(database));
+          aluno.atividades = aluno.atividades.filter((activity) => String(activity.id) !== String(id));
+          renderActivities();
+          await persistDatabase('Atividade removida!');
+        } else if (checkbox) {
+          const activity = aluno.atividades.find((item) => String(item.id) === String(checkbox.dataset.id));
+          if (activity) {
+            activity.concluida = checkbox.checked;
             renderActivities();
+            await persistDatabase();
           }
         }
       });
 
-      function showToast(message, isError = false) {
-        toastMsg.innerText = message;
-        if (isError) toastMsg.classList.add('toast-error'); else toastMsg.classList.remove('toast-error');
-        toastMsg.style.display = 'block'; setTimeout(() => { toastMsg.style.display = 'none'; }, 2500);
-      }
-
-      // Inicialização
+      const loaded = await carregarDados();
+      if (!loaded) return;
       renderGradesTable();
       renderActivities();
     });
-  </script>
+
+</script>
+
 </body>
 </html>
