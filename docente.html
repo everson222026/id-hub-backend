@@ -1501,40 +1501,56 @@
       if (!turma || !turma.alunos) return;
 
       const checkboxes = document.querySelectorAll('#listFreqContainer .presence-checkbox');
-      const previousAttendance = turma.alunos.map(aluno => ({
-        aluno,
-        faltas: aluno.faltas,
-        historicoFrequencia: { ...(aluno.historicoFrequencia || {}) }
+      if (!dataSel || !checkboxes.length) {
+        showToast('Selecione a data e confira os alunos antes de salvar.');
+        return;
+      }
+
+      const button = document.getElementById('btnLaunch');
+      const buttonLabel = button.querySelector('span');
+      const originalButtonLabel = buttonLabel.textContent;
+      const attendanceMarks = Array.from(checkboxes, checkbox => ({
+        checkbox,
+        alunoId: Number(checkbox.getAttribute('data-alunoid')),
+        presente: checkbox.checked
       }));
-
-      checkboxes.forEach(chk => {
-        const aId = chk.getAttribute('data-alunoid');
-        const aluno = turma.alunos.find(a => String(a.id) === aId);
-        if (aluno) {
-          if (!aluno.historicoFrequencia) aluno.historicoFrequencia = {};
-          const eraPresente = aluno.historicoFrequencia[dataSel];
-          const estaChecked = chk.checked;
-
-          aluno.historicoFrequencia[dataSel] = estaChecked;
-
-          if (eraPresente === false && estaChecked) {
-            aluno.faltas = Math.max(0, (aluno.faltas || 0) - 1);
-          } else if ((eraPresente === true || eraPresente === undefined) && !estaChecked) {
-            aluno.faltas = (aluno.faltas || 0) + 1;
-          }
-        }
-      });
+      button.disabled = true;
+      buttonLabel.textContent = 'SALVANDO...';
+      button.setAttribute('aria-busy', 'true');
+      checkboxes.forEach(checkbox => { checkbox.disabled = true; });
+      document.getElementById('attendanceDate').disabled = true;
 
       try {
-        await saveDatabase();
+        const saved = await apiRequest(`/turmas/${encodeURIComponent(turma.id)}/frequencias`, 'POST', {
+          data: dataSel,
+          frequencias: attendanceMarks.map(mark => ({
+            alunoId: mark.alunoId,
+            presente: mark.presente
+          }))
+        });
+
+        const faltasPorAluno = new Map(saved.alunos.map(aluno => [String(aluno.id), aluno.faltas]));
+        attendanceMarks.forEach(mark => {
+          const aluno = turma.alunos.find(item => String(item.id) === String(mark.alunoId));
+          if (!aluno) return;
+          if (!aluno.historicoFrequencia) aluno.historicoFrequencia = {};
+          aluno.historicoFrequencia[dataSel] = mark.presente;
+          if (faltasPorAluno.has(String(aluno.id))) {
+            aluno.faltas = faltasPorAluno.get(String(aluno.id));
+          }
+        });
+        localStorage.setItem('idhub_database', JSON.stringify(database));
         showToast("Frequência lançada com sucesso!");
       } catch (error) {
-        previousAttendance.forEach(previous => {
-          previous.aluno.faltas = previous.faltas;
-          previous.aluno.historicoFrequencia = previous.historicoFrequencia;
-        });
-        renderFreqList();
         showToast(`Não foi possível salvar a frequência: ${error.message}`);
+      } finally {
+        button.disabled = false;
+        button.removeAttribute('aria-busy');
+        buttonLabel.textContent = originalButtonLabel;
+        document.querySelectorAll('#listFreqContainer .presence-checkbox').forEach(checkbox => {
+          checkbox.disabled = false;
+        });
+        document.getElementById('attendanceDate').disabled = false;
       }
     });
 

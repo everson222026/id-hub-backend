@@ -167,24 +167,37 @@ async function getTurmasDoDocente(userId) {
 
   const turmaIds = turmaResult.rows.map(row => row.id);
 
-  const alunoResult = await db.query(
-    `SELECT * FROM alunos WHERE turma_id = ANY($1::int[]) ORDER BY id ASC`,
-    [turmaIds]
-  );
+  const [alunoResult, notasResult, freqResult] = await Promise.all([
+    db.query(
+      `SELECT id, turma_id, client_id, nome, matricula, nascimento, telefone, email,
+              endereco, observacoes, foto, faltas, atividades
+         FROM alunos
+        WHERE turma_id = ANY($1::int[])
+        ORDER BY id ASC`,
+      [turmaIds]
+    ),
+    db.query(
+      `SELECT n.aluno_id, n.materia, n.valor, n.bimestre, n.atividade
+         FROM notas n
+         JOIN alunos a ON a.id = n.aluno_id
+         JOIN turmas t ON t.id = a.turma_id
+        WHERE t.professor_id = $1
+        ORDER BY n.id ASC`,
+      [userId]
+    ),
+    db.query(
+      `SELECT f.aluno_id, f.data, f.presente
+         FROM frequencias f
+         JOIN alunos a ON a.id = f.aluno_id
+         JOIN turmas t ON t.id = a.turma_id
+        WHERE t.professor_id = $1
+        ORDER BY f.data ASC, f.id ASC`,
+      [userId]
+    )
+  ]);
 
-  const alunoIds = alunoResult.rows.map(row => row.id);
-
-  let notas = [];
-  let frequencias = [];
-
-  if (alunoIds.length > 0) {
-    const [notasResult, freqResult] = await Promise.all([
-      db.query(`SELECT * FROM notas WHERE aluno_id = ANY($1::int[]) ORDER BY id ASC`, [alunoIds]),
-      db.query(`SELECT * FROM frequencias WHERE aluno_id = ANY($1::int[]) ORDER BY data ASC, id ASC`, [alunoIds])
-    ]);
-    notas = notasResult.rows;
-    frequencias = freqResult.rows;
-  }
+  const notas = notasResult.rows;
+  const frequencias = freqResult.rows;
 
   const notasPorAluno = new Map();
   for (const nota of notas) {
@@ -618,6 +631,122 @@ app.post('/api/turmas', auth, async (req, res) => {
   } catch (error) {
     console.error('[SYNC RESPONSE]', error);
     res.status(500).json({ error: 'Dados salvos, mas não foi possível recarregar a lista.' });
+  }
+});
+
+app.post('/api/turmas/:id/frequencias', auth, async (req, res) => {
+  const turmaId = Number(req.params.id);
+  const data = req.body.data;
+  const frequencias = req.body.frequencias;
+
+  if (!Number.isSafeInteger(turmaId) || turmaId <= 0) {
+    return res.status(400).json({ error: 'ID da turma inválido.' });
+  }
+
+  if (typeof data !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(data)) {
+    return res.status(400).json({ error: 'Informe uma data válida para a frequência.' });
+  }
+  const [year, month, day] = data.split('-').map(Number);
+  const parsedDate = new Date(Date.UTC(year, month - 1, day));
+  if (
+    parsedDate.getUTCFullYear() !== year ||
+    parsedDate.getUTCMonth() !== month - 1 ||
+    parsedDate.getUTCDate() !== day
+  ) {
+    return res.status(400).json({ error: 'Informe uma data válida para a frequência.' });
+  }
+
+  if (!Array.isArray(frequencias) || frequencias.length === 0 || frequencias.length > 1000) {
+    return res.status(400).json({ error: 'Envie a frequência de pelo menos um aluno.' });
+  }
+
+  const seenStudentIds = new Set();
+  for (const item of frequencias) {
+    if (
+      !item ||
+      !Number.isSafeInteger(item.alunoId) ||
+      item.alunoId <= 0 ||
+      typeof item.presente !== 'boolean' ||
+      seenStudentIds.has(item.alunoId)
+    ) {
+      return res.status(400).json({ error: 'A lista de frequências contém dados inválidos.' });
+    }
+    seenStudentIds.add(item.alunoId);
+  }
+
+  let client;
+  let transactionStarted = false;
+  try {
+    client = await db.pool.connect();
+    await client.query('BEGIN');
+    transactionStarted = true;
+
+    const turma = await client.query(
+      'SELECT id FROM turmas WHERE id = $1 AND professor_id = $2 FOR UPDATE',
+      [turmaId, req.user.id]
+    );
+    if (!turma.rows.length) {
+      await client.query('ROLLBACK');
+      transactionStarted = false;
+      return res.status(404).json({ error: 'Turma não encontrada.' });
+    }
+
+    const studentIds = frequencias.map(item => item.alunoId);
+    const current = await client.query(
+      `SELECT a.id, a.faltas, COALESCE(f.presente, TRUE) AS presente
+         FROM alunos a
+         LEFT JOIN frequencias f ON f.aluno_id = a.id AND f.data = $2::date
+        WHERE a.turma_id = $1 AND a.id = ANY($3::int[])
+        FOR UPDATE OF a`,
+      [turmaId, data, studentIds]
+    );
+
+    if (current.rows.length !== frequencias.length) {
+      await client.query('ROLLBACK');
+      transactionStarted = false;
+      return res.status(400).json({ error: 'Um ou mais alunos não pertencem a esta turma.' });
+    }
+
+    const currentById = new Map(current.rows.map(row => [row.id, row]));
+    const deltas = frequencias.map(item => {
+      const oldPresent = currentById.get(item.alunoId).presente;
+      return {
+        aluno_id: item.alunoId,
+        presente: item.presente,
+        delta: oldPresent === item.presente ? 0 : item.presente ? -1 : 1
+      };
+    });
+
+    await client.query(
+      `INSERT INTO frequencias (aluno_id, data, presente)
+       SELECT entrada.aluno_id, $2::date, entrada.presente
+         FROM jsonb_to_recordset($1::jsonb) AS entrada(aluno_id integer, presente boolean)
+       ON CONFLICT (aluno_id, data)
+       DO UPDATE SET presente = EXCLUDED.presente`,
+      [JSON.stringify(deltas), data]
+    );
+
+    const updatedStudents = await client.query(
+      `UPDATE alunos AS a
+          SET faltas = GREATEST(0, a.faltas + entrada.delta)
+         FROM jsonb_to_recordset($1::jsonb) AS entrada(aluno_id integer, delta integer)
+        WHERE a.id = entrada.aluno_id
+        RETURNING a.id, a.faltas`,
+      [JSON.stringify(deltas)]
+    );
+
+    await client.query('COMMIT');
+    transactionStarted = false;
+    return res.json({
+      message: 'Frequência salva com sucesso.',
+      alunos: updatedStudents.rows.map(row => ({ id: row.id, faltas: Number(row.faltas) }))
+    });
+  } catch (error) {
+    if (client && transactionStarted) await client.query('ROLLBACK');
+    console.error('[SAVE FREQUENCIAS]', error);
+    return res.status(500).json({ error: 'Erro ao salvar a frequência.' });
+  } finally {
+    if (client) client.release();
   }
 });
 

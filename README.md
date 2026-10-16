@@ -8,7 +8,7 @@
 - Cada turma pertence ao docente que a criou.
 - Alunos ficam ligados à turma no PostgreSQL.
 - Notas e configuração de matérias/períodos ficam no PostgreSQL.
-- Frequências ficam na tabela `frequencias`.
+- Frequências ficam na tabela `frequencias`; o lançamento diário é atômico e atualiza as faltas sem regravar os demais dados da turma.
 - O backend inicializa/migra a estrutura do banco automaticamente ao iniciar.
 - Turmas antigas que estavam somente no `localStorage` podem ser migradas automaticamente quando o banco do docente estiver vazio e o `localStorage` ainda existir no mesmo domínio.
 - O painel continua usando o mesmo formato visual e o mesmo modelo de dados da interface.
@@ -18,6 +18,7 @@
 - `server.js` — API Express e inicialização do sistema.
 - `schema.js` — criação/migração das tabelas do PostgreSQL.
 - `db.js` — conexão com o Neon.
+- `POST /api/turmas/:id/frequencias` — grava em lote a chamada de frequência do dia sem reenviar notas, fotos ou a turma inteira.
 - `api.js` — comunicação do frontend com `/api` e envio do JWT.
 - `login.html` — login corrigido para produção.
 - `cadastro.html` — cadastro usando a API de produção.
