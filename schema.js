@@ -125,6 +125,45 @@ async function ensureDatabase() {
       UNIQUE (aluno_id, data)
     );
 
+    ALTER TABLE frequencias ADD COLUMN IF NOT EXISTS presente BOOLEAN;
+    DO $$
+    BEGIN
+      IF EXISTS (
+        SELECT 1
+          FROM information_schema.columns
+         WHERE table_schema = current_schema()
+           AND table_name = 'frequencias'
+           AND column_name = 'status'
+      ) THEN
+        EXECUTE $migration$
+          UPDATE frequencias
+             SET presente = CASE
+               WHEN lower(trim(status)) IN ('falta', 'ausente', 'absent', 'a', 'f', 'false', '0', 'nao', 'não')
+                 THEN FALSE
+               ELSE TRUE
+             END
+           WHERE presente IS NULL
+        $migration$;
+        ALTER TABLE frequencias ALTER COLUMN status DROP NOT NULL;
+      END IF;
+    END $$;
+
+    UPDATE frequencias
+       SET presente = TRUE
+     WHERE presente IS NULL;
+    ALTER TABLE frequencias ALTER COLUMN presente SET DEFAULT TRUE;
+    ALTER TABLE frequencias ALTER COLUMN presente SET NOT NULL;
+
+    -- Keep the latest legacy attendance record for each student and date.
+    DELETE FROM frequencias older
+     USING frequencias newer
+     WHERE older.aluno_id = newer.aluno_id
+       AND older.data = newer.data
+       AND older.id < newer.id;
+
+    CREATE UNIQUE INDEX IF NOT EXISTS frequencias_aluno_id_data_key
+      ON frequencias(aluno_id, data);
+
     CREATE TABLE IF NOT EXISTS password_reset_tokens (
       id SERIAL PRIMARY KEY,
       usuario_id INT NOT NULL UNIQUE REFERENCES usuarios(id) ON DELETE CASCADE,
