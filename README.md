@@ -110,7 +110,26 @@ Depois do deploy, o próprio Render dará uma URL como:
 
 Como o frontend é servido pelo mesmo Express, o sistema chama `/api` e não precisa de `localhost` nem de uma URL fixa do backend.
 
-## 5. Conferência final
+## 5. Netlify (frontend estático opcional)
+
+O projeto também pode publicar somente as páginas do site na CDN gratuita do Netlify,
+mantendo a API no Render e os dados no mesmo banco Neon. O arquivo `netlify.toml`
+encaminha `/api/*` ao backend existente, e `npm run build:netlify` publica em `dist/`
+apenas as páginas públicas necessárias.
+
+Para ativar:
+
+1. No Netlify, importe `everson222026/id-hub-backend` usando a integração com GitHub.
+2. Selecione a branch `main`; o Netlify lê o comando de build e a pasta de publicação do `netlify.toml`.
+3. Após o primeiro deploy, configure um domínio ou use o endereço `*.netlify.app` fornecido pelo Netlify.
+4. Mantenha o Web Service do Render e o banco Neon ativos; não remova nem substitua as variáveis de ambiente do Render.
+
+Essa divisão faz o HTML carregar pela CDN, mas as chamadas de dados continuam dependendo
+do Render. No plano gratuito, a primeira chamada depois de um período sem tráfego ainda
+pode demorar enquanto o backend desperta. O endereço Netlify só é criado quando o site
+é conectado e implantado na conta Netlify.
+
+## 6. Conferência final
 
 1. Abra a URL do Render.
 2. Cadastre um docente.

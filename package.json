@@ -6,7 +6,8 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "db:init": "node init-db.js"
+    "db:init": "node init-db.js",
+    "build:netlify": "node scripts/build-netlify.js"
   },
   "engines": {
     "node": ">=18"
