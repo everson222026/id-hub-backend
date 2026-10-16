@@ -72,24 +72,51 @@ function normalizeGradeEntries(notas) {
   if (!notas || typeof notas !== 'object') return [];
   const entries = [];
 
-  for (const [materia, rawValue] of Object.entries(notas)) {
-    if (rawValue === null || rawValue === undefined || rawValue === '') continue;
+  function addEntry(materia, rawValue, metadata = {}) {
+    if (rawValue === null || rawValue === undefined || rawValue === '') return;
+    if (typeof rawValue === 'string' && rawValue.trim() === '') return;
+    const valor = typeof rawValue === 'string'
+      ? Number(rawValue.trim().replace(',', '.'))
+      : Number(rawValue);
+    if (!Number.isFinite(valor)) return;
 
-    if (typeof rawValue === 'number' || (!Number.isNaN(Number(rawValue)) && typeof rawValue !== 'object')) {
-      const valor = Number(rawValue);
-      if (Number.isFinite(valor)) entries.push({ materia, valor });
+    entries.push({
+      materia,
+      valor,
+      bimestre: metadata.bimestre ?? null,
+      atividade: metadata.atividade ?? null
+    });
+  }
+
+  for (const [materia, rawValue] of Object.entries(notas)) {
+    if (rawValue === null || rawValue === undefined || rawValue === '') {
       continue;
     }
 
-    if (typeof rawValue === 'object') {
-      const valor = Number(rawValue.valor ?? rawValue.value ?? rawValue.nota);
-      if (Number.isFinite(valor)) {
-        entries.push({
-          materia,
-          valor,
-          bimestre: rawValue.bimestre ?? rawValue.periodo ?? null,
-          atividade: rawValue.atividade ?? rawValue.nome ?? null
+    if (typeof rawValue !== 'object') {
+      addEntry(materia, rawValue);
+      continue;
+    }
+
+    if (Array.isArray(rawValue)) continue;
+
+    const explicitValue = rawValue.valor ?? rawValue.value ?? rawValue.nota;
+    if (explicitValue !== undefined) {
+      addEntry(materia, explicitValue, {
+        bimestre: rawValue.bimestre ?? rawValue.periodo,
+        atividade: rawValue.atividade ?? rawValue.nome
+      });
+      continue;
+    }
+
+    for (const [periodo, periodValue] of Object.entries(rawValue)) {
+      if (periodValue && typeof periodValue === 'object' && !Array.isArray(periodValue)) {
+        addEntry(materia, periodValue.valor ?? periodValue.value ?? periodValue.nota, {
+          bimestre: periodValue.bimestre ?? periodValue.periodo ?? periodo,
+          atividade: periodValue.atividade ?? periodValue.nome
         });
+      } else {
+        addEntry(materia, periodValue, { bimestre: periodo });
       }
     }
   }
@@ -118,8 +145,12 @@ function buildTurma(row) {
     turno: row.turno || 'Matutino',
     badgeClass: row.badge_class || row.turno?.toLowerCase() || 'matutino',
     descricao: row.descricao || '',
-    tipoPeriodo: row.tipo_periodo || '4_bimestres',
+    tipoPeriodo: ['bimestre', 'trimestre', 'semestre'].includes(row.tipo_periodo)
+      ? row.tipo_periodo
+      : 'bimestre',
     mediaAprovacao: Number(row.media_aprovacao ?? 6),
+    qtdPeriodo: row.qtd_periodo || undefined,
+    materias: Array.isArray(row.materias) ? row.materias : undefined,
     professorNome: row.professor_nome || 'Professor não informado',
     professorFoto: row.professor_foto || null,
     alunos: []
@@ -160,11 +191,15 @@ async function getTurmasDoDocente(userId) {
     if (!notasPorAluno.has(nota.aluno_id)) notasPorAluno.set(nota.aluno_id, {});
     const valor = Number(nota.valor);
     const baseKey = nota.materia || 'Nota';
-    let key = baseKey;
-    if (nota.bimestre || nota.atividade) {
-      key = [baseKey, nota.bimestre, nota.atividade].filter(Boolean).join(' - ');
+    if (nota.bimestre) {
+      const current = notasPorAluno.get(nota.aluno_id);
+      if (!current[baseKey] || typeof current[baseKey] !== 'object') current[baseKey] = {};
+      current[baseKey][nota.bimestre] = valor;
+    } else {
+      let key = baseKey;
+      if (nota.atividade) key = [baseKey, nota.atividade].filter(Boolean).join(' - ');
+      notasPorAluno.get(nota.aluno_id)[key] = valor;
     }
-    notasPorAluno.get(nota.aluno_id)[key] = valor;
   }
 
   const freqPorAluno = new Map();
@@ -408,18 +443,24 @@ app.post('/api/turmas', auth, async (req, res) => {
              media_aprovacao = $6,
              professor_nome = $7,
              professor_foto = $8,
-             client_id = $9
-           WHERE id = $10 AND professor_id = $11`,
+             client_id = $9,
+             qtd_periodo = $10,
+             materias = $11::jsonb
+           WHERE id = $12 AND professor_id = $13`,
           [
             String(turma.nome || 'SEM NOME').slice(0, 100),
             turma.turno || 'Matutino',
             turma.badgeClass || String(turma.turno || 'Matutino').toLowerCase(),
             turma.descricao || '',
-            turma.tipoPeriodo || '4_bimestres',
+            turma.tipoPeriodo || 'bimestre',
             Number(turma.mediaAprovacao ?? 6),
             turma.professorNome || '',
             turma.professorFoto || null,
             clientId,
+            Number.isInteger(Number(turma.qtdPeriodo)) && Number(turma.qtdPeriodo) > 0
+              ? Number(turma.qtdPeriodo)
+              : null,
+            Array.isArray(turma.materias) ? JSON.stringify(turma.materias) : null,
             turmaId,
             req.user.id
           ]
@@ -427,8 +468,8 @@ app.post('/api/turmas', auth, async (req, res) => {
       } else {
         const r = await client.query(
           `INSERT INTO turmas
-             (client_id, nome, turno, badge_class, descricao, tipo_periodo, media_aprovacao, professor_nome, professor_foto, professor_id)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+             (client_id, nome, turno, badge_class, descricao, tipo_periodo, media_aprovacao, professor_nome, professor_foto, professor_id, qtd_periodo, materias)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12::jsonb)
            RETURNING id`,
           [
             clientId,
@@ -436,11 +477,15 @@ app.post('/api/turmas', auth, async (req, res) => {
             turma.turno || 'Matutino',
             turma.badgeClass || String(turma.turno || 'Matutino').toLowerCase(),
             turma.descricao || '',
-            turma.tipoPeriodo || '4_bimestres',
+            turma.tipoPeriodo || 'bimestre',
             Number(turma.mediaAprovacao ?? 6),
             turma.professorNome || '',
             turma.professorFoto || null,
-            req.user.id
+            req.user.id,
+            Number.isInteger(Number(turma.qtdPeriodo)) && Number(turma.qtdPeriodo) > 0
+              ? Number(turma.qtdPeriodo)
+              : null,
+            Array.isArray(turma.materias) ? JSON.stringify(turma.materias) : null
           ]
         );
         turmaId = r.rows[0].id;

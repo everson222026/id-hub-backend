@@ -7,7 +7,7 @@
 - Rotas de dados exigem autenticação.
 - Cada turma pertence ao docente que a criou.
 - Alunos ficam ligados à turma no PostgreSQL.
-- Notas ficam na tabela `notas`.
+- Notas e configuração de matérias/períodos ficam no PostgreSQL.
 - Frequências ficam na tabela `frequencias`.
 - O backend inicializa/migra a estrutura do banco automaticamente ao iniciar.
 - Turmas antigas que estavam somente no `localStorage` podem ser migradas automaticamente quando o banco do docente estiver vazio e o `localStorage` ainda existir no mesmo domínio.
@@ -22,6 +22,7 @@
 - `login.html` — login corrigido para produção.
 - `cadastro.html` — cadastro usando a API de produção.
 - `docente.html` — painel gravando dados no Neon.
+- `notas-atividades-docente.html` — carrega e grava notas, atividades e configuração diretamente pela API.
 - `package.json` — dependências e comando de inicialização.
 - `render.yaml` — configuração opcional do Render.
 

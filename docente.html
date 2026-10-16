@@ -1250,7 +1250,7 @@
 
       const docenteInfo = JSON.parse(localStorage.getItem('idhub_docente')) || {};
 
-      database.unshift({ 
+      const novaTurma = {
         id: 'turma_' + Date.now(), 
         nome: nomeInput.value.trim().toUpperCase(), 
         turno: shiftOption.value, 
@@ -1261,11 +1261,19 @@
         professorNome: docenteInfo.nome || "Professor não informado",
         professorFoto: docenteInfo.foto || null,
         alunos: [] 
-      });
+      };
+      database.unshift(novaTurma);
 
       activeTurmaIndex = 0; 
       activeAlunoIndex = 0; 
-      await saveDatabase();
+      try {
+        await saveDatabase();
+      } catch (error) {
+        database = database.filter(turma => turma !== novaTurma);
+        box.className = "alert-box error";
+        box.innerText = `Não foi possível salvar a turma: ${error.message}`;
+        return;
+      }
       
       box.className = "alert-box success"; 
       box.innerText = "Turma criada com sucesso!";
@@ -1311,11 +1319,34 @@
         atividades: []
       };
 
-      if (!database[activeTurmaIndex].alunos) database[activeTurmaIndex].alunos = [];
-      database[activeTurmaIndex].alunos.push(novoAluno); 
-      activeAlunoIndex = database[activeTurmaIndex].alunos.length - 1; 
-      await saveDatabase();
-      
+      const turma = database[activeTurmaIndex];
+      const turmaClientId = String(turma.clientId || turma.id);
+      const alunoClientId = String(novoAluno.id);
+      if (!turma.alunos) turma.alunos = [];
+      turma.alunos.push(novoAluno);
+      activeAlunoIndex = turma.alunos.length - 1;
+      try {
+        await saveDatabase();
+      } catch (error) {
+        turma.alunos = turma.alunos.filter(aluno => aluno !== novoAluno);
+        box.className = "alert-box error";
+        box.innerText = `Não foi possível salvar o aluno: ${error.message}`;
+        return;
+      }
+
+      const savedTurmaIndex = database.findIndex(
+        item => String(item.clientId || item.id) === turmaClientId
+      );
+      if (savedTurmaIndex !== -1) {
+        activeTurmaIndex = savedTurmaIndex;
+        const savedTurma = database[savedTurmaIndex];
+        savedTurma.alunos.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+        const savedAlunoIndex = savedTurma.alunos.findIndex(
+          item => String(item.clientId || item.id) === alunoClientId
+        );
+        if (savedAlunoIndex !== -1) activeAlunoIndex = savedAlunoIndex;
+      }
+
       box.className = "alert-box success"; 
       box.innerText = "Aluno adicionado com sucesso!";
       
@@ -1394,9 +1425,10 @@
         showToast("Nenhuma turma cadastrada!");
         return;
       }
-      const today = new Date().toISOString().split('T')[0];
+      const now = new Date();
+      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
       document.getElementById('attendanceDate').value = today;
-      currentCalendarDate = new Date();
+      currentCalendarDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       switchView('view-diario-frequencia');
       switchFreqSubView('frequencia');
     }
@@ -1469,9 +1501,15 @@
       if (!turma || !turma.alunos) return;
 
       const checkboxes = document.querySelectorAll('#listFreqContainer .presence-checkbox');
+      const previousAttendance = turma.alunos.map(aluno => ({
+        aluno,
+        faltas: aluno.faltas,
+        historicoFrequencia: { ...(aluno.historicoFrequencia || {}) }
+      }));
+
       checkboxes.forEach(chk => {
         const aId = chk.getAttribute('data-alunoid');
-        const aluno = turma.alunos.find(a => a.id === aId);
+        const aluno = turma.alunos.find(a => String(a.id) === aId);
         if (aluno) {
           if (!aluno.historicoFrequencia) aluno.historicoFrequencia = {};
           const eraPresente = aluno.historicoFrequencia[dataSel];
@@ -1487,8 +1525,17 @@
         }
       });
 
-      await saveDatabase();
-      showToast("Frequência lançada com sucesso!");
+      try {
+        await saveDatabase();
+        showToast("Frequência lançada com sucesso!");
+      } catch (error) {
+        previousAttendance.forEach(previous => {
+          previous.aluno.faltas = previous.faltas;
+          previous.aluno.historicoFrequencia = previous.historicoFrequencia;
+        });
+        renderFreqList();
+        showToast(`Não foi possível salvar a frequência: ${error.message}`);
+      }
     });
 
     function renderFaltasContainer() {
@@ -1538,14 +1585,21 @@
         isEditingFaltas = false;
         btn.classList.remove('editing-mode');
         btn.querySelector('span').textContent = 'EDITAR MANUALMENTE';
+        const previousFaltas = turma.alunos.map(aluno => ({ aluno, faltas: aluno.faltas }));
         inputs.forEach(inp => {
           inp.setAttribute('disabled', 'true');
           const aId = inp.getAttribute('data-alunoid');
-          const aluno = turma.alunos.find(a => a.id === aId);
+          const aluno = turma.alunos.find(a => String(a.id) === aId);
           if (aluno) aluno.faltas = parseInt(inp.value) || 0;
         });
-        await saveDatabase();
-        showToast("Faltas atualizadas com sucesso!");
+        try {
+          await saveDatabase();
+          showToast("Faltas atualizadas com sucesso!");
+        } catch (error) {
+          previousFaltas.forEach(previous => { previous.aluno.faltas = previous.faltas; });
+          showToast(`Não foi possível salvar as faltas: ${error.message}`);
+          renderFaltasContainer();
+        }
       }
     });
 

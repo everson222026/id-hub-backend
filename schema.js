@@ -38,8 +38,10 @@ async function ensureDatabase() {
       turno VARCHAR(50),
       badge_class VARCHAR(50),
       descricao TEXT,
-      tipo_periodo VARCHAR(50) DEFAULT '4_bimestres',
+      tipo_periodo VARCHAR(50) DEFAULT 'bimestre',
       media_aprovacao NUMERIC(5,2) DEFAULT 6.00,
+      qtd_periodo INTEGER,
+      materias JSONB,
       professor_nome VARCHAR(255),
       professor_foto TEXT,
       professor_id INT REFERENCES usuarios(id) ON DELETE CASCADE,
@@ -50,8 +52,11 @@ async function ensureDatabase() {
     ALTER TABLE turmas ADD COLUMN IF NOT EXISTS turno VARCHAR(50);
     ALTER TABLE turmas ADD COLUMN IF NOT EXISTS badge_class VARCHAR(50);
     ALTER TABLE turmas ADD COLUMN IF NOT EXISTS descricao TEXT;
-    ALTER TABLE turmas ADD COLUMN IF NOT EXISTS tipo_periodo VARCHAR(50) DEFAULT '4_bimestres';
+    ALTER TABLE turmas ADD COLUMN IF NOT EXISTS tipo_periodo VARCHAR(50) DEFAULT 'bimestre';
+    ALTER TABLE turmas ALTER COLUMN tipo_periodo SET DEFAULT 'bimestre';
     ALTER TABLE turmas ADD COLUMN IF NOT EXISTS media_aprovacao NUMERIC(5,2) DEFAULT 6.00;
+    ALTER TABLE turmas ADD COLUMN IF NOT EXISTS qtd_periodo INTEGER;
+    ALTER TABLE turmas ADD COLUMN IF NOT EXISTS materias JSONB;
     ALTER TABLE turmas ADD COLUMN IF NOT EXISTS professor_nome VARCHAR(255);
     ALTER TABLE turmas ADD COLUMN IF NOT EXISTS professor_foto TEXT;
     ALTER TABLE turmas ADD COLUMN IF NOT EXISTS professor_id INT;
