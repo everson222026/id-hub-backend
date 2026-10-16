@@ -23,4 +23,7 @@ for (const file of publicFiles) {
   fs.copyFileSync(source, path.join(output, file));
 }
 
-console.log(`Prepared ${publicFiles.length} public files in dist/.`);
+const redirects = "/api/* https://id-hub.onrender.com/api/:splat 200\n";
+fs.writeFileSync(path.join(output, "_redirects"), redirects);
+
+console.log(`Prepared ${publicFiles.length} public files and API proxy in dist/.`);

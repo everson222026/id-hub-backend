@@ -113,9 +113,9 @@ Como o frontend é servido pelo mesmo Express, o sistema chama `/api` e não pre
 ## 5. Netlify (frontend estático opcional)
 
 O projeto também pode publicar somente as páginas do site na CDN gratuita do Netlify,
-mantendo a API no Render e os dados no mesmo banco Neon. O arquivo `netlify.toml`
-encaminha `/api/*` ao backend existente, e `npm run build:netlify` publica em `dist/`
-apenas as páginas públicas necessárias.
+mantendo a API no Render e os dados no mesmo banco Neon. O `netlify.toml` configura o
+proxy para builds conectados ao Git; `npm run build:netlify` publica em `dist/` apenas
+as páginas necessárias e gera `_redirects` para o proxy em deploys manuais.
 
 Para ativar:
 
