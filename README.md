@@ -9,6 +9,8 @@
 - Alunos ficam ligados à turma no PostgreSQL.
 - Notas e configuração de matérias/períodos ficam no PostgreSQL.
 - Frequências ficam na tabela `frequencias`; o lançamento diário é atômico e atualiza as faltas sem regravar os demais dados da turma.
+- Fotos são redimensionadas e convertidas para WebP antes de serem enviadas ao navegador, reduzindo o tamanho carregado pelo painel.
+- Notas e históricos enviados junto com a turma são persistidos em lote para reduzir viagens ao banco.
 - O backend inicializa/migra a estrutura do banco automaticamente ao iniciar.
 - Turmas antigas que estavam somente no `localStorage` podem ser migradas automaticamente quando o banco do docente estiver vazio e o `localStorage` ainda existir no mesmo domínio.
 - O painel continua usando o mesmo formato visual e o mesmo modelo de dados da interface.

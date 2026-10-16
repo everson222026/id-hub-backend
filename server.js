@@ -6,11 +6,57 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const path = require('path');
 const crypto = require('crypto');
+const sharp = require('sharp');
 const db = require('./db');
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
 const JWT_SECRET = process.env.JWT_SECRET || 'TROQUE_ESTA_CHAVE_EM_PRODUCAO';
+const optimizedPhotoCache = new Map();
+const MAX_OPTIMIZED_PHOTOS = 100;
+
+async function optimizePhoto(photo) {
+  if (typeof photo !== 'string') return photo;
+  const match = /^data:image\/(?:jpe?g|png|webp);base64,([\s\S]+)$/i.exec(photo);
+  if (!match) return photo;
+
+  const source = match[1];
+  const cacheKey = crypto.createHash('sha256').update(source).digest('hex');
+  if (optimizedPhotoCache.has(cacheKey)) {
+    const cached = optimizedPhotoCache.get(cacheKey);
+    optimizedPhotoCache.delete(cacheKey);
+    optimizedPhotoCache.set(cacheKey, cached);
+    return cached;
+  }
+
+  const optimized = (async () => {
+    const image = Buffer.from(source, 'base64');
+    if (/^data:image\/webp;/i.test(photo)) {
+      const metadata = await sharp(image, { failOn: 'none' }).metadata();
+      if (metadata.width <= 320 && metadata.height <= 320) return photo;
+    }
+
+    const buffer = await sharp(image, { failOn: 'none' })
+      .rotate()
+      .resize({ width: 320, height: 320, fit: 'inside', withoutEnlargement: true })
+      .webp({ quality: 72, effort: 4 })
+      .toBuffer();
+    return `data:image/webp;base64,${buffer.toString('base64')}`;
+  })();
+
+  optimizedPhotoCache.set(cacheKey, optimized);
+  if (optimizedPhotoCache.size > MAX_OPTIMIZED_PHOTOS) {
+    optimizedPhotoCache.delete(optimizedPhotoCache.keys().next().value);
+  }
+
+  try {
+    return await optimized;
+  } catch (error) {
+    if (optimizedPhotoCache.get(cacheKey) === optimized) optimizedPhotoCache.delete(cacheKey);
+    console.warn('[IDHUB IMAGE] Não foi possível otimizar uma foto; imagem original mantida.', error.message);
+    return photo;
+  }
+}
 
 if (JWT_SECRET === 'TROQUE_ESTA_CHAVE_EM_PRODUCAO') {
   console.warn('[IDHUB] AVISO: defina JWT_SECRET nas variáveis de ambiente do Render.');
@@ -137,6 +183,23 @@ function buildUser(row) {
   };
 }
 
+async function persistOptimizedUserPhoto(row) {
+  if (!row.foto) return row;
+
+  const foto = await optimizePhoto(row.foto);
+  if (foto === row.foto) return row;
+
+  const hashOriginal = crypto.createHash('md5').update(row.foto).digest('hex');
+  const result = await db.query(
+    `UPDATE usuarios
+        SET foto = $1
+      WHERE id = $2 AND md5(foto) = $3`,
+    [foto, row.id, hashOriginal]
+  );
+
+  return result.rowCount ? { ...row, foto } : row;
+}
+
 function buildTurma(row) {
   return {
     id: row.id,
@@ -198,6 +261,51 @@ async function getTurmasDoDocente(userId) {
 
   const notas = notasResult.rows;
   const frequencias = freqResult.rows;
+  const [alunoFotos, turmaFotos] = await Promise.all([
+    Promise.all(alunoResult.rows.map(async aluno => [aluno.id, await optimizePhoto(aluno.foto)])),
+    Promise.all(turmaResult.rows.map(async turma => [turma.id, await optimizePhoto(turma.professor_foto)]))
+  ]);
+  const fotoPorAluno = new Map(alunoFotos);
+  const fotoPorTurma = new Map(turmaFotos);
+  const fotosAlunosAtualizadas = alunoResult.rows
+    .filter(aluno => aluno.foto && fotoPorAluno.get(aluno.id) !== aluno.foto)
+    .map(aluno => ({
+      id: aluno.id,
+      hash_original: crypto.createHash('md5').update(aluno.foto).digest('hex'),
+      foto: fotoPorAluno.get(aluno.id)
+    }));
+  const fotosProfessoresAtualizadas = turmaResult.rows
+    .filter(turma => turma.professor_foto && fotoPorTurma.get(turma.id) !== turma.professor_foto)
+    .map(turma => ({
+      id: turma.id,
+      hash_original: crypto.createHash('md5').update(turma.professor_foto).digest('hex'),
+      foto: fotoPorTurma.get(turma.id)
+    }));
+
+  await Promise.all([
+    fotosAlunosAtualizadas.length > 0 && db.query(
+      `UPDATE alunos AS a
+          SET foto = photo_update.foto
+         FROM jsonb_to_recordset($1::jsonb)
+           AS photo_update(id integer, hash_original text, foto text),
+              turmas AS t
+        WHERE a.id = photo_update.id
+          AND t.id = a.turma_id
+          AND t.professor_id = $2
+          AND md5(a.foto) = photo_update.hash_original`,
+      [JSON.stringify(fotosAlunosAtualizadas), userId]
+    ),
+    fotosProfessoresAtualizadas.length > 0 && db.query(
+      `UPDATE turmas AS t
+          SET professor_foto = photo_update.foto
+         FROM jsonb_to_recordset($1::jsonb)
+           AS photo_update(id integer, hash_original text, foto text)
+        WHERE t.id = photo_update.id
+          AND t.professor_id = $2
+          AND md5(t.professor_foto) = photo_update.hash_original`,
+      [JSON.stringify(fotosProfessoresAtualizadas), userId]
+    )
+  ]);
 
   const notasPorAluno = new Map();
   for (const nota of notas) {
@@ -235,7 +343,7 @@ async function getTurmasDoDocente(userId) {
       email: aluno.email || 'Não informado',
       endereco: aluno.endereco || 'Não informado',
       observacoes: aluno.observacoes || '',
-      foto: aluno.foto || 'https://via.placeholder.com/150',
+      foto: fotoPorAluno.get(aluno.id) || 'https://via.placeholder.com/150',
       faltas: Number(aluno.faltas || 0),
       historicoFrequencia: freqPorAluno.get(aluno.id) || {},
       notas: notasPorAluno.get(aluno.id) || {},
@@ -245,6 +353,7 @@ async function getTurmasDoDocente(userId) {
 
   return turmaResult.rows.map(row => ({
     ...buildTurma(row),
+    professorFoto: fotoPorTurma.get(row.id) || null,
     alunos: alunosPorTurma.get(row.id) || []
   }));
 }
@@ -318,7 +427,7 @@ app.post('/api/login', async (req, res) => {
       return res.status(401).json({ error: 'E-mail ou senha inválidos.' });
     }
 
-    const user = buildUser(usuario);
+    const user = buildUser(await persistOptimizedUserPhoto(usuario));
     const token = createToken(user);
 
     res.json({
@@ -342,7 +451,7 @@ app.get('/api/me', auth, async (req, res) => {
       [req.user.id]
     );
     if (!result.rows.length) return res.status(404).json({ error: 'Usuário não encontrado.' });
-    res.json({ user: buildUser(result.rows[0]) });
+    res.json({ user: buildUser(await persistOptimizedUserPhoto(result.rows[0])) });
   } catch (error) {
     console.error('[ME]', error);
     res.status(500).json({ error: 'Erro ao carregar perfil.' });
@@ -353,6 +462,7 @@ app.patch('/api/me', auth, async (req, res) => {
   try {
     const { name, email, phone, especialidade, foto } = req.body;
     const emailNormalizado = email ? String(email).trim().toLowerCase() : undefined;
+    const fotoOtimizada = foto !== undefined ? await optimizePhoto(foto) : null;
 
     if (emailNormalizado) {
       const emailUsado = await db.query(
@@ -380,7 +490,7 @@ app.patch('/api/me', auth, async (req, res) => {
         emailNormalizado || null,
         phone !== undefined ? String(phone) : null,
         especialidade !== undefined ? String(especialidade) : null,
-        foto !== undefined ? foto : null,
+        fotoOtimizada,
         req.user.id
       ]
     );
@@ -421,27 +531,24 @@ app.post('/api/turmas', auth, async (req, res) => {
     await client.query('BEGIN');
 
     const turmaIdsMantidas = [];
+    const incomingStudentIds = [];
+    const gradeEntries = [];
+    const attendanceEntries = [];
 
     for (const rawTurma of turmas) {
       const turma = rawTurma || {};
       const clientId = String(turma.clientId || (typeof turma.id === 'string' ? turma.id : '') || `turma_${crypto.randomUUID()}`).slice(0, 100);
       const numericId = Number.isInteger(Number(turma.id)) ? Number(turma.id) : null;
+      const professorFoto = await optimizePhoto(turma.professorFoto || null);
 
-      let existing = null;
-      if (numericId !== null) {
-        const r = await client.query(
-          'SELECT id FROM turmas WHERE id = $1 AND professor_id = $2',
-          [numericId, req.user.id]
-        );
-        existing = r.rows[0] || null;
-      }
-      if (!existing) {
-        const r = await client.query(
-          'SELECT id FROM turmas WHERE client_id = $1 AND professor_id = $2',
-          [clientId, req.user.id]
-        );
-        existing = r.rows[0] || null;
-      }
+      const existingResult = await client.query(
+        `SELECT id FROM turmas
+          WHERE professor_id = $2 AND (id = $1 OR client_id = $3)
+          ORDER BY (id = $1) DESC
+          LIMIT 1`,
+        [numericId, req.user.id, clientId]
+      );
+      const existing = existingResult.rows[0] || null;
 
       let turmaId;
       if (existing) {
@@ -468,7 +575,7 @@ app.post('/api/turmas', auth, async (req, res) => {
             turma.tipoPeriodo || 'bimestre',
             Number(turma.mediaAprovacao ?? 6),
             turma.professorNome || '',
-            turma.professorFoto || null,
+            professorFoto,
             clientId,
             Number.isInteger(Number(turma.qtdPeriodo)) && Number(turma.qtdPeriodo) > 0
               ? Number(turma.qtdPeriodo)
@@ -493,7 +600,7 @@ app.post('/api/turmas', auth, async (req, res) => {
             turma.tipoPeriodo || 'bimestre',
             Number(turma.mediaAprovacao ?? 6),
             turma.professorNome || '',
-            turma.professorFoto || null,
+            professorFoto,
             req.user.id,
             Number.isInteger(Number(turma.qtdPeriodo)) && Number(turma.qtdPeriodo) > 0
               ? Number(turma.qtdPeriodo)
@@ -516,23 +623,17 @@ app.post('/api/turmas', auth, async (req, res) => {
         ).slice(0, 100);
         const numericAlunoId = Number.isInteger(Number(aluno.id)) ? Number(aluno.id) : null;
 
-        let existingAluno = null;
-        if (numericAlunoId !== null) {
-          const r = await client.query(
-            'SELECT id FROM alunos WHERE id = $1 AND turma_id = $2',
-            [numericAlunoId, turmaId]
-          );
-          existingAluno = r.rows[0] || null;
-        }
-        if (!existingAluno) {
-          const r = await client.query(
-            'SELECT id FROM alunos WHERE client_id = $1 AND turma_id = $2',
-            [alunoClientId, turmaId]
-          );
-          existingAluno = r.rows[0] || null;
-        }
+        const existingAlunoResult = await client.query(
+          `SELECT id FROM alunos
+            WHERE turma_id = $2 AND (id = $1 OR client_id = $3)
+            ORDER BY (id = $1) DESC
+            LIMIT 1`,
+          [numericAlunoId, turmaId, alunoClientId]
+        );
+        const existingAluno = existingAlunoResult.rows[0] || null;
 
         let alunoId;
+        const foto = await optimizePhoto(aluno.foto || null);
         const alunoData = [
           alunoClientId,
           String(aluno.nome || 'SEM NOME').slice(0, 255),
@@ -542,7 +643,7 @@ app.post('/api/turmas', auth, async (req, res) => {
           String(aluno.email || 'Não informado').slice(0, 255),
           String(aluno.endereco || 'Não informado'),
           String(aluno.observacoes || ''),
-          aluno.foto || null,
+          foto,
           Math.max(0, Number(aluno.faltas || 0)),
           JSON.stringify(aluno.atividades || [])
         ];
@@ -572,25 +673,19 @@ app.post('/api/turmas', auth, async (req, res) => {
         }
 
         incomingAlunoIds.push(alunoId);
-
-        await client.query('DELETE FROM notas WHERE aluno_id = $1', [alunoId]);
+        incomingStudentIds.push(alunoId);
         for (const nota of normalizeGradeEntries(aluno.notas)) {
-          await client.query(
-            `INSERT INTO notas (aluno_id, materia, valor, bimestre, atividade)
-             VALUES ($1,$2,$3,$4,$5)`,
-            [alunoId, String(nota.materia).slice(0, 100), nota.valor, nota.bimestre || null, nota.atividade || null]
-          );
+          gradeEntries.push({
+            aluno_id: alunoId,
+            materia: String(nota.materia).slice(0, 100),
+            valor: nota.valor,
+            bimestre: nota.bimestre || null,
+            atividade: nota.atividade || null
+          });
         }
-
-        await client.query('DELETE FROM frequencias WHERE aluno_id = $1', [alunoId]);
         for (const [data, presente] of Object.entries(aluno.historicoFrequencia || {})) {
           if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) continue;
-          await client.query(
-            `INSERT INTO frequencias (aluno_id, data, presente)
-             VALUES ($1,$2,$3)
-             ON CONFLICT (aluno_id, data) DO UPDATE SET presente = EXCLUDED.presente`,
-            [alunoId, data, Boolean(presente)]
-          );
+          attendanceEntries.push({ aluno_id: alunoId, data, presente: Boolean(presente) });
         }
       }
 
@@ -603,6 +698,30 @@ app.post('/api/turmas', auth, async (req, res) => {
           [turmaId, incomingAlunoIds]
         );
       }
+    }
+
+    if (incomingStudentIds.length > 0) {
+      await client.query('DELETE FROM notas WHERE aluno_id = ANY($1::int[])', [incomingStudentIds]);
+    }
+    if (gradeEntries.length > 0) {
+      await client.query(
+        `INSERT INTO notas (aluno_id, materia, valor, bimestre, atividade)
+         SELECT entry.aluno_id, entry.materia, entry.valor, entry.bimestre, entry.atividade
+           FROM jsonb_to_recordset($1::jsonb)
+             AS entry(aluno_id integer, materia text, valor numeric, bimestre text, atividade text)`,
+        [JSON.stringify(gradeEntries)]
+      );
+    }
+    if (attendanceEntries.length > 0) {
+      await client.query(
+        `INSERT INTO frequencias (aluno_id, data, presente)
+         SELECT entry.aluno_id, entry.data, entry.presente
+           FROM jsonb_to_recordset($1::jsonb)
+             AS entry(aluno_id integer, data date, presente boolean)
+         ON CONFLICT (aluno_id, data)
+         DO UPDATE SET presente = EXCLUDED.presente`,
+        [JSON.stringify(attendanceEntries)]
+      );
     }
 
     if (replaceAll) {
